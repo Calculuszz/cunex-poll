@@ -1,11 +1,10 @@
-import { Geist, Geist_Mono, Inter } from "next/font/google"
+import { Geist_Mono } from "next/font/google"
 
-import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@/lib/utils";
+import "@/style/globals.css"
+import { cn } from "@/lib/utils"
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'})
-
+// ฟอนต์ไทยทั้งหมดประกาศเป็น @font-face ใน globals.css แล้ว เหลือแค่ mono
+// ที่ยังใช้ Geist_Mono เพราะตระกูลจุฬาฯ ไม่มีตัว monospace
 const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
@@ -18,13 +17,11 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="th"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", inter.variable)}
+      className={cn("antialiased", "font-sans", fontMono.variable)}
     >
-      <body>
-        <ThemeProvider>{children}</ThemeProvider>
-      </body>
+      <body>{children}</body>
     </html>
   )
 }
