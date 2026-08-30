@@ -12,9 +12,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-
-// locale th ของ date-fns ให้ ค.ศ. ไม่ใช่ พ.ศ. ต้องบวก 543 เอง
-// ใช้ทั้งข้อความบนปุ่มและหัวเดือนของปฏิทิน จะได้ไม่ขัดกัน
 function toBuddhistYear(date: Date) {
   return date.getFullYear() + 543
 }
@@ -36,8 +33,6 @@ const thaiLabels = {
   labelPrevious: () => "เดือนก่อนหน้า",
   labelNext: () => "เดือนถัดไป",
 }
-
-/** เที่ยงคืนของวันนี้ — ใช้เทียบว่าวันไหนเป็นอดีต */
 function startOfToday() {
   const now = new Date()
   now.setHours(0, 0, 0, 0)
@@ -47,17 +42,10 @@ function startOfToday() {
 interface DatePickerProps {
   date?: Date
   setDate: (date: Date | undefined) => void
-  /** ข้อความตอนยังไม่ได้เลือกวัน */
   placeholder?: string
-  /** ห้ามเลือกวันที่ผ่านมาแล้ว — ค่าเริ่มต้นคือห้าม เพราะส่วนใหญ่ใช้กับวันสิ้นสุด */
   allowPast?: boolean
   disabled?: boolean
   className?: string
-  /**
-   * ส่ง trigger เองได้ ต้องเป็น element เดียว เพราะ Base UI จะเอาไป render
-   * แทน <button> ของตัวเอง (ไม่ใช่ครอบทับ) — ถ้าไม่ส่งจะใช้ปุ่มที่หน้าตา
-   * เหมือนช่องกรอกอื่นในฟอร์ม
-   */
   children?: React.ReactElement
 }
 
@@ -83,7 +71,6 @@ export function DatePicker({
             date ? `วันที่เลือก ${formatThaiDate(date)}` : placeholder
           }
           className={cn(
-            // mobile-first: เต็มความกว้าง สูงเท่า Input ตัวอื่นในฟอร์ม
             "flex min-h-[2.4rem] w-full items-center justify-between gap-2 rounded-lg border border-input bg-transparent px-2.5 py-1",
             "text-base transition-colors md:text-sm dark:bg-input/30",
             "outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
