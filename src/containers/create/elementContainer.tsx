@@ -9,9 +9,9 @@ import { useElementStore } from '@/store/elementStore'
 export function ElementContainer() {
     const items = useElementStore(s => s.items)
 
-    useEffect(() => {
-        console.log(items)
-    }, [items])
+    // useEffect(() => {
+    //     console.log(items)
+    // }, [items])
 
     return (
         <div className=' flex flex-col gap-2'>

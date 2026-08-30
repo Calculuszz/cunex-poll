@@ -39,6 +39,7 @@ type UseElementStore = {
     items: FormItem[]
     add: (item: FormItem) => void
     remove: (id: string) => void
+    removeAll: () => void
     update: (id: string, patch: Partial<FormItem>) => void
     move: (from: number, to: number) => void
 }
@@ -49,6 +50,7 @@ export const useElementStore = create<UseElementStore>()(
             items: [],
             add: (item) => set((s) => ({ items: [...s.items, item] })),
             remove: (id) => set((s) => ({ items: s.items.filter((i) => i.id !== id) })),
+            removeAll: () => set((s) => ({ items: [] })),
             update: (id, patch) => set((s) => ({
                 items: s.items.map((i) => (i.id === id ? { ...i, ...patch } as FormItem : i)),
             })),

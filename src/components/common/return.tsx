@@ -13,10 +13,12 @@ import {
     DialogClose
 } from "@/components/ui/dialog"
 import { Button } from '../ui/button'
+import { useElementStore } from '@/store/elementStore'
 
 export function ReturnButton() {
     const pathName = usePathname();
     const router = useRouter();
+    const removeAll = useElementStore((s) => s.removeAll)
     if (pathName === "/create") {
         return (
             <>
@@ -36,7 +38,14 @@ export function ReturnButton() {
                         </DialogHeader>
                         <DialogFooter className=' bg-transparent items-center '>
                             <DialogClose render={<Button variant={`ghost`} className={'font-heading font-bold text-sm px-4 py-5'}>ยกเลิก</Button>} />
-                            <Button onClick={() => router.back()} className={' font-heading font-bold text-sm text-white px-4'}>ย้อนกลับ</Button>
+                            <Button
+                                onClick={() => {
+                                    removeAll()
+                                    router.back()
+                                }}
+                                className={' font-heading font-bold text-sm text-white px-4'}>
+                                ย้อนกลับ
+                            </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
