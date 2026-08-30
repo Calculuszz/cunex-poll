@@ -1,7 +1,7 @@
 import type { InputItem, ElementItem, Option } from "@/store/elementStore"
 
 const uid = () => crypto.randomUUID()
-const blankOption = (): Option => ({ id: uid(), label: "" })
+export const blankOption = (): Option => ({ id: uid(), label: "" })
 
 export function createInputItem(type: InputItem['type']): InputItem {
     const base = { kind: 'input' as const, id: uid(), label: "", required: false }
@@ -9,7 +9,8 @@ export function createInputItem(type: InputItem['type']): InputItem {
         case 'text':     return { ...base, type, placeholder: "" }
         case 'select':   return { ...base, type, options: [blankOption()] }
         case 'radio':
-        case 'checkbox': return { ...base, type, options: [blankOption()], optionLayout: 'list' }
+        // คำถามแบบเลือกต้องมีอย่างน้อย 2 ตัวเลือกถึงจะเป็นคำถามได้ เลยตั้งต้นให้เลย
+        case 'checkbox': return { ...base, type, options: [blankOption(), blankOption()], optionLayout: 'list' }
     }
 }
 

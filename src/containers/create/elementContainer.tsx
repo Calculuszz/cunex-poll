@@ -3,15 +3,16 @@ import React, { useEffect, useState } from 'react'
 import { PollAddElement } from '@/components/create'
 import { FormItemCard } from '@/components/create/form/formItemCard'
 import { TextInput } from '@/components/create/form/input/text'
+import { RadioInput } from '@/components/create/form/input/radio'
 import { useElementStore } from '@/store/elementStore'
 
 
 export function ElementContainer() {
     const items = useElementStore(s => s.items)
 
-    // useEffect(() => {
-    //     console.log(items)
-    // }, [items])
+    useEffect(() => {
+        console.log(items)
+    }, [items])
 
     return (
         <div className=' flex flex-col gap-2'>
@@ -23,6 +24,13 @@ export function ElementContainer() {
                         return (
                             <FormItemCard key={item.id} item={item} index={index} title='คำถามแบบข้อความ'>
                                 <TextInput item={item} />
+                            </FormItemCard>
+                        )
+                    }
+                    if (item.kind === 'input' && item.type === 'radio') {
+                        return (
+                            <FormItemCard key={item.id} item={item} index={index} title='คำถามแบบเลือกข้อเดียว'>
+                                <RadioInput item={item} />
                             </FormItemCard>
                         )
                     }

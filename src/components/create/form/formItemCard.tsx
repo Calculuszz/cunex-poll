@@ -25,8 +25,8 @@ export function FormItemCard({
     return (
         <Card>
             <CardContent className='flex flex-col gap-3'>
-                <div className='flex items-center justify-between gap-2'>
-                    <span className='font-heading text-base font-bold'>{title}</span>
+                <div className='flex items-start justify-between gap-2'>
+                    <span className='font-heading text-base font-bold'>ข้อ {index + 1}<br />{title}</span>
                     <div className='flex items-center gap-1'>
                         <Button
                             type='button'
