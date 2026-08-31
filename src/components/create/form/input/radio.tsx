@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react'
-import { Circle, Plus, Trash2, List, Grid2x2 } from 'lucide-react'
+import { Circle, Plus, Trash2, List, Grid2x2,Pen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -177,6 +177,15 @@ function OptionRow({
                 }}
                 placeholder={`ตัวเลือกที่ ${index + 1}`}
             />
+            <Button
+                type='button'
+                variant='ghost'
+                size='icon'
+                aria-label={`ลบตัวเลือกที่ ${index + 1}`}
+                className='shrink-0 text-ink-500 hover:bg-yellow-100 hover:text-yellow-200'
+            >
+                <Pen />
+            </Button>
             <Button
                 type='button'
                 variant='ghost'
