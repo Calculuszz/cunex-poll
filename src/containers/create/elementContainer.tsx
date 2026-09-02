@@ -1,6 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { PollAddElement } from '@/components/create'
+import { CheckboxInput } from '@/components/create/form/input/checkbox'
 import { FormItemCard } from '@/components/create/form/formItemCard'
 import { TextInput } from '@/components/create/form/input/text'
 import { RadioInput } from '@/components/create/form/input/radio'
@@ -31,6 +32,13 @@ export function ElementContainer() {
                         return (
                             <FormItemCard key={item.id} item={item} index={index} title='คำถามแบบเลือกข้อเดียว'>
                                 <RadioInput item={item} />
+                            </FormItemCard>
+                        )
+                    }
+                    if (item.kind === "input" && item.type === "checkbox") {
+                        return (
+                            <FormItemCard key={item.id} item={item} index={index} title='คำถามแบบเลือกหลายข้อ'>
+                                <CheckboxInput item={item} />
                             </FormItemCard>
                         )
                     }
