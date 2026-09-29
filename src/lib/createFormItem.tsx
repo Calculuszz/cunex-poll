@@ -7,9 +7,9 @@ export function createInputItem(type: InputItem['type']): InputItem {
     const base = { kind: 'input' as const, id: uid(), label: "", required: false }
     switch (type) {
         case 'text':     return { ...base, type, placeholder: "" }
-        case 'select':   return { ...base, type, options: [blankOption()] }
-        case 'radio':
         // คำถามแบบเลือกต้องมีอย่างน้อย 2 ตัวเลือกถึงจะเป็นคำถามได้ เลยตั้งต้นให้เลย
+        case 'select':   return { ...base, type, options: [blankOption(), blankOption()] }
+        case 'radio':
         case 'checkbox': return { ...base, type, options: [blankOption(), blankOption()], optionLayout: 'list' }
     }
 }

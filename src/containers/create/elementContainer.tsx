@@ -6,6 +6,7 @@ import { FormItemCard } from '@/components/create/form/formItemCard'
 import { TextInput } from '@/components/create/form/input/text'
 import { RadioInput } from '@/components/create/form/input/radio'
 import { useElementStore } from '@/store/elementStore'
+import { SelectInput } from '@/components/create/form/input/selector'
 
 
 export function ElementContainer() {
@@ -39,6 +40,13 @@ export function ElementContainer() {
                         return (
                             <FormItemCard key={item.id} item={item} index={index} title='คำถามแบบเลือกหลายข้อ'>
                                 <CheckboxInput item={item} />
+                            </FormItemCard>
+                        )
+                    }
+                    if (item.kind === "input" && item.type === "select") {
+                        return (
+                            <FormItemCard key={item.id} item={item} index={index} title='คำถามแบบเลือกจากรายการ'>
+                                <SelectInput item={item} />
                             </FormItemCard>
                         )
                     }

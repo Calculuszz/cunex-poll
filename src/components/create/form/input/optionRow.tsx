@@ -20,14 +20,9 @@ import { cn } from '@/lib/utils'
 import { useElementStore, type Option } from '@/store/elementStore'
 import { type OptionLayout } from './optionLayout'
 
-/** patch ระดับตัวเลือก — `info` ถูก merge ทีละคีย์ ไม่ใช่ทับทั้งก้อน */
 export type OptionPatch = Partial<Omit<Option, 'info'>> & { info?: Partial<NonNullable<Option['info']>> }
 type CommitOption = (optionId: string, patch: OptionPatch) => void
 
-/**
- * แก้ตัวเลือกของคำถามแบบเลือก โดยอ่าน items ล่าสุดจาก store ทุกครั้ง
- * เพราะ dialog แก้หลายช่องพร้อมกัน ถ้า merge จาก prop ที่ค้างอยู่ ช่องที่ commit ทีหลังจะทับของก่อนหน้า
- */
 export function useOptionCommit(itemId: string): CommitOption {
     const update = useElementStore((s) => s.update)
 
@@ -58,8 +53,8 @@ export function OptionRow({
 }: {
     option: Option
     index: number
-    icon: LucideIcon
-    layout: OptionLayout
+    icon?: LucideIcon
+    layout?: OptionLayout
     autoFocus: boolean
     canRemove: boolean
     onCommit: CommitOption
@@ -71,7 +66,7 @@ export function OptionRow({
         (next) => onCommit(option.id, { label: next }),
     )
 
-    const image = option.imageUrl?.trim()
+    const image = layout ? option.imageUrl?.trim() : undefined
     const hasInfo = Boolean(option.info?.title?.trim() || option.info?.body?.trim())
 
     return (
@@ -81,7 +76,13 @@ export function OptionRow({
                 image && 'rounded-card border border-badge p-2 sm:rounded-none sm:border-0 sm:p-0',
             )}
         >
-            <Icon className='size-4 shrink-0 text-ink-400' aria-hidden />
+            {Icon ? (
+                <Icon className='size-4 shrink-0 text-ink-400' aria-hidden />
+            ) : (
+                <span className='w-4 shrink-0 text-center text-sm text-ink-400' aria-hidden>
+                    {index + 1}
+                </span>
+            )}
 
             {image ? (
                 <OptionThumb
@@ -110,13 +111,15 @@ export function OptionRow({
             />
 
             <div className={cn('flex shrink-0 items-center gap-1', image && 'ml-auto sm:ml-0')}>
-                <OptionInfoDialog
-                    option={option}
-                    index={index}
-                    layout={layout}
-                    hasContent={Boolean(image) || hasInfo}
-                    onCommit={onCommit}
-                />
+                {layout ? (
+                    <OptionInfoDialog
+                        option={option}
+                        index={index}
+                        layout={layout}
+                        hasContent={Boolean(image) || hasInfo}
+                        onCommit={onCommit}
+                    />
+                ) : null}
 
                 <Button
                     type='button'

@@ -56,7 +56,6 @@ export function CheckboxInput({ item }: { item: CheckboxInputItem }) {
             <div className='flex flex-col gap-2'>
                 <Label className='text-base font-bold'>ตัวเลือก</Label>
 
-                {/* gap ระหว่างตัวเลือกต้องมากกว่า gap ในแถว ไม่งั้นบนมือถือที่แถวมีรูปแตกเป็นสองบรรทัด จะแยกไม่ออกว่าช่องข้อความเป็นของตัวเลือกไหน */}
                 <div className='flex flex-col gap-3'>
                     {item.options.map((option, index) => (
                         <OptionRow

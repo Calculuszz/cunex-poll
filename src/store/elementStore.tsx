@@ -65,15 +65,16 @@ export const useElementStore = create<UseElementStore>()(
             name: 'poll-draft',
             storage: createJSONStorage(() => localStorage),
             partialize: (s) => ({ items: s.items }),
-            version: 2,
+            version: 3,
             // v2: คำถามแบบเลือกต้องมีอย่างน้อย 2 ตัวเลือก draft เก่าที่สร้างไว้ตอนตั้งต้นตัวเดียวต้องเติมให้ครบ
+            // v3: แบบเลือกจากรายการ (select) ตอนแรกตั้งต้นมาตัวเลือกเดียว เลยต้องกวาดซ้ำรวม type นี้ด้วย
             migrate: (persisted, version) => {
                 const state = persisted as { items: FormItem[] }
-                if (version >= 2) return state
+                if (version >= 3) return state
                 return {
                     items: state.items.map((item) => {
                         if (item.kind !== 'input') return item
-                        if (item.type !== 'radio' && item.type !== 'checkbox') return item
+                        if (item.type === 'text') return item
                         if (item.options.length >= 2) return item
                         const filled = [...item.options]
                         while (filled.length < 2) filled.push({ id: crypto.randomUUID(), label: "" })
