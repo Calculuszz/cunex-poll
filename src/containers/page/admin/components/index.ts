@@ -1,0 +1,1 @@
+export { AdminHeading } from "./heading"

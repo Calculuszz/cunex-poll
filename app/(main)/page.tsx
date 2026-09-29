@@ -1,1 +1,1 @@
-export { MainPage as default } from "@/containers/main/main"
+export { MainPage as default } from "@/containers/page/main/main"

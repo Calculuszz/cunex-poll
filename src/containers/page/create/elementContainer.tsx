@@ -1,12 +1,12 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import { PollAddElement } from '@/components/create'
-import { CheckboxInput } from '@/components/create/form/input/checkbox'
-import { FormItemCard } from '@/components/create/form/formItemCard'
-import { TextInput } from '@/components/create/form/input/text'
-import { RadioInput } from '@/components/create/form/input/radio'
+import { PollAddElement } from '@/containers/page/create/components'
+import { CheckboxInput } from '@/containers/page/create/components/form/input/checkbox'
+import { FormItemCard } from '@/containers/page/create/components/form/formItemCard'
+import { TextInput } from '@/containers/page/create/components/form/input/text'
+import { RadioInput } from '@/containers/page/create/components/form/input/radio'
 import { useElementStore } from '@/store/elementStore'
-import { SelectInput } from '@/components/create/form/input/selector'
+import { SelectInput } from '@/containers/page/create/components/form/input/selector'
 
 
 export function ElementContainer() {

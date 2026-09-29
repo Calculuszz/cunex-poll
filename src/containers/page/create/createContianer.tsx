@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { PollType, PollDetail, PollTypeMore } from '@/components/create'
+import { PollType, PollDetail, PollTypeMore } from '@/containers/page/create/components'
 import { ElementContainer } from "./elementContainer"
 
 export function CreateContainer() {

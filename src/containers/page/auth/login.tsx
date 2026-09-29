@@ -1,4 +1,4 @@
-import { CardLogin } from "@/components/login/cardLogin"
+import { CardLogin } from "@/containers/page/auth/components/cardLogin"
 
 export function LoginPage() {
     return (

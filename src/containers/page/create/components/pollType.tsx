@@ -9,8 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Switch } from '../ui/switch'
-import { Label } from '../ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 const items = [
   { label: "ทั้งจุฬา ฯ", value: "A" },

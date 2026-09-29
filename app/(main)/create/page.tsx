@@ -1,1 +1,1 @@
-export { CreateContainer as default } from "@/containers/create/createContianer"
+export { CreateContainer as default } from "@/containers/page/create/createContianer"

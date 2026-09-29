@@ -1,10 +1,12 @@
 'use client'
 import React from 'react'
-import { Card } from '../ui/card'
-import { Button } from '../ui/button'
+import { Card } from '../../../../components/ui/card'
+import { Button } from '../../../../components/ui/button'
 import { ShieldCheck, Mail, Info } from "lucide-react"
+import { useRouter } from 'next/navigation'
 
 export function CardLogin() {
+    const router = useRouter();
     return (
         <Card className='w-100 mx-6 flex items-center justify-center shadow-lg container'>
             <section className='w-full px-6'>
@@ -12,7 +14,7 @@ export function CardLogin() {
                 <hr className=' border-ink-400' />
             </section>
             <section className='w-full flex px-10 *:w-full flex-col gap-3 py-6'>
-                <Button size={'lg'} className={`py-6! font-heading font-bold text-lg text-center relative`}>
+                <Button onClick={() => router.push("/")} size={'lg'} className={`py-6! font-heading font-bold text-lg text-center relative`}>
                     <ShieldCheck className='size-5 absolute top-1/2 -translate-y-1/2 left-4'/>
                     <h1>เข้าสู่ระบบด้วย CUNEX</h1>
                 </Button>

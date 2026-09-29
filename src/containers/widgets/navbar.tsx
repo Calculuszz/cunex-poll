@@ -1,5 +1,6 @@
 import Avatar from '@/components/ui/avatar'
 import { ReturnButton } from '@/components/common/return'
+import AvatarPopup from './components/avator-popup'
 
 export function Navbar() {
     return (
@@ -7,7 +8,7 @@ export function Navbar() {
             <div>
                 <ReturnButton/>
             </div>
-            <Avatar variant={`secondary`} text='nano'/>
+            <AvatarPopup/>
         </div>
     )
 }
