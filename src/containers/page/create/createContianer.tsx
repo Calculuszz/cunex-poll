@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { PollType, PollDetail, PollTypeMore } from '@/containers/page/create/components'
+import { PollType, PollDetail, PollTypeMore, CreateFooter } from '@/containers/page/create/components'
 import { ElementContainer } from "./elementContainer"
 
 export function CreateContainer() {
@@ -9,7 +9,8 @@ export function CreateContainer() {
             <PollType />
             <PollDetail />
             <ElementContainer />
-            <PollTypeMore/>
+            <PollTypeMore />
+            <CreateFooter/>
         </div>
     )
 }
