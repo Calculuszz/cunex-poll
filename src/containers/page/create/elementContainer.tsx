@@ -8,6 +8,8 @@ import { RadioInput } from '@/containers/page/create/components/form/input/radio
 import { useElementStore } from '@/store/elementStore'
 import { SelectInput } from '@/containers/page/create/components/form/input/selector'
 import { TextElement } from "@/containers/page/create/components/form/element/text"
+import { AccordionElement } from '@/containers/page/create/components/form/element/accordion'
+import { PopupElement } from './components/form/element/popup'
 
 
 export function ElementContainer() {
@@ -53,6 +55,20 @@ export function ElementContainer() {
                         return (
                             <FormItemCard key={item.id} item={item} index={eindex.indexOf(item)} title='คำอธิบาย'>
                                 <TextElement item={item} />
+                            </FormItemCard>
+                        )
+                    }
+                    if (item.kind === "element" && item.type === "accordion") {
+                        return (
+                            <FormItemCard key={item.id} item={item} index={eindex.indexOf(item)} title='หัวข้อพับเก็บ'>
+                                <AccordionElement item={item} />
+                            </FormItemCard>
+                        )
+                    }
+                    if (item.kind === "element" && item.type === "dialog") {
+                        return (
+                            <FormItemCard key={item.id} item={item} index={eindex.indexOf(item)} title='ป๊อปอัพข้อมูล'>
+                                <PopupElement item={item} />
                             </FormItemCard>
                         )
                     }
