@@ -173,6 +173,7 @@ export interface Polls {
   submittedAt: Timestamp | null;
   title: Generated<string>;
   updatedAt: Generated<Timestamp>;
+  version: Generated<number>;
 }
 
 export interface UserIdentities {

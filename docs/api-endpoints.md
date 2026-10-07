@@ -58,28 +58,39 @@ Roles: **anon** (no session) · **user** (any login) · **verified** (logged in 
 ```jsonc
 // PollDetail
 { "id": "uuid", "status": "open", "version": 7,
-  "title": "…", "description": "…", "coverImage": { "id": "uuid", "url": "https://cdn…" },
-  "closesAt": "2026-10-20T10:00:00Z",
+  "title": "…", "description": "…", "coverImageId": "uuid",
+  "closesAt": "2026-10-20T10:00:00Z", "submittedAt": "…", "openedAt": "…", "closedAt": null,
   "audience": { "type": "restricted", "rules": [{ "facultyCode": "21", "studentYear": null }] },
   "settings": { "showResultsRealtime": false, "allowAnswerEdit": true, "listedPublicly": true },
   "shareUrl": "https://cunex.page.link/…",
   "elements": [ /* Element[], ordered */ ],
   "myBallot": { "submitted": true, "canEdit": true },
   "canViewResults": false,
-  "isOwner": false }
+  "isOwner": false,
+  "reviews": [{ "decision": "rejected", "comment": "…", "createdAt": "…" }] }  // owner/admin only
 ```
+
+Lists return `{ items: PollSummary[], nextCursor }`; `PollSummary` is the poll without
+`elements`, `audience.rules` and `settings` (the feed adds `myBallot`).
 
 ## 4. Polls — authoring (owner)
 
 | Method | Path | Who | Purpose |
 |---|---|---|---|
 | POST | `/polls` | user | Create a draft. Body = `PollDraft` (all fields optional). → `201 PollDetail` |
-| PUT | `/polls/:pollId` | owner | Replace the whole draft (settings + audience + ordered elements + options) in one transaction. Only in `draft`/`rejected`. Needs `If-Match`. → `200 PollDetail` |
+| PUT | `/polls/:pollId` | owner | Replace the whole draft (settings + audience + ordered elements + options) in one transaction. Only in `draft`/`rejected`. Needs `If-Match: <version>` (`428` if missing, `412 VERSION_CONFLICT` + `currentVersion` if stale). → `200 PollDetail` |
 | DELETE | `/polls/:pollId` | owner | Soft delete. Only `draft`/`rejected`. → `204` |
-| POST | `/polls/:pollId/submit` | owner | Validate completeness → `pending_review`. `422` lists every problem. |
-| PATCH | `/polls/:pollId/closes-at` | owner | `{ closesAt }`, the only edit allowed after approval. Must be in the future. |
-| POST | `/polls/:pollId/close` | owner | Close early → `closed`. |
-| GET | `/polls/:pollId/preview` | owner | Same shape as `PollDetail` for any status (Preview mode screen). |
+| POST | `/polls/:pollId/submit` | owner | Validate completeness → `pending_review`. `422 POLL_INCOMPLETE` with `problems: [{ path, message }]` listing every problem. |
+| PATCH | `/polls/:pollId/closes-at` | owner | `{ closesAt }`, the only edit allowed after submit (`pending_review` or `open`). Must be in the future. |
+| POST | `/polls/:pollId/close` | owner | Close early → `closed`. Only from `open`. |
+
+The Preview mode screen uses `GET /polls/:pollId`, which returns any status to the owner.
+
+Notes:
+- Element and option ids are regenerated on every `PUT` (drafts have no ballots yet); don't cache them across saves.
+- `422 UNKNOWN_FACULTY` (`facultyCodes`) when an audience rule names a faculty not in `GET /faculties`.
+- `422 INVALID_IMAGE` (`imageIds`) when an image isn't yours or hasn't finished uploading.
+- Wrong status for the action → `409 POLL_LOCKED` with `pollStatus`.
 
 **Why one `PUT` for the whole draft, not per-element CRUD:** the editor is a single form saved with "บันทึกฉบับร่าง". Reorder ("swipe"), add and remove all happen client-side, and one transactional replace avoids partially saved drafts and position conflicts. Drafts are small (tens of elements).
 

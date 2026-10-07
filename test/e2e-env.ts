@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import pg from 'pg';
+import request from 'supertest';
 import { runMigrations } from '../scripts/migrator.js';
 
 export const APP_ORIGIN = 'http://localhost:5173';
@@ -25,7 +26,8 @@ export async function createTestApp(): Promise<{
   const exists = await admin.query(
     "SELECT 1 FROM pg_database WHERE datname = 'pollcunex_test'",
   );
-  if (exists.rowCount === 0) await admin.query('CREATE DATABASE pollcunex_test');
+  if (exists.rowCount === 0)
+    await admin.query('CREATE DATABASE pollcunex_test');
   await admin.end();
   await runMigrations(testUrl.toString());
 
@@ -57,4 +59,37 @@ export async function createTestApp(): Promise<{
   );
   await app.init();
   return { app, db };
+}
+
+export function cookie(
+  res: request.Response,
+  name: string,
+): string | undefined {
+  const raw = res.get('Set-Cookie') ?? [];
+  return raw.find((c) => c.startsWith(`${name}=`))?.split(';')[0];
+}
+
+/** Logs in through the mock CUNEX callback and returns the `sid=...` cookie. */
+export async function loginAs(app: NestExpressApplication, mockUser: string) {
+  const res = await request(app.getHttpServer()).get(
+    `/api/v1/auth/cunex/callback?token=mock_${mockUser}`,
+  );
+  const sid = cookie(res, 'sid');
+  if (!sid) throw new Error('no session cookie');
+  return sid;
+}
+
+/** Requests as a logged-in user from our web origin, under /api/v1. */
+export function as(app: NestExpressApplication, sid: string) {
+  const server = app.getHttpServer();
+  const withAuth = (t: request.Test) =>
+    t.set('Cookie', sid).set('Origin', APP_ORIGIN);
+  return {
+    get: (path: string) => withAuth(request(server).get(`/api/v1${path}`)),
+    post: (path: string) => withAuth(request(server).post(`/api/v1${path}`)),
+    put: (path: string) => withAuth(request(server).put(`/api/v1${path}`)),
+    patch: (path: string) => withAuth(request(server).patch(`/api/v1${path}`)),
+    delete: (path: string) =>
+      withAuth(request(server).delete(`/api/v1${path}`)),
+  };
 }

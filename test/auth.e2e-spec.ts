@@ -1,7 +1,12 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type pg from 'pg';
 import request from 'supertest';
-import { APP_ORIGIN, createTestApp } from './e2e-env.js';
+import {
+  APP_ORIGIN,
+  cookie,
+  createTestApp,
+  loginAs as login,
+} from './e2e-env.js';
 
 let app: NestExpressApplication;
 let db: pg.Client;
@@ -17,21 +22,7 @@ afterAll(async () => {
 
 const http = () => request(app.getHttpServer());
 
-function cookie(res: request.Response, name: string): string | undefined {
-  const raw = res.get('Set-Cookie') ?? [];
-  return raw
-    .find((c) => c.startsWith(`${name}=`))
-    ?.split(';')[0];
-}
-
-async function loginAs(mockUser: string) {
-  const res = await http().get(
-    `/api/v1/auth/cunex/callback?token=mock_${mockUser}`,
-  );
-  const sid = cookie(res, 'sid');
-  if (!sid) throw new Error('no session cookie');
-  return sid;
-}
+const loginAs = (mockUser: string) => login(app, mockUser);
 
 describe('CUNEX login (mock)', () => {
   it('login → CUNEX → callback → back to the web app with a session', async () => {
@@ -115,7 +106,9 @@ describe('sessions', () => {
   it('logout needs our Origin, then kills the session', async () => {
     const sid = await loginAs('eng-2567');
 
-    const noOrigin = await http().post('/api/v1/auth/logout').set('Cookie', sid);
+    const noOrigin = await http()
+      .post('/api/v1/auth/logout')
+      .set('Cookie', sid);
     expect(noOrigin.status).toBe(403);
     expect(noOrigin.body.code).toBe('BAD_ORIGIN');
 

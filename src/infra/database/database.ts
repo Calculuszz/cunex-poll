@@ -14,6 +14,7 @@ export function createDatabase(
     dialect: new PostgresDialect({
       pool: new pg.Pool({ connectionString, max }),
     }),
-    plugins: [new CamelCasePlugin()],
+    // JSONB contents (element config, popups) are already camelCase: leave their keys alone.
+    plugins: [new CamelCasePlugin({ maintainNestedObjectKeys: true })],
   });
 }

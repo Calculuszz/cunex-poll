@@ -103,7 +103,6 @@ flowchart TB
 | POST | `/polls/:id/submit` | ส่งขออนุมัติ |
 | PATCH | `/polls/:id/closes-at` | เลื่อนเวลาปิด (สิ่งเดียวที่แก้ได้หลังอนุมัติ) |
 | POST | `/polls/:id/close` | ปิดก่อนกำหนด |
-| GET | `/polls/:id/preview` | ดูตัวอย่าง (Preview mode) |
 
 ### รูปภาพ
 
