@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>CUNEX Poll — High-level Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=block" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1d1b1c; --ink-2: #4a4648; --muted: #7a7577; --line: #ece7e9; --soft: #faf7f8;
+    --brand: #e3628a; --brand-d: #b83f68; --brand-dd: #6e1f3c; --brand-50: #fdf0f4; --brand-100: #f9d9e3;
+    --teal: #0f6e56; --teal-50: #e6f5ef; --teal-d: #085041;
+    --amber: #b06d10; --amber-50: #fcf2e1; --amber-d: #5e3906;
+    --red: #b33232; --red-50: #fcecec;
+    --green: #3b6d11; --green-50: #edf5e3;
+    --sand: #f3f0ea; --sand-d: #8a8579;
+  }
+
+  @page {
+    size: A4;
+    margin: 20mm 17mm 20mm;
+    @top-left { content: "CUNEX Poll"; font: 600 8pt "IBM Plex Sans Thai", sans-serif; color: #e3628a; }
+    @top-right { content: "High-level Architecture · Draft v0.1"; font: 400 8pt "IBM Plex Sans Thai", sans-serif; color: #9a9496; }
+    @bottom-right { content: counter(page) " / " counter(pages); font: 500 8pt "IBM Plex Mono", monospace; color: #9a9496; }
+  }
+  @page cover { margin: 0; @top-left { content: none; } @top-right { content: none; } @bottom-right { content: none; } }
+
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; color: var(--ink); background: #fff;
+         font-family: "IBM Plex Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+         font-size: 10pt; line-height: 1.7; font-weight: 400; }
+  b, strong { font-weight: 600; }
+  code { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 0.84em; color: var(--brand-dd);
+         background: var(--brand-50); padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
+  p { margin: 0 0 8px; }
+  ul, ol { margin: 0 0 8px; padding-left: 18px; }
+  li { margin-bottom: 4px; }
+  li::marker { color: var(--brand); }
+
+  /* ---------- Cover ---------- */
+  .cover { page: cover; height: 297mm; display: flex; flex-direction: column; }
+  .cover-top { background: var(--brand); color: #fff; padding: 34mm 20mm 16mm; position: relative; overflow: hidden; flex: 0 0 auto; }
+  .cover-top .ring { position: absolute; border-radius: 50%; border: 2px solid rgba(255,255,255,.18); }
+  .cover-top .r1 { width: 140mm; height: 140mm; right: -50mm; top: -60mm; }
+  .cover-top .r2 { width: 90mm; height: 90mm; right: -20mm; top: -25mm; border-color: rgba(255,255,255,.12); }
+  .cover-top .r3 { width: 46mm; height: 46mm; right: 18mm; bottom: -14mm; background: rgba(255,255,255,.08); border: none; }
+  .logo { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 13pt; margin-bottom: 26mm; }
+  .logo i { width: 30px; height: 30px; border-radius: 8px; background: #fff; display: inline-block; position: relative; }
+  .logo i::after { content: ""; position: absolute; inset: 8px; border-radius: 3px; background: var(--brand); }
+  .eyebrow { font-size: 9pt; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+  .cover h1 { font-size: 40pt; line-height: 1.08; margin: 6px 0 12px; font-weight: 700; letter-spacing: -.01em; }
+  .cover .sub { font-size: 13pt; font-weight: 300; opacity: .95; max-width: 160mm; }
+  .cover-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 16mm;
+                border-top: 1px solid rgba(255,255,255,.35); padding-top: 5mm; }
+  .cover-meta div { font-size: 8.5pt; opacity: .8; }
+  .cover-meta b { display: block; font-size: 10.5pt; opacity: 1; font-weight: 600; }
+  .cover-bottom { padding: 12mm 20mm 0; flex: 1 1 auto; }
+  .cover-bottom h3 { font-size: 11pt; letter-spacing: 0; color: var(--brand-d); margin: 0 0 4mm; }
+  .tldr { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm 8mm; }
+  .tldr .item { display: flex; gap: 10px; }
+  .tldr .n { flex: 0 0 26px; height: 26px; border-radius: 50%; background: var(--brand-50); color: var(--brand-d);
+             font: 600 10pt "IBM Plex Mono", monospace; display: flex; align-items: center; justify-content: center; }
+  .tldr .item div { font-size: 9.5pt; line-height: 1.6; color: var(--ink-2); }
+  .tldr .item b { color: var(--ink); display: block; font-size: 10.5pt; margin-bottom: 1px; }
+  .cover-toc { margin-top: 9mm; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3mm; }
+  .cover-toc div { border-top: 2px solid var(--brand-100); padding-top: 2mm; font-size: 8.5pt; color: var(--ink-2); line-height: 1.4; }
+  .cover-toc span { display: block; font: 600 9pt "IBM Plex Mono", monospace; color: var(--brand); }
+
+  /* ---------- Sections ---------- */
+  section.chapter { break-before: page; }
+  .chap-head { display: flex; align-items: flex-end; gap: 14px; margin-bottom: 6mm; padding-bottom: 4mm; border-bottom: 1px solid var(--line); }
+  .chap-num { font: 600 34pt/0.9 "IBM Plex Mono", monospace; color: var(--brand); letter-spacing: -.04em; }
+  .chap-head h2 { margin: 0; font-size: 19pt; line-height: 1.2; font-weight: 700; }
+  .chap-head .lead { margin: 2px 0 0; color: var(--muted); font-size: 10pt; }
+  h3 { font-size: 12pt; font-weight: 600; margin: 7mm 0 3mm; display: flex; align-items: center; gap: 8px; }
+  h3::before { content: ""; width: 4px; height: 14px; border-radius: 2px; background: var(--brand); display: inline-block; }
+  h3.plain::before { display: none; }
+
+  /* ---------- Building blocks ---------- */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5mm; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3.5mm; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 3.5mm 4mm; background: #fff; break-inside: avoid; }
+  .card .k { font-size: 8.5pt; font-weight: 600; letter-spacing: .01em; color: var(--muted); }
+  .card h4 { margin: 1px 0 3px; font-size: 10.5pt; font-weight: 600; }
+  .card p { margin: 0; font-size: 9pt; color: var(--ink-2); line-height: 1.6; }
+  .card.brand { border-color: var(--brand-100); background: var(--brand-50); }
+  .card.teal  { border-color: #c9e8dc; background: var(--teal-50); }
+  .card.sand  { border-color: #e4dfd4; background: var(--sand); }
+  .card.accent-l { border-left: 4px solid var(--brand); border-radius: 0 10px 10px 0; }
+
+  .stat { border-radius: 10px; padding: 4mm; background: var(--soft); break-inside: avoid; }
+  .stat .v { font: 600 20pt/1.1 "IBM Plex Sans Thai", sans-serif; color: var(--brand-d); }
+  .stat .v small { font-size: 10pt; font-weight: 500; color: var(--muted); }
+  .stat .l { font-size: 9pt; color: var(--ink-2); margin-top: 2px; line-height: 1.5; }
+
+  .callout { display: flex; gap: 12px; border-radius: 10px; padding: 4mm 5mm; margin: 4mm 0; break-inside: avoid; }
+  .callout .ic { flex: 0 0 22px; height: 22px; border-radius: 50%; font: 700 11pt/22px "IBM Plex Mono", monospace; text-align: center; color: #fff; }
+  .callout p { margin: 0; font-size: 9.5pt; }
+  .callout.key { background: var(--brand-50); } .callout.key .ic { background: var(--brand); }
+  .callout.warn { background: var(--amber-50); color: var(--amber-d); } .callout.warn .ic { background: var(--amber); }
+
+  table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 2mm 0 4mm; font-size: 9pt; line-height: 1.55;
+          border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  tr { break-inside: avoid; }
+  th, td { text-align: left; vertical-align: top; padding: 2.4mm 3mm; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: none; }
+  th { background: var(--soft); font-weight: 600; font-size: 8.5pt; color: var(--ink-2); letter-spacing: .02em; }
+  td.pick { color: var(--brand-dd); font-weight: 600; }
+  td.alt { color: var(--muted); }
+  td.alt s { text-decoration-color: rgba(122,117,119,.5); }
+
+  .chip { display: inline-block; font-size: 7.5pt; font-weight: 600; padding: 0 7px; border-radius: 99px; line-height: 1.8; white-space: nowrap; letter-spacing: .02em; }
+  .c-brand { background: var(--brand-50); color: var(--brand-d); }
+  .c-teal { background: var(--teal-50); color: var(--teal-d); }
+  .c-sand { background: var(--sand); color: #5c5850; }
+  .c-red { background: var(--red-50); color: var(--red); }
+  .c-amber { background: var(--amber-50); color: var(--amber-d); }
+  .c-green { background: var(--green-50); color: var(--green); }
+
+  .steps { list-style: none; padding: 0; margin: 0 0 4mm; counter-reset: s; }
+  .steps li { counter-increment: s; position: relative; padding: 0 0 3mm 34px; margin: 0; break-inside: avoid; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: 1px; width: 22px; height: 22px; border-radius: 50%;
+                      background: var(--brand); color: #fff; font: 600 9pt/22px "IBM Plex Mono", monospace; text-align: center; }
+  .steps li::after { content: ""; position: absolute; left: 10.5px; top: 26px; bottom: 2px; width: 1px; background: var(--brand-100); }
+  .steps li:last-child::after { display: none; }
+  .steps li b:first-child { display: block; }
+
+  figure { margin: 2mm 0 5mm; break-inside: avoid; }
+  .figbox { border: 1px solid var(--line); border-radius: 12px; padding: 5mm 4mm 3mm; background: #fff; }
+  figcaption { font-size: 8.5pt; color: var(--muted); margin-top: 2.5mm; display: flex; gap: 8px; align-items: baseline; }
+  figcaption b { color: var(--brand-d); font-weight: 600; }
+  svg text { font-family: "IBM Plex Sans Thai", "Leelawadee UI", Tahoma, sans-serif; }
+  .flow-title { display: flex; align-items: center; gap: 10px; margin: 6mm 0 3mm; break-after: avoid; }
+  .flow-title .tag { font: 700 11pt "IBM Plex Mono", monospace; color: #fff; background: var(--brand); width: 26px; height: 26px; border-radius: 7px;
+                     display: inline-flex; align-items: center; justify-content: center; }
+  .flow-title h3 { margin: 0; } .flow-title h3::before { display: none; }
+  .avoid { break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- ================= COVER ================= -->
+<section class="cover">
+  <div class="cover-top">
+    <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
+    <div class="logo"><i></i>CUNEX Voting</div>
+    <div class="eyebrow">Technical design document</div>
+    <h1>High-level<br>Architecture</h1>
+    <div class="sub">ระบบสร้างและตอบโพลสำหรับนิสิตจุฬาลงกรณ์มหาวิทยาลัย บนพื้นฐาน CUNEX</div>
+    <div class="cover-meta">
+      <div>เวอร์ชัน<b>Draft v0.1</b></div>
+      <div>วันที่<b>4 ต.ค. 2569</b></div>
+      <div>สถานะ<b>รอทีมรีวิว</b></div>
+      <div>Stack<b>NestJS · Postgres</b></div>
+    </div>
+  </div>
+
+  <div class="cover-bottom">
+    <h3 class="plain">สรุปใน 1 นาที</h3>
+    <div class="tldr">
+      <div class="item"><span class="n">1</span><div><b>Modular monolith</b>NestJS codebase เดียว แยกรันเป็น API กับ Worker · Postgres เป็นข้อมูลหลัก · Redis เก็บ session, cache และ queue</div></div>
+      <div class="item"><span class="n">2</span><div><b>ยืนยันตัวตนผ่าน CUNEX</b>แลก token ที่ <code>/profile</code> ได้คณะและปีเข้าสำหรับกำหนดขอบเขตผู้ตอบ ผู้ใช้ Google/Email ตอบได้เฉพาะโพลสาธารณะ</div></div>
+      <div class="item"><span class="n">3</span><div><b>เจ้าของโพลไม่รู้ว่าใครตอบอะไร</b>ballot ไม่มี user_id มีแค่ HMAC key ซึ่งยังกันโหวตซ้ำและแก้คำตอบได้</div></div>
+      <div class="item"><span class="n">4</span><div><b>Cloud-agnostic</b>ใช้แค่ container, Postgres, Redis และ S3 ย้ายไป cloud ใดหรือ on-prem ของจุฬาฯ ก็ได้</div></div>
+      <div class="item"><span class="n">5</span><div><b>รองรับช่วงคนเข้าพร้อมกัน</b>โหวตประมาณ 200 req/s ดูผลมากกว่า 1,000 req/s (ตอบจาก cache) ไม่ต้องใช้ microservices</div></div>
+      <div class="item"><span class="n">6</span><div><b>ต้องแก้ดีไซน์ 2 จุด</b>เปลี่ยน "สาขา" เป็น "ปีเข้า" · ป๊อปอัปบัญชีทดลองเปิดได้เฉพาะ dev/staging</div></div>
+    </div>
+    <div class="cover-toc">
+      <div><span>01</span>บริบทและขอบเขต</div>
+      <div><span>02</span>ข้อตัดสินใจ</div>
+      <div><span>03</span>Architecture</div>
+      <div><span>04</span>Components</div>
+      <div><span>05</span>Trade-offs</div>
+      <div><span>06</span>Flow การทำงาน</div>
+      <div><span>07</span>Privacy</div>
+      <div><span>08</span>เมื่อระบบล่ม</div>
+      <div><span>09</span>Data model</div>
+      <div><span>10</span>คำถามที่ยังเปิด</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 01 ================= -->
+<section class="chapter">
+  <div class="chap-head"><div class="chap-num">01</div><div><h2>บริบทและขอบเขต</h2><p class="lead">ระบบนี้ทำอะไร ใหญ่แค่ไหน และอะไรอยู่นอก scope</p></div></div>
+
+  <p>เว็บแอปให้นิสิตสร้างโพล ส่งให้ Admin อนุมัติ แล้วเผยแพร่ให้นิสิตตอบ เปิดได้ 2 ทาง คือจาก <b>เมนู ลิงก์ หรือ notification ใน CUNEX</b> และเปิดเว็บโดยตรง</p>
+
+  <div class="grid2" style="margin-top:4mm">
+    <div class="card"><div class="k">หน้าจอ</div><h4>เข้าสู่ระบบ</h4><p>บัญชีจุฬาฯ (CUNEX) · Google · Email พร้อมข้อความ "ระบบจะไม่แสดงชื่อผู้ตอบให้เจ้าของโพลเห็น"</p></div>
+    <div class="card"><div class="k">หน้าจอ</div><h4>สร้างโพล</h4><p>ขอบเขตผู้ตอบ · ชื่อ คำอธิบาย เวลาปิด รูปปก · element 9 ชนิด เรียงลำดับได้ · บันทึกร่าง / ส่งขออนุมัติ</p></div>
+    <div class="card"><div class="k">หน้าจอ</div><h4>ตอบโพล</h4><p>ตอบทีละหน้า มี progress bar · radio / checkbox พร้อมคำอธิบาย · Preview mode สำหรับเจ้าของ</p></div>
+    <div class="card"><div class="k">ตั้งค่า</div><h4>ตัวเลือกของโพล</h4><p>แสดงผลแบบเรียลไทม์ · ลงคะแนนซ้ำ (= แก้คำตอบ) · เผยแพร่ในหน้ารวม</p></div>
+  </div>
+
+  <h3>Element ที่ต้องรองรับ</h3>
+  <div class="grid2">
+    <div class="card brand"><div class="k" style="color:var(--brand-d)">คำถาม · 4 ชนิด</div><p style="margin-top:2px">ข้อความ · เลือกหนึ่งข้อ · เลือกหลายข้อ · เลือกรายการ<br>ตัวเลือกแนบรูปและป๊อปอัปข้อมูลได้</p></div>
+    <div class="card sand"><div class="k">องค์ประกอบ · 5 ชนิด</div><p style="margin-top:2px">คำอธิบาย · รูปภาพ (+คำบรรยาย) · ป๊อปอัปข้อมูล<br>หัวข้อพับเก็บ · ขึ้นหน้าใหม่</p></div>
+  </div>
+
+  <h3>ขนาดระบบที่ออกแบบไว้</h3>
+  <div class="grid3">
+    <div class="stat"><div class="v">~40k</div><div class="l">นิสิตทั้งหมด<br>(ค่าประมาณ)</div></div>
+    <div class="stat"><div class="v">~200 <small>req/s</small></div><div class="l">โหวตช่วงพีค เมื่อส่ง push ทั้งมหาวิทยาลัย (30% ตอบใน 10 นาที)</div></div>
+    <div class="stat"><div class="v">~1,250 <small>req/s</small></div><div class="l">ดูผลพร้อมกัน 5,000 คน poll ทุก 4 วินาที (ตอบจาก cache)</div></div>
+  </div>
+
+  <div class="callout key"><span class="ic">!</span><p><b>ปริมาณโหลดไม่ใช่โจทย์หลัก</b> โจทย์หลักคือผลโหวตต้องถูกต้อง ผู้ตอบต้องไม่ถูกระบุตัวตน ต้องสอดคล้องกับ PDPA และทีมต้องดูแลระบบระยะยาวได้</p></div>
+
+  <h3>นอก scope</h3>
+  <p>การเลือกตั้งอย่างเป็นทางการ (สภานิสิต / อบจ.) ซึ่งต้องการ verifiability และ coercion-resistance ระดับที่สูงกว่านี้มาก</p>
+</section>
+
+<!-- ================= 02 ================= -->
+<section class="chapter">
+  <div class="chap-head"><div class="chap-num">02</div><div><h2>ข้อตัดสินใจที่ตกลงแล้ว</h2><p class="lead">12 ข้อที่เป็นฐานของ architecture ทั้งหมด</p></div></div>
+  <div class="grid2">
+    <div class="card accent-l"><div class="k">รูปแบบระบบ</div><h4>Modular monolith</h4><p>โหลดต่ำ ทีมเล็ก ใช้ transaction เดียวได้</p></div>
+    <div class="card accent-l"><div class="k">ภาษา / framework</div><h4>NestJS (TypeScript)</h4><p>validate element หลายชนิดได้ง่าย แชร์ type กับ frontend ได้</p></div>
+    <div class="card accent-l"><div class="k">ที่ deploy</div><h4>Cloud-agnostic</h4><p>ยังไม่รู้ข้อกำหนดเรื่อง data residency</p></div>
+    <div class="card accent-l"><div class="k">ยืนยันตัวตนหลัก</div><h4>CUNEX LLE (token → /profile)</h4><p>ได้คณะและปีเข้าที่เชื่อถือได้</p></div>
+    <div class="card accent-l"><div class="k">ผู้ใช้ Google / Email</div><h4>ตอบได้เฉพาะโพลสาธารณะ</h4><p>ไม่มีข้อมูลคณะให้ยืนยัน</p></div>
+    <div class="card accent-l"><div class="k">ขอบเขตผู้ตอบ</div><h4>คณะ + ปีเข้า</h4><p>CUNEX ไม่ส่งข้อมูลสาขา <span class="chip c-amber">ต้องแก้ดีไซน์</span></p></div>
+    <div class="card accent-l"><div class="k">สร้างโพล / Admin</div><h4>นิสิตทุกคน / allowlist ในระบบเรา</h4><p>CUNEX ไม่มีข้อมูล role ให้</p></div>
+    <div class="card accent-l"><div class="k">"ลงคะแนนซ้ำ"</div><h4>= แก้คำตอบได้</h4><p>จึงต้องใช้ pseudonymous key (HMAC)</p></div>
+    <div class="card accent-l"><div class="k">แก้โพลหลังอนุมัติ</div><h4>ล็อกโครงสร้าง แก้ได้แค่เวลาปิด</h4><p>ผลไม่เพี้ยน ไม่ต้องทำ versioning</p></div>
+    <div class="card accent-l"><div class="k">ปิดแสดงผลเรียลไทม์</div><h4>ผู้ตอบเห็นผลหลังปิดโพล</h4><p>เจ้าของโพลเห็นผลได้ตลอด</p></div>
+    <div class="card accent-l"><div class="k">คำตอบที่ยังไม่ครบ</div><h4>ไม่เก็บ ส่งครั้งเดียวตอนจบ</h4><p>ง่าย และเก็บข้อมูลน้อยที่สุด</p></div>
+    <div class="card accent-l"><div class="k">Notification</div><h4>CUNEX notification ผ่าน queue + worker</h4><p>มีโควตา ต้องส่งเป็น batch และมี retry</p></div>
+  </div>
+</section>
+
+<!-- ================= 03 ================= -->
+<section class="chapter">
+  <div class="chap-head"><div class="chap-num">03</div><div><h2>Architecture overview</h2><p class="lead">ทุก component ในภาพเดียว</p></div></div>
+  <figure>
+    <div class="figbox">
+    <svg width="100%" viewBox="0 0 690 580" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#8a8579" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+      <g fill="none" stroke="#8a8579" stroke-width="1.4">
+        <line x1="170" y1="86" x2="170" y2="116" marker-end="url(#a1)"/>
+        <line x1="510" y1="86" x2="510" y2="116" marker-end="url(#a1)"/>
+        <line x1="340" y1="176" x2="340" y2="204" marker-end="url(#a1)"/>
+        <line x1="130" y1="332" x2="130" y2="372" marker-end="url(#a1)"/>
+        <line x1="340" y1="332" x2="340" y2="372" marker-end="url(#a1)"/>
+        <line x1="550" y1="332" x2="550" y2="372" marker-end="url(#a1)"/>
+        <line x1="275" y1="432" x2="275" y2="472" marker-end="url(#a1)"/>
+        <line x1="300" y1="504" x2="376" y2="504" marker-end="url(#a1)"/>
+        <path d="M640 280 L664 280 L664 504 L644 504" marker-end="url(#a1)"/>
+      </g>
+      <g font-size="14" font-weight="600" fill="#2c2a26" text-anchor="middle">
+        <rect x="40" y="30" width="260" height="56" rx="10" fill="#f3f0ea" stroke="#d6d0c4"/><text x="170" y="53">CUNEX app (webview)</text>
+        <rect x="380" y="30" width="260" height="56" rx="10" fill="#f3f0ea" stroke="#d6d0c4"/><text x="510" y="53">Standalone web</text>
+        <rect x="40" y="120" width="600" height="56" rx="10" fill="#f3f0ea" stroke="#d6d0c4"/><text x="340" y="143">Load balancer + CDN</text>
+        <rect x="380" y="476" width="260" height="56" rx="10" fill="#f3f0ea" stroke="#d6d0c4"/><text x="510" y="499">CUNEX LLE API</text>
+      </g>
+      <g font-size="11.5" fill="#7a7468" text-anchor="middle">
+        <text x="170" y="74">เมนู · notification · ลิงก์แชร์</text>
+        <text x="510" y="74">login CUNEX / Google / Email</text>
+        <text x="340" y="164">TLS · WAF · rate limit · static files · รูปภาพ</text>
+        <text x="510" y="520">/profile · notification · link</text>
+      </g>
+      <rect x="40" y="208" width="600" height="124" rx="16" fill="#fdf0f4" stroke="#e3628a" stroke-width="1.4"/>
+      <text x="60" y="233" font-size="13.5" font-weight="700" fill="#6e1f3c">API — NestJS modular monolith · stateless ×2+</text>
+      <g font-size="14" font-weight="600" fill="#6e1f3c" text-anchor="middle">
+        <rect x="60" y="248" width="104" height="64" rx="10" fill="#fff" stroke="#efb3c6"/><text x="112" y="274">Auth</text>
+        <rect x="174" y="248" width="104" height="64" rx="10" fill="#fff" stroke="#efb3c6"/><text x="226" y="274">Poll</text>
+        <rect x="288" y="248" width="104" height="64" rx="10" fill="#fff" stroke="#efb3c6"/><text x="340" y="274">Ballot</text>
+        <rect x="402" y="248" width="104" height="64" rx="10" fill="#fff" stroke="#efb3c6"/><text x="454" y="274">Result</text>
+        <rect x="516" y="248" width="104" height="64" rx="10" fill="#fff" stroke="#efb3c6"/><text x="568" y="274">Admin</text>
+      </g>
+      <rect x="40" y="476" width="260" height="56" rx="10" fill="#e3628a"/>
+      <text x="170" y="499" font-size="14" font-weight="600" fill="#fff" text-anchor="middle">Worker (codebase เดียวกัน)</text>
+      <text x="170" y="520" font-size="11.5" fill="#fde4ec" text-anchor="middle">แจ้งเตือน · ปิดโพล · ดึงรูป</text>
+      <g font-size="11.5" fill="#b83f68" text-anchor="middle">
+        <text x="112" y="295">session</text><text x="226" y="295">lifecycle</text><text x="340" y="295">pseudonymous</text>
+        <text x="454" y="295">cached tallies</text><text x="568" y="295">อนุมัติ · audit</text>
+      </g>
+      <g font-size="14" font-weight="600" fill="#085041" text-anchor="middle">
+        <rect x="40" y="376" width="180" height="56" rx="10" fill="#e6f5ef" stroke="#9fd6c2"/><text x="130" y="399">Postgres</text>
+        <rect x="250" y="376" width="180" height="56" rx="10" fill="#e6f5ef" stroke="#9fd6c2"/><text x="340" y="399">Redis</text>
+        <rect x="460" y="376" width="180" height="56" rx="10" fill="#e6f5ef" stroke="#9fd6c2"/><text x="550" y="399">Object storage</text>
+      </g>
+      <g font-size="11.5" fill="#0f6e56" text-anchor="middle">
+        <text x="130" y="420">PgBouncer · source of truth</text><text x="340" y="420">session · cache · queue</text><text x="550" y="420">S3-compatible · รูปภาพ</text>
+      </g>
+      <g font-size="11" fill="#7a7468">
+        <rect x="40" y="557" width="12" height="12" rx="3" fill="#fdf0f4" stroke="#e3628a"/><text x="58" y="567">โค้ดของเรา</text>
+        <rect x="150" y="557" width="12" height="12" rx="3" fill="#e6f5ef" stroke="#9fd6c2"/><text x="168" y="567">ที่เก็บข้อมูล (state)</text>
+        <rect x="300" y="557" width="12" height="12" rx="3" fill="#f3f0ea" stroke="#d6d0c4"/><text x="318" y="567">ภายนอก / edge</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>รูปที่ 1</b> High-level architecture</figcaption>
+  </figure>
+
+  <h3>อ่านภาพนี้อย่างไร</h3>
+  <div class="grid2">
+    <div class="card"><h4>Client → Edge → API</h4><p>เข้าได้ 2 ทาง แต่ทุก request ผ่าน Load balancer + CDN เข้าสู่ API ชุดเดียวกัน</p></div>
+    <div class="card"><h4>API แบบ stateless</h4><p>process เดียวที่แบ่ง module ภายในชัดเจน รันอย่างน้อย 2 ตัว เพราะไม่เก็บ state ในตัวเอง</p></div>
+    <div class="card"><h4>Worker</h4><p>ใช้โค้ดชุดเดียวกับ API แต่รันแยก process รับงานช้าจาก queue เช่นแจ้งเตือน ปิดโพล ดึงรูป</p></div>
+    <div class="card"><h4>Source of truth</h4><p>Postgres เป็นแหล่งข้อมูลจริงเพียงแห่งเดียว Redis เก็บเฉพาะข้อมูลที่หายได้หรือสร้างใหม่ได้</p></div>
+  </div>
+</section>
+
+<!-- ================= 04 ================= -->
+<section class="chapter">
+  <div class="chap-head"><div class="chap-num">04</div><div><h2>หน้าที่ของแต่ละ component</h2><p class="lead">แต่ละกล่องในรูปที่ 1 ทำอะไร</p></div></div>
+  <table>
+    <tr><th style="width:24%">Component</th><th>หน้าที่</th></tr>
+    <tr><td><span class="chip c-sand">EDGE</span><br><b>Load balancer + CDN</b></td><td>TLS, WAF, rate limit ต่อ IP · เสิร์ฟไฟล์ frontend และรูปจาก object storage · กระจาย request ไปยัง API หลาย replica</td></tr>
+    <tr><td><span class="chip c-brand">API</span><br><b>Auth</b></td><td>แลก CUNEX token ที่ <code>/profile</code> · Google OIDC · Email OTP · สร้างและลบ session ใน Redis · ตรวจ admin allowlist</td></tr>
+    <tr><td><span class="chip c-brand">API</span><br><b>Poll</b></td><td>CRUD โพลและ element 9 ชนิด (validate <code>config</code> ด้วย zod) · state machine ของโพล · ออก presigned URL สำหรับอัปโหลดรูป</td></tr>
+    <tr><td><span class="chip c-brand">API</span><br><b>Ballot</b></td><td>ตรวจสิทธิ์และเวลา · validate คำตอบ · คำนวณ <code>voter_key</code> · upsert ballot ใน transaction เดียว</td></tr>
+    <tr><td><span class="chip c-brand">API</span><br><b>Result</b></td><td>ตรวจสิทธิ์การดูผล · อ่าน cache หรือ query <code>GROUP BY</code> · ซ่อนกลุ่มที่มีคนตอบน้อยกว่า k คน</td></tr>
+    <tr><td><span class="chip c-brand">API</span><br><b>Admin</b></td><td>คิวโพลรออนุมัติ · อนุมัติหรือตีกลับพร้อมเหตุผล · จัดการ admin · บันทึก audit log</td></tr>
+    <tr><td><span class="chip c-brand">WORKER</span><br><b>Background jobs</b></td><td>ส่ง CUNEX notification เป็น batch ตามโควตา · สร้าง UniversalLink · ปิดโพลเมื่อถึง <code>closes_at</code> · ดึงรูปจาก URL ภายนอก · retry</td></tr>
+    <tr><td><span class="chip c-teal">STATE</span><br><b>Postgres + PgBouncer</b></td><td>ข้อมูลทั้งหมดที่หายไม่ได้ · trigger ล็อกโครงสร้างโพล · PgBouncer กันจำนวน connection พุ่งเมื่อ autoscale</td></tr>
+    <tr><td><span class="chip c-teal">STATE</span><br><b>Redis</b></td><td>session และ OTP (TTL) · cache ผลโหวต 3 วินาที · queue ของ worker (BullMQ) · ตัวนับ rate limit</td></tr>
+    <tr><td><span class="chip c-teal">STATE</span><br><b>Object storage</b></td><td>รูปปกและรูปของ element/ตัวเลือก · S3 API ใช้ได้ทั้ง AWS, GCS และ MinIO แบบ on-prem</td></tr>
+    <tr><td><span class="chip c-sand">EXTERNAL</span><br><b>CUNEX LLE</b></td><td><code>/profile</code> · <code>/notification</code> · <code>/create_link</code> · <code>/add_board</code> (อาจใช้ในอนาคต)</td></tr>
+  </table>
+</section>
+
+<!-- ================= 05 ================= -->
+<section class="chapter">
+  <div class="chap-head"><div class="chap-num">05</div><div><h2>Trade-off และเหตุผล</h2><p class="lead">เลือกอะไร ไม่เลือกอะไร และทำไม</p></div></div>
+  <table>
+    <tr><th style="width:13%">เรื่อง</th><th style="width:21%">เลือก</th><th style="width:17%">ไม่เลือก</th><th>เหตุผล</th></tr>
+    <tr><td>รูปแบบระบบ</td><td class="pick">Modular monolith</td><td class="alt"><s>Microservices</s></td><td>ที่ 200 req/s microservices ทำให้ต้องจัดการ distributed transaction และ ops เพิ่มโดยไม่ได้ประโยชน์ ถ้าแบ่ง module ดีตั้งแต่แรก วันหลังก็แยกออกได้</td></tr>
+    <tr><td>แพลตฟอร์ม</td><td class="pick">Custom backend + Postgres</td><td class="alt"><s>Supabase / BaaS</s></td><td>logic สำคัญจะไปอยู่ใน RLS และ SQL function ซึ่งทดสอบยาก region ใกล้สุดคือสิงคโปร์ และผูกกับ vendor</td></tr>
+    <tr><td>ภาษา</td><td class="pick">NestJS</td><td class="alt"><s>Go</s></td><td>ทั้งสองรับโหลดนี้ไหว จึงตัดสินที่ productivity: element 9 ชนิดใช้ zod discriminated union ได้ตรงๆ และแชร์ type กับ frontend ได้</td></tr>
+    <tr><td>Deploy</td><td class="pick">Container + autoscale (ขั้นต่ำ 2)</td><td class="alt"><s>Serverless</s></td><td>serverless มี cold start และ connection ไปยัง DB พุ่งตอน spike ส่วน container คาดเดาพฤติกรรมได้ง่ายกว่าและย้ายที่ deploy ได้</td></tr>
+    <tr><td>Database</td><td class="pick">Postgres + JSONB</td><td class="alt"><s>Document DB</s></td><td>config ของ element ต่างกันจึงเก็บเป็น JSONB แต่ผลต้อง aggregate ตามคณะ จึงต้องมี SQL และ foreign key</td></tr>
+    <tr><td>Session</td><td class="pick">httpOnly cookie + Redis</td><td class="alt"><s>JWT</s></td><td>เพิกถอนได้ทันที (เช่น ถอดสิทธิ์ admin) และโหลดระดับนี้ไม่ต้องการ stateless JWT</td></tr>
+    <tr><td>นับผล</td><td class="pick">GROUP BY + cache 3 วินาที</td><td class="alt"><s>Counter / INCR</s></td><td>การแก้คำตอบต้องลดคะแนนตัวเลือกเดิมด้วย ซึ่ง counter ทำให้ตัวเลขเพี้ยนง่ายและเกิด hot-row lock ส่วน GROUP BY ได้ผลถูกต้องเสมอ เร็วระดับมิลลิวินาที</td></tr>
+    <tr><td>Realtime</td><td class="pick">Polling 3–5 วินาที</td><td class="alt"><s>WebSocket / SSE</s></td><td>ทำงานใน webview ได้แน่นอน และไม่ต้องตั้ง sticky session ที่ LB ภายหลังเปลี่ยนเป็น SSE ได้ถ้าต้องการ</td></tr>
+    <tr><td>รูปจาก URL</td><td class="pick">Worker ดึงมาเก็บเอง</td><td class="alt"><s>Hotlink</s></td><td>hotlink ทำให้เจ้าของ server รูปเห็น IP และเวลาของคนเปิดโพล ซึ่งทำลายการไม่ระบุตัวตน และรูปอาจหายภายหลัง</td></tr>
+    <tr><td>งานช้า</td><td class="pick">Queue + Worker</td><td class="alt"><s>ทำใน request</s></td><td>CUNEX notification มีโควตาและอาจล้มเหลว ไม่ควรทำให้ API ช้าลงหรือล่มตาม</td></tr>
+  </table>
+</section>
+
+<!-- ================= 06 ================= -->
+<section class="chapter">
+  <div class="chap-head"><div class="chap-num">06</div><div><h2>Flow การทำงาน</h2><p class="lead">5 เส้นทางหลักของระบบ ตั้งแต่ login จนปิดโพล</p></div></div>
+  <figure>
+    <div class="figbox">
+    <svg width="100%" viewBox="0 0 680 712" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#6b665c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+      <g stroke="#d6d0c4" stroke-width="1" stroke-dasharray="3 4">
+        <line x1="90" y1="62" x2="90" y2="700"/><line x1="220" y1="62" x2="220" y2="700"/>
+        <line x1="350" y1="62" x2="350" y2="700"/><line x1="470" y1="62" x2="470" y2="700"/>
+        <line x1="590" y1="62" x2="590" y2="700"/>
+      </g>
+      <g font-size="13.5" font-weight="600" text-anchor="middle">
+        <rect x="40" y="22" width="100" height="40" rx="10" fill="#f3f0ea" stroke="#d6d0c4"/><text x="90" y="47" fill="#2c2a26">Client</text>
+        <rect x="170" y="22" width="100" height="40" rx="10" fill="#e3628a"/><text x="220" y="47" fill="#fff">API</text>
+        <rect x="300" y="22" width="100" height="40" rx="10" fill="#e6f5ef" stroke="#9fd6c2"/><text x="350" y="47" fill="#085041">Redis</text>
+        <rect x="420" y="22" width="100" height="40" rx="10" fill="#e6f5ef" stroke="#9fd6c2"/><text x="470" y="47" fill="#085041">Postgres</text>
+        <rect x="540" y="22" width="100" height="40" rx="10" fill="#f3f0ea" stroke="#d6d0c4"/><text x="590" y="47" fill="#2c2a26">CUNEX</text>
+      </g>
+      <g font-size="11.5" font-weight="600" fill="#b83f68">
+        <rect x="40" y="80" width="600" height="24" rx="6" fill="#fdf0f4"/><text x="52" y="96">A · เข้าสู่ระบบผ่าน CUNEX token</text>
+        <rect x="40" y="322" width="600" height="24" rx="6" fill="#fdf0f4"/><text x="52" y="338">C · โหวต / แก้คำตอบ</text>
+        <rect x="40" y="528" width="600" height="24" rx="6" fill="#fdf0f4"/><text x="52" y="544">D · ดูผล (poll ทุก 3–5 วินาที)</text>
+      </g>
+      <g fill="none" stroke="#6b665c" stroke-width="1.4">
+        <line x1="90" y1="132" x2="216" y2="132" marker-end="url(#a2)"/>
+        <line x1="220" y1="166" x2="586" y2="166" marker-end="url(#a2)"/>
+        <line x1="590" y1="200" x2="224" y2="200" stroke-dasharray="5 4" marker-end="url(#a2)"/>
+        <line x1="220" y1="234" x2="466" y2="234" marker-end="url(#a2)"/>
+        <line x1="220" y1="268" x2="346" y2="268" marker-end="url(#a2)"/>
+        <line x1="220" y1="302" x2="94" y2="302" stroke-dasharray="5 4" marker-end="url(#a2)"/>
+        <line x1="90" y1="374" x2="216" y2="374" marker-end="url(#a2)"/>
+        <line x1="220" y1="408" x2="466" y2="408" marker-end="url(#a2)"/>
+        <line x1="90" y1="442" x2="216" y2="442" marker-end="url(#a2)"/>
+        <line x1="220" y1="476" x2="466" y2="476" marker-end="url(#a2)"/>
+        <line x1="220" y1="510" x2="94" y2="510" stroke-dasharray="5 4" marker-end="url(#a2)"/>
+        <line x1="90" y1="580" x2="216" y2="580" marker-end="url(#a2)"/>
+        <line x1="220" y1="614" x2="346" y2="614" marker-end="url(#a2)"/>
+        <line x1="220" y1="648" x2="466" y2="648" marker-end="url(#a2)"/>
+        <line x1="220" y1="682" x2="94" y2="682" stroke-dasharray="5 4" marker-end="url(#a2)"/>
+      </g>
+      <g font-size="11.5" fill="#2c2a26">
+        <text x="98" y="125">?token=…</text>
+        <text x="228" y="159">GET /profile + ClientSecret</text>
+        <text x="228" y="193">userId, คณะ, ปีเข้า</text>
+        <text x="228" y="227">upsert user</text>
+        <text x="228" y="261">สร้าง session</text>
+        <text x="98" y="295">302 + cookie</text>
+        <text x="98" y="367">GET poll</text>
+        <text x="228" y="401">poll, elements, audience</text>
+        <text x="98" y="435">POST ballot</text>
+        <text x="228" y="469">upsert ด้วย HMAC voter_key</text>
+        <text x="98" y="503">200 OK</text>
+        <text x="98" y="573">GET results</text>
+        <text x="228" y="607">cache hit? (3 วิ)</text>
+        <text x="228" y="641">cache miss: GROUP BY</text>
+        <text x="98" y="675">ผลโหวต</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>รูปที่ 2</b> Sequence ของเส้นทางที่ผู้ใช้เจอบ่อยที่สุด · เส้นทึบ = request · เส้นประ = response</figcaption>
+  </figure>
+</section>
+
+<section class="chapter">
+  <div class="flow-title" style="margin-top:0"><span class="tag">A</span><h3>เข้าใช้งาน</h3></div>
+  <div class="grid3">
+    <div class="card brand"><h4>เข้าจาก CUNEX</h4><p>เมนู, notification หรือลิงก์แชร์ CUNEX เปิดเว็บเราพร้อม <code>?token=</code></p></div>
+    <div class="card brand"><h4>เปิดเว็บตรง</h4><p>กด "เข้าสู่ระบบด้วยบัญชีจุฬาฯ" → login ที่ CUNEX → กลับมาพร้อม <code>?token=</code></p></div>
+    <div class="card sand"><h4>Google / Email</h4><p>ได้ user ที่ <code>is_chula_verified = false</code> ตอบได้เฉพาะโพลสาธารณะ</p></div>
+  </div>
+  <p style="margin-top:3mm">API เอา token ไปแลกที่ <code>/profile</code> (แนบ <code>ClientSecret</code> ฝั่ง server) → บันทึกหรืออัปเดต user และคณะ → สร้าง session → ตอบ 302 พร้อม httpOnly cookie ไปยัง URL ที่<b>ไม่มี token</b> ติดอยู่ หลังจากนี้ไม่ต้องติดต่อ CUNEX อีก</p>
+
+  <div class="flow-title"><span class="tag">B</span><h3>สร้างโพล → อนุมัติ → เปิด</h3></div>
+  <figure>
+    <div class="figbox">
+    <svg width="100%" viewBox="0 0 690 200" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="a3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#6b665c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+      <g font-size="13" font-weight="600" text-anchor="middle">
+        <rect x="20" y="44" width="120" height="44" rx="22" fill="#f3f0ea" stroke="#d6d0c4"/><text x="80" y="71" fill="#2c2a26">draft</text>
+        <rect x="200" y="44" width="130" height="44" rx="22" fill="#fcf2e1" stroke="#e8c78a"/><text x="265" y="71" fill="#5e3906">pending_review</text>
+        <rect x="390" y="44" width="120" height="44" rx="22" fill="#e3628a"/><text x="450" y="71" fill="#fff">open</text>
+        <rect x="560" y="44" width="110" height="44" rx="22" fill="#2c2a26"/><text x="615" y="71" fill="#fff">closed</text>
+        <rect x="200" y="144" width="130" height="44" rx="22" fill="#fcecec" stroke="#eba9a9"/><text x="265" y="171" fill="#8c2424">rejected</text>
+      </g>
+      <g fill="none" stroke="#6b665c" stroke-width="1.4">
+        <line x1="140" y1="66" x2="196" y2="66" marker-end="url(#a3)"/>
+        <line x1="330" y1="66" x2="386" y2="66" marker-end="url(#a3)"/>
+        <line x1="510" y1="66" x2="556" y2="66" marker-end="url(#a3)"/>
+        <line x1="265" y1="88" x2="265" y2="140" marker-end="url(#a3)"/>
+        <path d="M200 166 L80 166 L80 92" marker-end="url(#a3)"/>
+      </g>
+      <g font-size="11" fill="#7a7468" text-anchor="middle">
+        <text x="168" y="34">ส่ง</text><text x="358" y="34">อนุมัติ</text><text x="533" y="34">หมดเวลา</text>
+        <text x="275" y="120" text-anchor="start">ตีกลับ (ต้องมีเหตุผล)</text>
+        <text x="140" y="158">แก้แล้วส่งใหม่</text>
+        <text x="450" y="112" fill="#b83f68" font-weight="600">โครงสร้างถูกล็อก</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>รูปที่ 3</b> Poll lifecycle · หลัง <code>open</code> แล้ว trigger ใน DB ไม่ยอมให้แก้คำถามหรือตัวเลือก</figcaption>
+  </figure>
+  <ol class="steps">
+    <li><b>สร้างร่าง</b>บันทึกโพล, element และตัวเลือก สถานะเป็น <code>draft</code></li>
+    <li><b>รูปภาพ</b>ถ้าอัปโหลดไฟล์ client จะอัปโหลดตรงไป object storage ด้วย presigned URL ถ้าใส่ URL รูป worker จะดึงรูปมาเก็บไว้ในระบบเรา</li>
+    <li><b>ส่งขออนุมัติ</b>สถานะเปลี่ยนเป็น <code>pending_review</code> และขึ้นในคิวของ Admin</li>
+    <li><b>Admin ตัดสิน</b>บันทึกผลใน <code>poll_reviews</code> และ <code>audit_logs</code> ถ้าตีกลับ สถานะเป็น <code>rejected</code> แก้แล้วส่งใหม่ได้</li>
+    <li><b>เปิดโพล</b>โครงสร้างถูกล็อก แล้วส่งงาน 3 อย่างเข้า queue: สร้าง UniversalLink · ส่ง notification ให้ user ที่อยู่ในขอบเขตเป็น batch ตามโควตา · ตั้งงานปิดโพลที่เวลา <code>closes_at</code></li>
+  </ol>
+</section>
+
+<section class="chapter">
+  <div class="flow-title" style="margin-top:0"><span class="tag">C</span><h3>โหวต / แก้คำตอบ</h3></div>
+  <ol class="steps">
+    <li><b>เช็กเวลา</b>สถานะต้องเป็น <code>open</code> <b>และเวลาปัจจุบันยังไม่เลย <code>closes_at</code></b> ต้องเช็กเวลาด้วย เพราะ worker อาจปิดโพลช้ากว่ากำหนด</li>
+    <li><b>เช็กสิทธิ์</b>คณะและปีเข้าของผู้ใช้ต้องตรงกับ <code>poll_audience_rules</code></li>
+    <li><b>เช็กคำตอบ</b>ตอบข้อบังคับครบ ตัวเลือกเป็นของคำถามนั้นจริง จำนวนที่เลือกไม่เกินกำหนด</li>
+    <li><b>สร้าง voter_key</b>คำนวณ <code>HMAC(pepper, poll_id‖user_id)</code> ในหน่วยความจำ แล้วทิ้ง user_id ไม่ส่งลง DB</li>
+    <li><b>Upsert</b>บันทึกใน transaction เดียว: ยังไม่เคยโหวตจะสร้างใหม่ · เคยโหวตและเปิดให้แก้จะแทนที่คำตอบเดิม · เคยโหวตแต่ไม่เปิดให้แก้จะตอบ <code>409</code></li>
+  </ol>
+  <div class="callout key"><span class="ic">i</span><p>ระหว่างที่ผู้ใช้กด "ถัดไป" ทีละหน้า คำตอบอยู่ฝั่ง client ทั้งหมด จะส่งมาครั้งเดียวตอนกดส่ง</p></div>
+
+  <div class="flow-title"><span class="tag">D</span><h3>ดูผล</h3></div>
+  <div class="grid3">
+    <div class="card"><div class="k">สิทธิ์</div><h4>ใครเห็นผลเมื่อไหร่</h4><p>เจ้าของโพลเห็นได้ตลอด · ผู้ตอบเห็นได้ทันทีถ้าเปิดแสดงผลเรียลไทม์ ถ้าไม่เปิดต้องรอโพลปิด</p></div>
+    <div class="card"><div class="k">Cache</div><h4>Redis 3 วินาที</h4><p>ถ้าไม่มีใน cache ค่อยรัน <code>GROUP BY</code> และคนที่ขอพร้อมกันรอผลจาก query เดียวกัน ผลคือ 5,000 คนทำให้ DB ถูก query แค่ประมาณ 1 ครั้งทุก 3 วินาที</p></div>
+    <div class="card"><div class="k">Privacy</div><h4>k-anonymity</h4><p>ผลแยกตามคณะหรือปี ถ้ากลุ่มไหนมีคนตอบน้อยกว่า k คนจะไม่แสดง</p></div>
+  </div>
+
+  <div class="flow-title"><span class="tag">E</span><h3>ปิดโพล</h3></div>
+  <p>ถึงเวลา <code>closes_at</code> worker จะเปลี่ยนสถานะเป็น <code>closed</code> และแจ้งผลได้ถ้าต้องการ ถ้า worker ทำงานช้า ขั้นตอน C.1 ยังกันโหวตหลังหมดเวลาได้ เจ้าของกดปิดโพลก่อนกำหนดได้</p>
+</section>
+
+<!-- ================= 07 ================= -->
+<section class="chapter">
+  <div class="chap-head"><div class="chap-num">07</div><div><h2>การไม่ระบุตัวตนและข้อมูลส่วนบุคคล</h2><p class="lead">ซ่อนตัวตนจากเจ้าของโพล แต่ยังกันโหวตซ้ำและแก้คำตอบได้</p></div></div>
+
+  <figure>
+    <div class="figbox">
+    <svg width="100%" viewBox="0 0 690 150" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="a4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#6b665c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+      <g text-anchor="middle">
+        <rect x="20" y="20" width="150" height="56" rx="10" fill="#f3f0ea" stroke="#d6d0c4"/>
+        <text x="95" y="44" font-size="13.5" font-weight="600" fill="#2c2a26">user_id + poll_id</text><text x="95" y="63" font-size="11" fill="#7a7468">อยู่ใน request เท่านั้น</text>
+        <rect x="230" y="20" width="200" height="56" rx="10" fill="#e3628a"/>
+        <text x="330" y="44" font-size="13.5" font-weight="600" fill="#fff">HMAC-SHA256</text><text x="330" y="63" font-size="11" fill="#fde4ec">pepper จาก secret manager</text>
+        <rect x="490" y="20" width="180" height="56" rx="10" fill="#e6f5ef" stroke="#9fd6c2"/>
+        <text x="580" y="44" font-size="13.5" font-weight="600" fill="#085041">voter_key</text><text x="580" y="63" font-size="11" fill="#0f6e56">เก็บใน ballots</text>
+      </g>
+      <g fill="none" stroke="#6b665c" stroke-width="1.4">
+        <line x1="170" y1="48" x2="226" y2="48" marker-end="url(#a4)"/>
+        <line x1="430" y1="48" x2="486" y2="48" marker-end="url(#a4)"/>
+      </g>
+      <g font-size="11.5" fill="#4a4648">
+        <text x="20" y="112">• หา ballot เดิมเจอ → แก้คำตอบได้</text>
+        <text x="250" y="112">• UNIQUE(poll_id, voter_key) → โหวตซ้ำไม่ได้</text>
+        <text x="20" y="136">• ใน DB ไม่มี user_id → แค่ได้ DB ไปก็ย้อนหาตัวคนไม่ได้</text>
+        <text x="380" y="136">• key ต่างกันทุกโพล → เชื่อมข้ามโพลไม่ได้</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><b>รูปที่ 4</b> วิธีสร้าง voter_key</figcaption>
+  </figure>
+
+  <table>
+    <tr><th style="width:42%">มาตรการ</th><th>กันอะไร</th></tr>
+    <tr><td>ballot <b>ไม่มี user_id</b> มีเฉพาะ <code>voter_key</code></td><td>แค่ได้ข้อมูลจาก DB อย่างเดียวจะรู้ไม่ได้ว่าใครตอบอะไร</td></tr>
+    <tr><td><code>pepper</code> อยู่ใน secret manager ไม่ได้อยู่ใน DB</td><td>DB backup ที่รั่วออกไปเอามาย้อนหาตัวตนไม่ได้</td></tr>
+    <tr><td>เวลาโหวตปัดเป็นนาที</td><td>เอาเวลาไปเทียบกับ log การ login แล้วเดาตัวคนไม่ได้</td></tr>
+    <tr><td>k-anonymity ตอนแสดงผลแยกกลุ่ม</td><td>กลุ่มที่มีคนตอบ 2–3 คนเดาตัวตนไม่ได้</td></tr>
+    <tr><td>ห้ามบันทึกการโหวตใน audit log และ app log</td><td>log ไม่กลายเป็นช่องทางเชื่อมคนกับคำตอบ</td></tr>
+    <tr><td>ดึงรูปภายนอกมาเก็บเอง ไม่ hotlink</td><td>server รูปภายนอกไม่เห็น IP ของผู้ที่เปิดโพล</td></tr>
+    <tr><td>ไม่เก็บ <code>studentId</code> เก็บแค่คณะและปีเข้า</td><td>ลดปริมาณข้อมูลส่วนบุคคลที่เก็บ ตามหลัก PDPA</td></tr>
+    <tr><td>Token ของ CUNEX ใช้ครั้งเดียว แล้ว redirect ไป URL ที่ไม่มี token</td><td>token ไม่รั่วผ่าน Referer หรือ history</td></tr>
+  </table>
+
+  <div class="callout warn"><span class="ic">!</span><p><b>ข้อจำกัดที่ทีมควรรู้:</b> ผู้ที่ถือทั้ง DB และ pepper ย้อนหาตัวตนได้ (ไล่ลอง userId ราว 4 หมื่นค่า) ระดับนี้เพียงพอสำหรับข้อกำหนด "ซ่อนจากเจ้าของโพล" แต่ไม่เพียงพอสำหรับการเลือกตั้งอย่างเป็นทางการ</p></div>
+</section>
+
+<!-- ================= 08 ================= -->
+<section class="chapter">
+  <div class="chap-head"><div class="chap-num">08</div><div><h2>เมื่อแต่ละส่วนล่ม</h2><p class="lead">ผลกระทบและการรับมือ เรียงจากเบาไปหนัก</p></div></div>
+  <table>
+    <tr><th style="width:17%">ส่วนที่ล่ม</th><th style="width:15%">ระดับ</th><th>ผลกระทบ</th><th style="width:30%">การรับมือ</th></tr>
+    <tr><td><b>API 1 replica</b></td><td><span class="chip c-green">ไม่กระทบ</span></td><td>ผู้ใช้ไม่รู้สึกถึงความต่าง</td><td>ขั้นต่ำ 2 replica · health check ที่ LB</td></tr>
+    <tr><td><b>Worker</b></td><td><span class="chip c-amber">ล่าช้า</span></td><td>notification และการปิดโพลอัตโนมัติล่าช้า · <b>การโหวตยังทำงานและยังถูกต้อง</b></td><td>API เช็ก <code>closes_at</code> เอง · งานรออยู่ใน queue</td></tr>
+    <tr><td><b>CUNEX</b></td><td><span class="chip c-amber">บางส่วน</span></td><td>login ใหม่ไม่ได้ · notification ค้างใน queue · <b>คนที่ login แล้วยังโหวตได้</b></td><td>session ของเราไม่ขึ้นกับ CUNEX · worker retry</td></tr>
+    <tr><td><b>Traffic พุ่ง</b></td><td><span class="chip c-amber">ช้าลง</span></td><td>latency สูงขึ้น</td><td>autoscale · PgBouncer · rate limit · load test ล่วงหน้า</td></tr>
+    <tr><td><b>Redis</b></td><td><span class="chip c-red">ทุกคนออกจากระบบ</span></td><td>session หาย ทุกคนต้อง login ใหม่ · DB รับโหลดเพิ่มชั่วคราว · <b>ผลโหวตไม่หาย</b></td><td>managed Redis ที่มี replica · ข้อมูลจริงอยู่ใน Postgres</td></tr>
+    <tr><td><b>Postgres</b></td><td><span class="chip c-red">ระบบหยุด</span></td><td>ใช้งานไม่ได้ทั้งระบบ</td><td>managed DB + standby + PITR backup</td></tr>
+  </table>
+  <div class="callout key"><span class="ic">✓</span><p><b>ก่อนเปิดใช้งานจริง:</b> load test สถานการณ์ "ส่ง push ทั้งมหาวิทยาลัย" คือคนเข้ามาโหวตพร้อมกันและเปิดหน้าผลพร้อมกันในเวลาไม่กี่นาที</p></div>
+</section>
+
+<!-- ================= 09 ================= -->
+<section class="chapter">
+  <div class="chap-head"><div class="chap-num">09</div><div><h2>Data model โดยสรุป</h2><p class="lead">14 ตาราง 5 กลุ่ม · รายละเอียดเต็มที่ <code>db/migrations/0001_init.sql</code> (PostgreSQL 16+, ทดสอบ constraint แล้ว)</p></div></div>
+  <div class="grid2">
+    <div class="card"><div class="k">ผู้ใช้</div><h4><code>users</code> · <code>user_identities</code> · <code>faculties</code></h4><p>ผู้ใช้ 1 คน login ได้หลายช่องทาง · คณะอัปเดตจาก CUNEX ทุกครั้งที่ login</p></div>
+    <div class="card"><div class="k">โพล</div><h4><code>polls</code> · <code>poll_audience_rules</code> · <code>poll_reviews</code></h4><p>state machine · ขอบเขตผู้ตอบ = OR ของ (คณะ AND ปีเข้า) · ตีกลับต้องมีเหตุผล</p></div>
+    <div class="card"><div class="k">เนื้อหา</div><h4><code>poll_elements</code> · <code>element_options</code> · <code>images</code></h4><p>element 9 ชนิดอยู่ตารางเดียว (<code>config JSONB</code>) · trigger ล็อกเมื่อโพลเปิด · สลับลำดับได้ใน transaction เดียว</p></div>
+    <div class="card brand"><div class="k" style="color:var(--brand-d)">คำตอบ</div><h4><code>ballots</code> · <code>ballot_choices</code> · <code>ballot_text_answers</code></h4><p><b>ไม่มี user_id</b> · composite FK กันส่งตัวเลือกข้ามคำถามหรือข้ามโพล · index สำหรับ GROUP BY</p></div>
+    <div class="card"><div class="k">ระบบ</div><h4><code>notification_batches</code> · <code>audit_logs</code></h4><p>กันส่ง notification ซ้ำ · audit เฉพาะ action ของ admin และ lifecycle</p></div>
+    <div class="card sand"><div class="k">ไม่อยู่ใน Postgres</div><h4>Session · OTP</h4><p>เก็บใน Redis แบบมี TTL หมดอายุเองโดยไม่ต้อง cleanup</p></div>
+  </div>
+
+  <h3>สิ่งที่ DB บังคับเอง (ไม่พึ่ง API)</h3>
+  <div class="grid3">
+    <div class="stat"><div class="v" style="font-size:13pt">ล็อกโครงสร้าง</div><div class="l">แก้คำถามหรือตัวเลือกไม่ได้เมื่อโพลไม่ได้อยู่ใน draft/rejected</div></div>
+    <div class="stat"><div class="v" style="font-size:13pt">1 คน 1 ballot</div><div class="l"><code>UNIQUE(poll_id, voter_key)</code> แม้ request จะเข้ามาพร้อมกัน</div></div>
+    <div class="stat"><div class="v" style="font-size:13pt">ไม่ข้ามโพล</div><div class="l">composite FK: ตัวเลือก ∈ คำถาม ∈ โพลเดียวกับ ballot</div></div>
+  </div>
+</section>
+
+<!-- ================= 10 ================= -->
+<section class="chapter">
+  <div class="chap-head"><div class="chap-num">10</div><div><h2>สมมติฐานและคำถามที่ยังเปิดอยู่</h2><p class="lead">สิ่งที่ต้องยืนยันก่อนเริ่ม implement</p></div></div>
+
+  <div class="grid2">
+    <div class="card" style="border-color:#e8c78a; background:var(--amber-50)"><div class="k" style="color:var(--amber-d)">ต้องแก้ดีไซน์</div>
+      <p style="color:var(--amber-d)">• "เฉพาะคณะ/<b>สาขา</b>" → "เฉพาะคณะ/<b>ปีเข้า</b>" เพราะ CUNEX ไม่ส่งข้อมูลสาขา<br>• ป๊อปอัป "เลือกบัญชีทดลอง" เปิดได้เฉพาะ dev/staging</p></div>
+    <div class="card sand"><div class="k">สมมติฐาน (ยังไม่ได้ยืนยัน)</div>
+      <p>• ระบบเป็นเว็บแยกที่เข้าได้ทั้งจาก CUNEX และเปิดตรง "หน้ารวม" หมายถึงหน้ารวมโพลในเว็บเรา<br>• ตัวเลขโหลดในหัวข้อ 01 เป็นค่าประมาณ</p></div>
+  </div>
+
+  <h3>คำถามที่ต้องหาคำตอบ</h3>
+  <table>
+    <tr><th style="width:46%">คำถาม</th><th style="width:16%">ถามใคร</th><th>กระทบอะไร</th></tr>
+    <tr><td>มีข้อกำหนดว่าข้อมูลต้องอยู่ในไทย หรือต้อง deploy บน infra ของจุฬาฯ ไหม</td><td><span class="chip c-sand">สำนัก IT / DPO</span></td><td>ที่ deploy (architecture ไม่ต้องเปลี่ยน)</td></tr>
+    <tr><td>บัญชีบุคลากร/อาจารย์เรียก <code>/profile</code> แล้วได้อะไร</td><td><span class="chip c-brand">ทีม CUNEX</span></td><td>วิธีให้ Admin ที่ไม่ใช่นิสิต login</td></tr>
+    <tr><td>CUNEX ส่งชื่อผู้ใช้ได้ไหม (<code>/profile</code> ไม่มีชื่อ)</td><td><span class="chip c-brand">ทีม CUNEX</span></td><td>หน้า admin และหน้าโพลแสดงชื่อเจ้าของไม่ได้</td></tr>
+    <tr><td>โควตาและ rate limit ของ notification API</td><td><span class="chip c-brand">ทีม CUNEX</span></td><td>ขนาด batch และเวลาที่ใช้ส่งทั้งมหาวิทยาลัย</td></tr>
+    <tr><td>อายุของ CUNEX token</td><td><span class="chip c-brand">ทีม CUNEX</span></td><td>ความเสี่ยงที่ token ในลิงก์หมดอายุก่อนผู้ใช้เปิด</td></tr>
+    <tr><td>ค่า k สำหรับ k-anonymity</td><td><span class="chip c-teal">ทีม / DPO</span></td><td>ความละเอียดของผลแยกกลุ่มที่แสดงได้</td></tr>
+  </table>
+
+  <h3>ขั้นต่อไป</h3>
+  <ol class="steps">
+    <li><b>ออกแบบ API</b>endpoint และ zod schema ของ element ทั้ง 9 ชนิด</li>
+    <li><b>ตั้งโปรเจกต์</b>NestJS + migration จาก <code>db/migrations/0001_init.sql</code></li>
+    <li><b>Auth กับ CUNEX sandbox</b>ทำเป็นอย่างแรก เพราะทุกส่วนขึ้นกับมัน</li>
+    <li><b>Load test</b>สถานการณ์ส่ง push ทั้งมหาวิทยาลัยก่อนเปิดใช้งานจริง</li>
+  </ol>
+</section>
+
+</body>
+</html>
