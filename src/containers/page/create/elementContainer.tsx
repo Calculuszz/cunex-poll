@@ -7,14 +7,11 @@ import { TextInput } from '@/containers/page/create/components/form/input/text'
 import { RadioInput } from '@/containers/page/create/components/form/input/radio'
 import { useElementStore } from '@/store/elementStore'
 import { SelectInput } from '@/containers/page/create/components/form/input/selector'
+import { TextElement } from "@/containers/page/create/components/form/element/text"
 
 
 export function ElementContainer() {
     const items = useElementStore(s => s.items)
-
-    useEffect(() => {
-        console.log(items)
-    }, [items])
 
     return (
         <div className=' flex flex-col gap-2'>
@@ -22,31 +19,40 @@ export function ElementContainer() {
 
             <div className='flex flex-col gap-2'>
                 {items.map((item, index) => {
+                    const qindex = items.filter(q => q.kind === "input")
+                    const eindex = items.filter(e => e.kind === "element")
                     if (item.kind === 'input' && item.type === 'text') {
                         return (
-                            <FormItemCard key={item.id} item={item} index={index} title='คำถามแบบข้อความ'>
+                            <FormItemCard key={item.id} item={item} index={qindex.indexOf(item)} title='คำถามแบบข้อความ'>
                                 <TextInput item={item} />
                             </FormItemCard>
                         )
                     }
                     if (item.kind === 'input' && item.type === 'radio') {
                         return (
-                            <FormItemCard key={item.id} item={item} index={index} title='คำถามแบบเลือกข้อเดียว'>
+                            <FormItemCard key={item.id} item={item} index={qindex.indexOf(item)} title='คำถามแบบเลือกข้อเดียว'>
                                 <RadioInput item={item} />
                             </FormItemCard>
                         )
                     }
                     if (item.kind === "input" && item.type === "checkbox") {
                         return (
-                            <FormItemCard key={item.id} item={item} index={index} title='คำถามแบบเลือกหลายข้อ'>
+                            <FormItemCard key={item.id} item={item} index={qindex.indexOf(item)} title='คำถามแบบเลือกหลายข้อ'>
                                 <CheckboxInput item={item} />
                             </FormItemCard>
                         )
                     }
                     if (item.kind === "input" && item.type === "select") {
                         return (
-                            <FormItemCard key={item.id} item={item} index={index} title='คำถามแบบเลือกจากรายการ'>
+                            <FormItemCard key={item.id} item={item} index={qindex.indexOf(item)} title='คำถามแบบเลือกจากรายการ'>
                                 <SelectInput item={item} />
+                            </FormItemCard>
+                        )
+                    }
+                    if (item.kind === "element" && item.type === "text") {
+                        return (
+                            <FormItemCard key={item.id} item={item} index={eindex.indexOf(item)} title='คำอธิบาย'>
+                                <TextElement item={item} />
                             </FormItemCard>
                         )
                     }
