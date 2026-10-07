@@ -3,11 +3,13 @@
 import { existsSync } from 'node:fs';
 import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import { Redis } from 'ioredis';
 import pg from 'pg';
 import request from 'supertest';
 import { runMigrations } from '../scripts/migrator.js';
 
 export const APP_ORIGIN = 'http://localhost:5173';
+export const TEST_REDIS_URL = 'redis://localhost:6379/15';
 
 export async function createTestApp(): Promise<{
   app: NestExpressApplication;
@@ -34,13 +36,17 @@ export async function createTestApp(): Promise<{
   const db = new pg.Client({ connectionString: testUrl.toString() });
   await db.connect();
   await db.query('TRUNCATE users, faculties RESTART IDENTITY CASCADE');
+  // Sessions and queued jobs from earlier runs
+  const redis = new Redis(TEST_REDIS_URL);
+  await redis.flushdb();
+  await redis.quit();
 
   Object.assign(process.env, {
     APP_ENV: 'test',
     APP_ORIGIN,
     LOG_LEVEL: 'warn',
     DATABASE_URL: testUrl.toString(),
-    REDIS_URL: 'redis://localhost:6379/15',
+    REDIS_URL: TEST_REDIS_URL,
     CUNEX_MODE: 'mock',
     ADMIN_BOOTSTRAP_CUNEX_IDS: '',
   });

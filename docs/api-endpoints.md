@@ -180,14 +180,17 @@ Element `config` per type (validated with a zod discriminated union on `type`):
 
 | Method | Path | Who | Purpose |
 |---|---|---|---|
-| GET | `/admin/polls?status=pending_review&cursor=` | admin | Review queue (oldest first). |
-| POST | `/admin/polls/:pollId/approve` | admin | → `open`, enqueue UniversalLink + notifications + close job. |
-| POST | `/admin/polls/:pollId/reject` | admin | `{ comment }` (required) → `rejected`. |
-| POST | `/admin/polls/:pollId/takedown` | admin | `{ reason }`. Force-close an open poll and hide it from the feed. |
-| GET | `/admin/admins` | admin | List admins. |
-| POST | `/admin/admins` | admin | `{ cunexUserId }`. Grant admin. |
-| DELETE | `/admin/admins/:userId` | admin | Revoke admin (can't revoke yourself), and kill that user's sessions. |
-| GET | `/admin/audit-logs?entityType=&entityId=&cursor=` | admin | Audit trail. |
+| GET | `/admin/polls?status=pending_review&cursor=` | admin | Review queue: `pending_review` oldest-submitted first; other statuses newest first. |
+| POST | `/admin/polls/:pollId/approve` | admin | → `open`. Queues `poll-opened` (UniversalLink + notifications) and a delayed `close-poll` at `closesAt`. `422 CLOSES_AT_PASSED` if the deadline went by while pending. |
+| POST | `/admin/polls/:pollId/reject` | admin | `{ comment }` (required) → `rejected`; owner sees it in `reviews` and can edit + resubmit. |
+| POST | `/admin/polls/:pollId/takedown` | admin | `{ reason }`. Force-close an open/closed poll, hide it from the feed, cancel its close job. |
+| GET | `/admin/admins` | admin | List admins (`id`, `cunexUserId`, `facultyCode`, `lastLoginAt`). |
+| POST | `/admin/admins` | admin | `{ cunexUserId }`. Grant admin. `404 USER_NOT_FOUND` until that person has logged in once. |
+| DELETE | `/admin/admins/:userId` | admin | Revoke admin. `409 CANNOT_REVOKE_SELF` for yourself. The role is re-read on every request, so it applies immediately. |
+| GET | `/admin/audit-logs?entityType=&entityId=&cursor=` | admin | Audit trail, newest first. |
+
+All admin routes return `403 FORBIDDEN` to non-admins. The first admins come from
+`ADMIN_BOOTSTRAP_CUNEX_IDS`; after that, admins grant each other here.
 
 ## 9. Ops
 

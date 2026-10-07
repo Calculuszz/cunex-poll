@@ -7,6 +7,11 @@ import { voterKey } from '../ballots/voter-key.js';
 import type { User } from '../users/users.repository.js';
 import { findProblems } from './completeness.js';
 import { isEligible } from './eligibility.js';
+import {
+  pollLocked as locked,
+  pollNotFound as notFound,
+} from './poll-errors.js';
+import { PollJobs } from './poll-jobs.js';
 import type { PollDraftInput } from './poll-draft.schema.js';
 import {
   EDITABLE,
@@ -21,19 +26,13 @@ import {
   toSummary,
 } from './polls.view.js';
 
-const notFound = () =>
-  new AppError('POLL_NOT_FOUND', HttpStatus.NOT_FOUND, 'Poll not found');
-const locked = (status: PollStatus) =>
-  new AppError('POLL_LOCKED', HttpStatus.CONFLICT, `Poll is ${status}`, {
-    pollStatus: status,
-  });
-
 @Injectable()
 export class PollsService {
   private readonly pepper: string;
 
   constructor(
     private readonly repo: PollsRepository,
+    private readonly jobs: PollJobs,
     config: ConfigService<Env, true>,
   ) {
     this.pepper = config.get('VOTER_KEY_PEPPER');
@@ -134,6 +133,7 @@ export class PollsService {
     const allowed: PollStatus[] = ['pending_review', 'open'];
     if (!allowed.includes(poll.status)) throw locked(poll.status);
     await this.move(user, id, allowed, { closesAt }, 'poll.closes_at');
+    if (poll.status === 'open') await this.jobs.rescheduleClose(id, closesAt);
     return this.get(user, id);
   }
 
@@ -150,6 +150,7 @@ export class PollsService {
       },
       'poll.close',
     );
+    await this.jobs.cancelClose(id);
     return this.get(user, id);
   }
 
