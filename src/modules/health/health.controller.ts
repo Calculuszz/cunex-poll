@@ -7,7 +7,9 @@ import {
 import { Redis } from 'ioredis';
 import { sql } from 'kysely';
 import { Database } from '../../infra/database/database.js';
+import { Public } from '../auth/auth.decorators.js';
 
+@Public()
 @Controller()
 export class HealthController {
   constructor(

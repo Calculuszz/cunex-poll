@@ -1,0 +1,72 @@
+import { HttpStatus, Injectable } from '@nestjs/common';
+import { AppError } from '../../../common/errors.js';
+import { CunexClient, type CunexProfile } from './cunex.client.js';
+
+// Fake students for local development and tests (CUNEX_MODE=mock).
+// Token format: `mock_<key>`, e.g. mock_eng-2567. `mock_expired` simulates E002.
+export const MOCK_CUNEX_USERS = {
+  'eng-2567': {
+    userId: '100000000000000001',
+    studentId: '6730000121',
+    facultyCode: '21',
+    facultyNameTh: 'วิศวกรรมศาสตร์',
+    facultyNameEn: 'Faculty of Engineering',
+    studentYear: 2567,
+  },
+  'med-2566': {
+    userId: '100000000000000002',
+    studentId: '6630000230',
+    facultyCode: '30',
+    facultyNameTh: 'แพทยศาสตร์',
+    facultyNameEn: 'Faculty of Medicine',
+    studentYear: 2566,
+  },
+  'arts-2565': {
+    userId: '100000000000000003',
+    studentId: '6530000322',
+    facultyCode: '22',
+    facultyNameTh: 'อักษรศาสตร์',
+    facultyNameEn: 'Faculty of Arts',
+    studentYear: 2565,
+  },
+  admin: {
+    userId: '100000000000000099',
+    studentId: '6430000923',
+    facultyCode: '23',
+    facultyNameTh: 'วิทยาศาสตร์',
+    facultyNameEn: 'Faculty of Science',
+    studentYear: 2564,
+  },
+} satisfies Record<string, CunexProfile>;
+
+export type MockCunexUser = keyof typeof MOCK_CUNEX_USERS;
+
+export const DEFAULT_MOCK_USER: MockCunexUser = 'eng-2567';
+
+export function isMockCunexUser(key: string): key is MockCunexUser {
+  return Object.hasOwn(MOCK_CUNEX_USERS, key);
+}
+
+@Injectable()
+export class MockCunexClient extends CunexClient {
+  getProfile(token: string): Promise<CunexProfile> {
+    const key = token.startsWith('mock_') ? token.slice('mock_'.length) : '';
+    if (!isMockCunexUser(key)) {
+      return Promise.reject(
+        new AppError(
+          'CUNEX_TOKEN_INVALID',
+          HttpStatus.UNAUTHORIZED,
+          'CUNEX token is invalid or expired',
+        ),
+      );
+    }
+    return Promise.resolve({ ...MOCK_CUNEX_USERS[key] });
+  }
+
+  // Skips the CUNEX login page and goes straight to our callback, like CUNEX would.
+  loginUrl({ mockUser }: { mockUser?: string }): string {
+    const key =
+      mockUser && isMockCunexUser(mockUser) ? mockUser : DEFAULT_MOCK_USER;
+    return `/api/v1/auth/cunex/callback?token=mock_${key}`;
+  }
+}
