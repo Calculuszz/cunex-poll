@@ -6,12 +6,16 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useElementStore, type FormItem } from '@/store/elementStore'
 export function FormItemCard({
     item,
-    index,
+    position,
+    number,
     title,
     children,
 }: {
     item: FormItem
-    index: number
+    /** ตำแหน่งจริงในลิสต์รวม ใช้เลื่อนขึ้น/ลง */
+    position: number
+    /** เลขที่แสดงบนหัวการ์ด นับแยกกันระหว่างคำถามกับองค์ประกอบ */
+    number: number
     title: string
     children: React.ReactNode
 }) {
@@ -19,14 +23,14 @@ export function FormItemCard({
     const remove = useElementStore((s) => s.remove)
     const total = useElementStore((s) => s.items.length)
 
-    const isFirst = index === 0
-    const isLast = index === total - 1
+    const isFirst = position === 0
+    const isLast = position === total - 1
 
     return (
         <Card>
             <CardContent className='flex flex-col gap-3'>
                 <div className='flex items-start justify-between gap-2'>
-                    <span className='font-heading text-base font-bold'>{item.kind == "input" ? "ข้อที่": "องค์ประกอบที่"} {index + 1}<br />{title}</span>
+                    <span className='font-heading text-base font-bold'>{item.kind == "input" ? "ข้อที่": "องค์ประกอบที่"} {number}<br />{title}</span>
                     <div className='flex items-center gap-1'>
                         <Button
                             type='button'
@@ -35,7 +39,7 @@ export function FormItemCard({
                             aria-label='เลื่อนขึ้น'
                             disabled={isFirst}
                             className='bg-transparent text-ink-500 hover:bg-secondary hover:text-ink-900'
-                            onClick={() => move(index, index - 1)}
+                            onClick={() => move(position, position - 1)}
                         >
                             <ChevronUp />
                         </Button>
@@ -46,7 +50,7 @@ export function FormItemCard({
                             aria-label='เลื่อนลง'
                             disabled={isLast}
                             className='bg-transparent text-ink-500 hover:bg-secondary hover:text-ink-900'
-                            onClick={() => move(index, index + 1)}
+                            onClick={() => move(position, position + 1)}
                         >
                             <ChevronDown />
                         </Button>

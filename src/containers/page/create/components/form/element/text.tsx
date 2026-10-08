@@ -39,17 +39,18 @@ export function TextElement({ item }: { item: TextElementType }) {
                     onCheckedChange={toggle}
                     checked={htitle}
                 />
-                <Label htmlFor={`htitle-switch-${item.id}`} className='text-bold text-lg font-bold'>หัวข้อ</Label>
+                <Label htmlFor={`htitle-switch-${item.id}`} className='text-lg font-bold'>หัวข้อ</Label>
             </div>
             {htitle && (
                 <Input
+                    aria-label='หัวข้อ'
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder='ใส่หัวข้อ'
                 />
             )}
-            <div>
-                <Label htmlFor={`textArea-${item.id}`} className='text-bold text-lg font-bold'>เนื้อหา</Label>
+            <div className='flex gap-2 flex-col'>
+                <Label htmlFor={`textArea-${item.id}`} className='text-lg font-bold'>เนื้อหา</Label>
                 <Textarea
                     value={text}
                     onChange={(e) => setText(e.target.value)}

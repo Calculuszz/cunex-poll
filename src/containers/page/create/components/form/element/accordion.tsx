@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React from 'react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from '@/components/ui/label'
@@ -24,7 +24,7 @@ export function AccordionElement({ item }: { item: AccordionElementType }) {
     return (
         <div className='flex flex-col gap-2'>
             <div className='flex gap-2 flex-col'>
-                <Label htmlFor={`heading-${item.id}`} className='text-bold text-lg font-bold'>หัวข้อ</Label>
+                <Label htmlFor={`heading-${item.id}`} className='text-lg font-bold'>หัวข้อ</Label>
                 <Input
                     id={`heading-${item.id}`}
                     value={title}
@@ -32,8 +32,8 @@ export function AccordionElement({ item }: { item: AccordionElementType }) {
                     placeholder='ใส่หัวข้อ'
                 />
             </div>
-            <div>
-                <Label htmlFor={`textArea-${item.id}`} className='text-bold text-lg font-bold'>เนื้อหา</Label>
+            <div className='flex gap-2 flex-col'>
+                <Label htmlFor={`textArea-${item.id}`} className='text-lg font-bold'>เนื้อหา</Label>
                 <Textarea
                     value={text}
                     onChange={(e) => setText(e.target.value)}

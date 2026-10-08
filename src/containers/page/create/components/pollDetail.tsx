@@ -5,11 +5,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { DateTimePicker } from '@/components/common/dateTimePicker'
-import { ImageUp } from "lucide-react"
 import { ImageInput } from '@/components/common/imageInput'
 
 export function PollDetail() {
     const [closeTime, setCloseTime] = useState<Date>()
+    const [banner, setBanner] = useState<string>()
 
     return (
         <div className=' flex flex-col gap-1'>
@@ -29,7 +29,7 @@ export function PollDetail() {
                         <DateTimePicker value={closeTime} onChange={setCloseTime} />
                         <span className='text-sm text-ink-500'>ระบบจะปิดรับโหวตอัตโนมัติเมื่อถึงเวลานี้</span>
                     </div>
-                    <ImageInput/>
+                    <ImageInput label='รูปปกโพล' value={banner} onChange={setBanner} />
                 </CardContent>
             </Card>
         </div>

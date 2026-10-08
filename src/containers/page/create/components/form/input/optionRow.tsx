@@ -12,6 +12,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog'
+import { ImageInput } from '@/components/common/imageInput'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -200,10 +201,6 @@ function OptionInfoFields({
     layout: OptionLayout
     onCommit: CommitOption
 }) {
-    const [imageUrl, setImageUrl] = useDebouncedField(
-        option.imageUrl ?? '',
-        (next) => onCommit(option.id, { imageUrl: next.trim() || undefined }),
-    )
     const [imageAlt, setImageAlt] = useDebouncedField(
         option.imageAlt ?? '',
         (next) => onCommit(option.id, { imageAlt: next.trim() || undefined }),
@@ -221,28 +218,15 @@ function OptionInfoFields({
         (next) => onCommit(option.id, { info: { trigger: next } }),
     )
 
-    const preview = imageUrl.trim()
-
     return (
         <div className='flex max-h-[60vh] flex-col gap-4 overflow-y-auto'>
             <div className='flex flex-col gap-2'>
-                <Label htmlFor={`${option.id}-image`} className='text-base font-bold'>
-                    รูปของตัวเลือก
-                </Label>
-                <Input
-                    id={`${option.id}-image`}
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder='วางลิงก์รูป เช่น https://...'
+                <ImageInput
+                    label='รูปของตัวเลือก'
+                    value={option.imageUrl}
+                    alt={imageAlt}
+                    onChange={(next) => onCommit(option.id, { imageUrl: next })}
                 />
-
-                {preview ? (
-                    <OptionThumb
-                        src={preview}
-                        alt={imageAlt}
-                        className={cn('w-full', layout === 'grid' ? 'aspect-video' : 'aspect-3/1')}
-                    />
-                ) : null}
 
                 <Input
                     id={`${option.id}-image-alt`}
