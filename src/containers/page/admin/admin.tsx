@@ -4,6 +4,7 @@ import { AdminTabs } from '@/containers/widgets/tabs'
 import { PollSearch } from '@/components/common/search'
 import { PollGrid } from '@/containers/page/main/components/pollGrid'
 import { getPolls } from '@/lib/polls'
+import { pollHref } from '@/lib/pollHref'
 import type { IPollCardDTO } from '@/dtos/pollcardDto'
 
 // แท็บของแอดมินดึงโพลตามสถานะ: รออนุมัติ = PENDING, อนุมัติแล้ว = APPROVED, ปฏิเสธ = REJECTED
@@ -26,6 +27,7 @@ export async function AdminPage() {
                         polls={polls.filter((poll) => ADMIN_TAB_STATUSES[tab]?.includes(poll.type))}
                         // ปุ่มพิจารณาโพลแสดงเฉพาะแท็บรออนุมัติ
                         renderAction={tab === 'waiting' ? (poll) => <ReviewActions pollId={poll.id} /> : undefined}
+                        linkTo={pollHref}
                     />
                 )}
             />

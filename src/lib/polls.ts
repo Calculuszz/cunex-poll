@@ -1,3 +1,4 @@
+import type { CreateInput } from '@/lib/pollInput'
 import { connection } from 'next/server'
 import { pool } from '@/lib/db'
 import { toPollCardDTO, type IPollCardDTO } from '@/dtos/pollcardDto'
@@ -66,7 +67,13 @@ export async function getPollDetail(id: string): Promise<PollDetail | null> {
         allowRepeat: row.allowRepeat,
         showExplore: row.showExplore,
         identifySender: row.identifySender,
-        audience: row.audience,
+        // โพลที่สร้างก่อนมีบางฟิลด์ใน audience (seed เป็น {}) จึงเติมค่าว่างให้ครบก่อนส่งให้ UI
+        audience: {
+            faculties: row.audience?.faculties ?? [],
+            departments: row.audience?.departments ?? [],
+            studentCodes: row.audience?.studentCodes ?? [],
+            codeKind: row.audience?.codeKind,
+        },
         items,
     }
 }
@@ -81,4 +88,57 @@ export async function reviewPoll(id: string, status: 'APPROVED' | 'REJECTED'): P
 
     const { rowCount: exists } = await pool.query('SELECT 1 FROM polls WHERE id = $1', [id])
     return exists === 1 ? 'not_pending' : 'not_found'
+}
+
+// สร้างโพลใหม่ (ไม่ส่ง id) หรือเขียนทับฉบับร่างเดิม (ส่ง id) ทั้งข้อมูลโพลและคำถามในทรานแซกชันเดียว
+// แก้ได้เฉพาะโพลที่เป็นฉบับร่าง ส่วนโพลอื่นคืน not_draft
+export async function savePoll(input: CreateInput, id?: string): Promise<{ id: string } | 'not_found' | 'not_draft'> {
+    const values = [
+        input.type, input.scope, input.title, input.desc, input.realtime,
+        input.allowRepeat, input.showExplore, input.identifySender, input.close,
+        JSON.stringify(input.audience),
+    ]
+    const client = await pool.connect()
+    try {
+        await client.query('BEGIN')
+        let pollId: string
+        if (id === undefined) {
+            const { rows } = await client.query<{ id: string }>(
+                `INSERT INTO polls (type, scope, title, description, realtime, allow_repeat, show_explore, identify_sender, close_at, audience)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                 RETURNING id`,
+                values,
+            )
+            pollId = rows[0].id
+        } else {
+            const { rowCount } = await client.query(
+                `UPDATE polls SET type = $1, scope = $2, title = $3, description = $4, realtime = $5,
+                    allow_repeat = $6, show_explore = $7, identify_sender = $8, close_at = $9, audience = $10
+                 WHERE id = $11 AND type = 'DRAFT'`,
+                [...values, id],
+            )
+            if (rowCount !== 1) {
+                await client.query('ROLLBACK')
+                const { rowCount: exists } = await pool.query('SELECT 1 FROM polls WHERE id = $1', [id])
+                return exists ? 'not_draft' : 'not_found'
+            }
+            pollId = id
+            await client.query('DELETE FROM poll_items WHERE poll_id = $1', [id])
+        }
+
+        for (const [index, item] of input.items.entries()) {
+            await client.query(
+                'INSERT INTO poll_items (poll_id, position, data) VALUES ($1, $2, $3)',
+                [pollId, index + 1, JSON.stringify(item)],
+            )
+        }
+
+        await client.query('COMMIT')
+        return { id: pollId }
+    } catch (err) {
+        await client.query('ROLLBACK')
+        throw err
+    } finally {
+        client.release()
+    }
 }

@@ -26,7 +26,7 @@ export type CreatePollPayload = {
     title: string
     desc: string
     scope: CreatePollState['scope']
-    type: 'PENDING'
+    type: 'PENDING' | 'DRAFT'
     realtime: boolean
     allowRepeat: boolean
     showExplore: boolean
@@ -86,6 +86,47 @@ export function buildPollPayload(form: CreatePollState, items: FormItem[]): Buil
             showExplore: form.showExplore,
             identifySender: isPublic ? false : form.identifySender,
             close: close.toISOString(),
+            audience,
+            items,
+        },
+    }
+}
+
+// ฉบับร่างบันทึกได้โดยยังไม่ครบ: ต้องมีชื่อกับเวลาปิด ส่วนที่เหลือเก็บตามที่กรอกไว้ ไม่ตรวจเวลาปิดต้องอยู่ในอนาคต
+export function buildDraftPayload(form: CreatePollState, items: FormItem[]): BuildResult {
+    const title = form.title.trim()
+    if (!title) return { ok: false, error: 'ต้องระบุชื่อโพลก่อนบันทึกฉบับร่าง' }
+    if (!form.closeTime) return { ok: false, error: 'ต้องระบุเวลาปิดโพลก่อนบันทึกฉบับร่าง' }
+
+    const isPublic = form.scope === 'C'
+    const audience = { faculties: [] as string[], departments: [] as string[], studentCodes: [] as string[], codeKind: form.codeKind }
+
+    const facultyIds = new Set(MOCK_FACULTIES.map((f) => f.value))
+    for (const id of form.audienceIds) {
+        if (facultyIds.has(id)) audience.faculties.push(id)
+        else audience.departments.push(id)
+    }
+
+    if (form.scope === 'D') {
+        const codes = parseCodes(form.codesText)
+        if (codes.some((code) => !CODE_PATTERNS[form.codeKind].test(code))) {
+            return { ok: false, error: `รหัส${CODE_KIND_LABEL[form.codeKind]}ต้องเป็นตัวเลข ${CODE_LENGTH[form.codeKind]} หลักทุกบรรทัด` }
+        }
+        audience.studentCodes = codes
+    }
+
+    return {
+        ok: true,
+        payload: {
+            title,
+            desc: form.desc.trim(),
+            scope: form.scope,
+            type: 'DRAFT',
+            realtime: form.realtime,
+            allowRepeat: isPublic ? true : form.allowRepeat,
+            showExplore: form.showExplore,
+            identifySender: isPublic ? false : form.identifySender,
+            close: new Date(form.closeTime).toISOString(),
             audience,
             items,
         },

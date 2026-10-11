@@ -1,5 +1,6 @@
 "use client"
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { Input } from '../ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Badge } from '../ui/badge'
@@ -7,6 +8,7 @@ import { Search } from "lucide-react"
 import { useDebouncedField } from '@/hooks/useDebouncedField'
 import { SCOPE_LABEL, STATUS_LABEL } from '@/lib/pollLabels'
 import type { IPollCardDTO } from '@/dtos/pollcardDto'
+import { pollHref } from '@/lib/pollHref'
 
 // ค้นหาเฉพาะโพลที่อยู่ในหน้านั้น ผลลัพธ์แสดงเป็น popup ใต้ช่องค้นหา
 export function PollSearch({ polls }: { polls: IPollCardDTO[] }) {
@@ -52,12 +54,17 @@ export function PollSearch({ polls }: { polls: IPollCardDTO[] }) {
                     ) : (
                         <ul className='flex flex-col'>
                             {results.map((poll) => (
-                                <li key={poll.id} className='flex flex-col gap-1 rounded-md px-2 py-2 transition-colors duration-150 hover:bg-secondary'>
-                                    <span className='font-heading text-base font-bold line-clamp-1'>{poll.title}</span>
-                                    <div className='flex flex-wrap gap-1'>
-                                        <Badge variant='secondary'>{STATUS_LABEL[poll.type]}</Badge>
-                                        <Badge variant='outline'>{SCOPE_LABEL[poll.scope]}</Badge>
-                                    </div>
+                                <li key={poll.id}>
+                                    <Link
+                                        href={pollHref(poll)}
+                                        className='flex flex-col gap-1 rounded-md px-2 py-2 outline-none transition-colors duration-150 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring'
+                                    >
+                                        <span className='font-heading text-base font-bold line-clamp-1'>{poll.title}</span>
+                                        <div className='flex flex-wrap gap-1'>
+                                            <Badge variant='secondary'>{STATUS_LABEL[poll.type]}</Badge>
+                                            <Badge variant='outline'>{SCOPE_LABEL[poll.scope]}</Badge>
+                                        </div>
+                                    </Link>
                                 </li>
                             ))}
                         </ul>

@@ -11,7 +11,9 @@ export function ReturnButton() {
     const step = useCreateStepStore((s) => s.step)
     const setStep = useCreateStepStore((s) => s.setStep)
     const requestLeave = useLeaveGuardStore((s) => s.request)
-    if (pathName === "/create" && step === 2) {
+    // หน้าสร้างโพลมีทั้ง /create และ /create/[id] (แก้ไขฉบับร่าง) ต้องดักปุ่มย้อนกลับเหมือนกัน
+    const isCreatePage = pathName === "/create" || pathName.startsWith("/create/")
+    if (isCreatePage && step === 2) {
         return (
             <button
                 type='button'
@@ -26,7 +28,7 @@ export function ReturnButton() {
             </button>
         )
     }
-    if (pathName === "/create") {
+    if (isCreatePage) {
         return (
             <button
                 type='button'

@@ -4,6 +4,7 @@ import { CreateButton } from '@/containers/page/main/components/create'
 import { PollGrid } from '@/containers/page/main/components/pollGrid'
 import { MainTabs } from '@/containers/widgets/tabs'
 import { getPolls } from '@/lib/polls'
+import { pollHref } from '@/lib/pollHref'
 import type { IPollCardDTO } from '@/dtos/pollcardDto'
 
 // แต่ละแท็บดึงโพลตามสถานะ: พร้อมใช้งาน = อนุมัติแล้วหรือกำลังโหวต, จบโหวต = จบแล้ว, อื่นๆ = ฉบับร่างหรือรออนุมัติ
@@ -22,7 +23,7 @@ export async function MainPage() {
             <PollSearch polls={polls} />
             <MainTabs
                 renderPanel={(tab) => (
-                    <PollGrid polls={polls.filter((poll) => TAB_STATUSES[tab]?.includes(poll.type))} />
+                    <PollGrid polls={polls.filter((poll) => TAB_STATUSES[tab]?.includes(poll.type))} linkTo={pollHref} />
                 )}
             />
             <CreateButton/>

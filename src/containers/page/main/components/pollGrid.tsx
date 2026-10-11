@@ -2,9 +2,11 @@ import React, { type ReactNode } from 'react'
 import { PollCard } from '@/components/PollCard'
 import type { IPollCardDTO } from '@/dtos/pollcardDto'
 
-export function PollGrid({ polls, renderAction }: {
+// linkTo ไม่ส่ง = การ์ดกดไม่ได้ (เช่นหน้า explore)
+export function PollGrid({ polls, renderAction, linkTo }: {
     polls: IPollCardDTO[]
     renderAction?: (poll: IPollCardDTO) => ReactNode
+    linkTo?: (poll: IPollCardDTO) => string
 }) {
     if (polls.length === 0) {
         return (
@@ -17,7 +19,7 @@ export function PollGrid({ polls, renderAction }: {
     return (
         <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
             {polls.map((poll) => (
-                <PollCard key={poll.id} poll={poll} action={renderAction?.(poll)} />
+                <PollCard key={poll.id} poll={poll} action={renderAction?.(poll)} href={linkTo?.(poll)} />
             ))}
         </div>
     )
