@@ -1,6 +1,6 @@
 'use client'
-import React, { useEffect, useRef } from 'react'
-import { PollType, PollDetail, PollTypeMore, CreateFooter, CreateStepper } from '@/containers/page/create/components'
+import React, { useEffect, useRef, useState } from 'react'
+import { PollType, PollDetail, PollTypeMore, CreateFooter, CreateStepper, type PollScope } from '@/containers/page/create/components'
 import { cn } from '@/lib/utils'
 import { useCreateStepStore, type CreateStep } from '@/store/createStepStore'
 import { ElementContainer } from "./elementContainer"
@@ -9,6 +9,8 @@ export function CreateContainer() {
     const step = useCreateStepStore((s) => s.step)
     const setStep = useCreateStepStore((s) => s.setStep)
     const stepperRef = useRef<HTMLParagraphElement>(null)
+    // ประเภทโพลอยู่ที่นี่เพราะ PollTypeMore ต้องรู้ค่าเพื่อล็อกสวิตช์ "ลงคะแนนซ้ำ"
+    const [pollType, setPollType] = useState<PollScope>('A')
 
     // ออกจากหน้าแล้วกลับเข้ามาใหม่ต้องเริ่มที่ step แรกเสมอ เพราะข้อมูลโพลยังไม่ได้เก็บข้ามหน้า
     useEffect(() => () => setStep(1), [setStep])
@@ -25,9 +27,9 @@ export function CreateContainer() {
             <CreateStepper step={step} ref={stepperRef} />
             {/* ซ่อนแทนการ unmount เพราะข้อมูลโพลยังเป็น state ในหน้า ถ้า unmount ค่าที่กรอกไว้จะหายตอนสลับ step */}
             <div className={cn('flex flex-col gap-2', step !== 1 && 'hidden')}>
-                <PollType />
+                <PollType value={pollType} onValueChange={setPollType} />
                 <PollDetail />
-                <PollTypeMore />
+                <PollTypeMore pollType={pollType} />
             </div>
             <div className={cn(step !== 2 && 'hidden')}>
                 <ElementContainer />

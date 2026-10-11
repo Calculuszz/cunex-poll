@@ -1,5 +1,5 @@
 export { PollDetail } from "./pollDetail"
-export { PollType, PollTypeMore } from "./pollType"
+export { PollType, PollTypeMore, type PollScope } from "./pollType"
 export { PollAddElement } from "./pollAddElement"
 export { CreateFooter } from "./footer"
 export { CreateStepper } from "./stepper"

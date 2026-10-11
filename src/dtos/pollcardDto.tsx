@@ -1,7 +1,8 @@
 type PollStatus = "DRAFT" | "PENDING" | "APPROVED" | "VOTING" | "DONE";
-type Scope = "A" | "B" | "C"
+type Scope = "A" | "B" | "C" | "D"
 
 export interface IPollCardDTO{
+    id: string;
     type: PollStatus;
     scope: Scope;
     realtime: boolean;
@@ -13,6 +14,7 @@ export interface IPollCardDTO{
 
 export function toPollCardDTO(raw: any):IPollCardDTO{
     return {
+        id: raw.id,
         type: raw.type,
         scope: raw.scope,
         realtime: raw.realtime,

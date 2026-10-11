@@ -97,7 +97,7 @@
 
 @theme inline {
     /* ชั้นที่ 2 — utility: font-sans / font-heading / font-sarabun */
-    --font-sans: var(--font-charas);
+    --font-sans: var(--font-th-sarabun);
     --font-heading: var(--font-chulalongkorn);
     --font-sarabun: var(--font-th-sarabun);
     --color-sidebar-ring: var(--sidebar-ring);

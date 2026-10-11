@@ -1,28 +1,43 @@
-import React from 'react'
+import React, { type ReactNode } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-export function MainTabs() {
-    return (
-        <Tabs defaultValue="account" className="w-full">
-            <TabsList variant="line" className={`flex w-full *:text-base *:font-bold`}>
-                <TabsTrigger value="ready">พร้อมใช้งาน</TabsTrigger>
-                <TabsTrigger value="close">จบโหวต</TabsTrigger>
-                <TabsTrigger value="else">อื่นๆ</TabsTrigger>
-            </TabsList>
+type TabItem = { value: string; label: string }
 
+const MAIN_TABS: TabItem[] = [
+    { value: "ready", label: "พร้อมใช้งาน" },
+    { value: "close", label: "จบโหวต" },
+    { value: "else", label: "อื่นๆ" },
+]
+
+const ADMIN_TABS: TabItem[] = [
+    { value: "waiting", label: "รออนุมัติ" },
+    { value: "accept", label: "อนุมัติแล้ว" },
+    { value: "deny", label: "ปฏิเสธ" },
+]
+
+type PollTabsProps = { renderPanel?: (value: string) => ReactNode }
+
+function PollTabs({ tabs, renderPanel }: PollTabsProps & { tabs: TabItem[] }) {
+    return (
+        <Tabs defaultValue={tabs[0].value} className="w-full">
+            <TabsList variant="line" className={`flex w-full *:text-base *:font-bold`}>
+                {tabs.map((tab) => (
+                    <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>
+                ))}
+            </TabsList>
+            {renderPanel && tabs.map((tab) => (
+                <TabsContent key={tab.value} value={tab.value}>
+                    {renderPanel(tab.value)}
+                </TabsContent>
+            ))}
         </Tabs>
     )
 }
 
-export function AdminTabs() {
-    return (
-        <Tabs defaultValue="account" className="w-full">
-            <TabsList variant="line" className={`flex w-full *:text-base *:font-bold`}>
-                <TabsTrigger value="waiting">รออนุมัติ</TabsTrigger>
-                <TabsTrigger value="accept">อนุมัติแล้ว</TabsTrigger>
-                <TabsTrigger value="deny">ปฏิเสธ</TabsTrigger>
-            </TabsList>
+export function MainTabs(props: PollTabsProps) {
+    return <PollTabs tabs={MAIN_TABS} {...props} />
+}
 
-        </Tabs>
-    )
+export function AdminTabs(props: PollTabsProps) {
+    return <PollTabs tabs={ADMIN_TABS} {...props} />
 }

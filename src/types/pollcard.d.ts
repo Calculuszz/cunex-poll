@@ -1,5 +1,5 @@
 type PollStatus = "DRAFT" | "PENDING" | "APPROVED" | "VOTING" | "DONE";
-type Scope = "A" | "B" | "C"
+type Scope = "A" | "B" | "C" | "D"
 
 export interface IPollCard{
     type: PollStatus;

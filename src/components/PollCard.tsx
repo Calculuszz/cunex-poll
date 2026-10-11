@@ -1,24 +1,49 @@
-'use client'
-import React from 'react'
-import { Card } from '@/components/ui/card';
-import { Badge } from 'lucide-react';
-import { IPollCardDTO } from '@/dtos/pollcardDto';
+import React, { type ReactNode } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import type { IPollCardDTO } from '@/dtos/pollcardDto'
 
-interface PollCardProps{
-    poll: IPollCardDTO
+const STATUS_LABEL: Record<IPollCardDTO['type'], string> = {
+    DRAFT: 'ฉบับร่าง',
+    PENDING: 'รออนุมัติ',
+    APPROVED: 'อนุมัติแล้ว',
+    VOTING: 'กำลังโหวต',
+    DONE: 'จบแล้ว',
 }
 
-export function PollCard({poll}: PollCardProps) {
+const SCOPE_LABEL: Record<IPollCardDTO['scope'], string> = {
+    A: 'ทั้งจุฬา ฯ',
+    B: 'เฉพาะคณะ/สาขา',
+    C: 'สาธารณะ',
+    D: 'กำหนดจากรหัส',
+}
+
+// ใช้ timeZone คงที่ เพื่อให้ server กับ client แสดงเวลาเหมือนกันตอน hydrate
+const closeFormatter = new Intl.DateTimeFormat('th-TH', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Bangkok',
+})
+
+export function PollCard({ poll, action }: { poll: IPollCardDTO; action?: ReactNode }) {
     return (
-        <Card className=''>
-            <section className='flex gap-1'>
-
-            </section>
-            <h1>{poll.title}</h1>
-            <p>{poll.desc}</p>
-            <section>
-
-            </section>
+        <Card size='sm' className='h-full'>
+            <CardContent className='flex h-full flex-col gap-3'>
+                <div className='flex flex-wrap gap-1'>
+                    <Badge variant={poll.type === 'VOTING' ? 'default' : 'secondary'}>{STATUS_LABEL[poll.type]}</Badge>
+                    <Badge variant='outline'>{SCOPE_LABEL[poll.scope]}</Badge>
+                    {poll.realtime && <Badge variant='outline'>เรียลไทม์</Badge>}
+                </div>
+                <div className='flex flex-col gap-1'>
+                    <h2 className='font-heading text-xl font-bold leading-snug line-clamp-2'>{poll.title}</h2>
+                    <p className='text-base text-ink-500 line-clamp-2'>{poll.desc}</p>
+                </div>
+                <div className='mt-auto flex items-center justify-between gap-2 border-t pt-3 text-sm text-ink-500'>
+                    <span>{poll.question} คำถาม</span>
+                    <span>ปิด {closeFormatter.format(poll.closeTime)}</span>
+                </div>
+                {action}
+            </CardContent>
         </Card>
     )
 }
