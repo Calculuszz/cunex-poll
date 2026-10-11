@@ -1,0 +1,10 @@
+[   12426ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=7X1MM6SuN0Ne5nU_3x_ip' failed:  @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348
+[   17432ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=7X1MM6SuN0Ne5nU_3x_ip' failed:  @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348
+[   22436ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=7X1MM6SuN0Ne5nU_3x_ip' failed:  @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348
+[   27442ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=7X1MM6SuN0Ne5nU_3x_ip' failed:  @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348
+[   32447ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=7X1MM6SuN0Ne5nU_3x_ip' failed:  @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348
+[   37452ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=7X1MM6SuN0Ne5nU_3x_ip' failed:  @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348
+[   42457ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=7X1MM6SuN0Ne5nU_3x_ip' failed:  @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348
+[   47461ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=7X1MM6SuN0Ne5nU_3x_ip' failed:  @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348
+[  443799ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  443809ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776

@@ -2,28 +2,7 @@ import React, { type ReactNode } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { IPollCardDTO } from '@/dtos/pollcardDto'
-
-const STATUS_LABEL: Record<IPollCardDTO['type'], string> = {
-    DRAFT: 'ฉบับร่าง',
-    PENDING: 'รออนุมัติ',
-    APPROVED: 'อนุมัติแล้ว',
-    VOTING: 'กำลังโหวต',
-    DONE: 'จบแล้ว',
-}
-
-const SCOPE_LABEL: Record<IPollCardDTO['scope'], string> = {
-    A: 'ทั้งจุฬา ฯ',
-    B: 'เฉพาะคณะ/สาขา',
-    C: 'สาธารณะ',
-    D: 'กำหนดจากรหัส',
-}
-
-// ใช้ timeZone คงที่ เพื่อให้ server กับ client แสดงเวลาเหมือนกันตอน hydrate
-const closeFormatter = new Intl.DateTimeFormat('th-TH', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Bangkok',
-})
+import { SCOPE_LABEL, STATUS_LABEL, formatCloseTime } from '@/lib/pollLabels'
 
 export function PollCard({ poll, action }: { poll: IPollCardDTO; action?: ReactNode }) {
     return (
@@ -40,7 +19,7 @@ export function PollCard({ poll, action }: { poll: IPollCardDTO; action?: ReactN
                 </div>
                 <div className='mt-auto flex items-center justify-between gap-2 border-t pt-3 text-sm text-ink-500'>
                     <span>{poll.question} คำถาม</span>
-                    <span>ปิด {closeFormatter.format(poll.closeTime)}</span>
+                    <span>ปิด {formatCloseTime(poll.closeTime)}</span>
                 </div>
                 {action}
             </CardContent>

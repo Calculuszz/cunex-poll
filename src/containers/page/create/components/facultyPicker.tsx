@@ -4,6 +4,7 @@ import { Combobox } from '@base-ui/react/combobox'
 import { CheckIcon, XIcon } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { useDebouncedField } from '@/hooks/useDebouncedField'
+import { useCreatePollStore } from '@/store/createPollStore'
 import { MOCK_FACULTIES } from './mockFaculty'
 
 type ScopeItem = {
@@ -26,8 +27,9 @@ const SCOPE_ITEMS: ScopeItem[] = MOCK_FACULTIES.flatMap((faculty) => [
 
 export function FacultyPicker() {
     const inputId = useId()
-    const [selected, setSelected] = useState<ScopeItem[]>([])
-    // ช่องพิมพ์แสดงผลทันที แต่คำค้นที่ใช้กรองรายการจะอัปเดตหลังหยุดพิมพ์ 300ms
+    const audienceIds = useCreatePollStore((s) => s.audienceIds)
+    const update = useCreatePollStore((s) => s.update)
+    const selected = SCOPE_ITEMS.filter((item) => audienceIds.includes(item.id))
     const [query, setQuery] = useState('')
     const [inputValue, setInputValue] = useDebouncedField(query, setQuery)
 
@@ -35,12 +37,11 @@ export function FacultyPicker() {
     const visibleItems = keyword
         ? SCOPE_ITEMS.filter((item) => item.label.toLowerCase().includes(keyword))
         : SCOPE_ITEMS
-
-    // เลือกทั้งคณะแล้ว สาขาในคณะนั้นจะซ้ำซ้อน จึงตัดออกทันที
     const handleChange = (next: ScopeItem[]) => {
-        setSelected(next.filter((item) =>
+        const kept = next.filter((item) =>
             item.kind === 'faculty' || !next.some((other) => other.kind === 'faculty' && other.id === item.facultyId)
-        ))
+        )
+        update({ audienceIds: kept.map((item) => item.id) })
     }
 
     return (
@@ -48,7 +49,6 @@ export function FacultyPicker() {
             <Label htmlFor={inputId} className='font-bold text-base'>คณะ / สาขา</Label>
             <Combobox.Root
                 items={visibleItems}
-                // ปิดการกรองในตัวของ Base UI เพราะกรองเองจาก query ที่ debounce แล้ว
                 filter={null}
                 multiple
                 value={selected}

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from '@/components/ui/button'
 import { useElementStore } from '@/store/elementStore'
+import { useCreatePollStore } from '@/store/createPollStore'
 import { useLeaveGuardStore } from '@/store/leaveGuardStore'
 
 // dialog เตือนก่อนออกจากหน้า create ใช้ร่วมกันทั้งปุ่มย้อนกลับและเมนู profile
@@ -19,6 +20,7 @@ export function LeaveDialog() {
     const target = useLeaveGuardStore((s) => s.target)
     const close = useLeaveGuardStore((s) => s.close)
     const removeAll = useElementStore((s) => s.removeAll)
+    const resetPoll = useCreatePollStore((s) => s.reset)
 
     const leave = (t: string) => {
         if (t === "back") router.back()
@@ -42,7 +44,7 @@ export function LeaveDialog() {
                         variant='outline'
                         className='px-4 py-5'
                         onClick={() => {
-                            // คำถามกับองค์ประกอบถูกเก็บใน localStorage อยู่แล้ว การออกโดยไม่ล้างค่าจึงเท่ากับบันทึก draft
+                            // ข้อมูลโพลและคำถามถูกเก็บใน localStorage อยู่แล้ว การออกโดยไม่ล้างค่าจึงเท่ากับบันทึก draft
                             const t = target
                             close()
                             if (t) leave(t)
@@ -57,6 +59,7 @@ export function LeaveDialog() {
                             const t = target
                             close()
                             removeAll()
+                            resetPoll()
                             if (t) leave(t)
                         }}
                     >

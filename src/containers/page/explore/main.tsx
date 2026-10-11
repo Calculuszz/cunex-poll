@@ -2,16 +2,19 @@ import React from 'react'
 import { PollSearch } from '@/components/common/search'
 import { Button } from '@/components/ui/button'
 import { PollGrid } from '@/containers/page/main/components/pollGrid'
-import { MOCK_POLLS } from '@/containers/page/main/mockPolls'
+import { getPolls } from '@/lib/polls'
 
 // หน้านี้แสดงเฉพาะโพลที่กำลังเปิดให้กรอก
-export function ExplorePage() {
+export async function ExplorePage() {
+    const allPolls = await getPolls()
+    const polls = allPolls.filter((poll) => poll.type === 'VOTING')
+
     return (
         <div className=' relative flex flex-col gap-2'>
             <h1 className=' text-4xl font-bold font-heading'>โพลที่กรอกได้</h1>
-            <PollSearch />
+            <PollSearch polls={polls} />
             <PollGrid
-                polls={MOCK_POLLS.filter((poll) => poll.type === 'VOTING')}
+                polls={polls}
                 renderAction={() => (
                     // ยังไม่มีหน้าทำโพล จึงยังไม่ได้ผูกปุ่มกับ route ใด
                     <Button className='w-full px-4 py-5'>

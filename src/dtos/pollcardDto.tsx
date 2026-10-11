@@ -1,4 +1,4 @@
-type PollStatus = "DRAFT" | "PENDING" | "APPROVED" | "VOTING" | "DONE";
+type PollStatus = "DRAFT" | "PENDING" | "APPROVED" | "VOTING" | "DONE" | "REJECTED";
 type Scope = "A" | "B" | "C" | "D"
 
 export interface IPollCardDTO{
