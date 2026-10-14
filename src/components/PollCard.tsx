@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { IPollCardDTO } from '@/dtos/pollcardDto'
-import { SCOPE_LABEL, STATUS_LABEL, formatCloseTime } from '@/lib/pollLabels'
+import { SCOPE_LABEL, STATUS_BADGE_CLASS, STATUS_LABEL, formatCloseTime } from '@/lib/pollLabels'
 import { cn } from '@/lib/utils'
 
 // ถ้าส่ง href มา ทั้งการ์ดกดได้ผ่านลิงก์ที่ยืดเต็มการ์ด (stretched link) ส่วน action อยู่เหนือลิงก์เพื่อให้กดปุ่มในการ์ดได้
@@ -13,7 +13,7 @@ export function PollCard({ poll, action, href }: { poll: IPollCardDTO; action?: 
         <Card size='sm' className={cn('relative h-full', href && 'focus-within:ring-2 focus-within:ring-ring')}>
             <CardContent className='flex h-full flex-col gap-3'>
                 <div className='flex flex-wrap gap-1'>
-                    <Badge variant={poll.type === 'VOTING' ? 'default' : 'secondary'}>{STATUS_LABEL[poll.type]}</Badge>
+                    <Badge className={STATUS_BADGE_CLASS[poll.type]}>{STATUS_LABEL[poll.type]}</Badge>
                     <Badge variant='outline'>{SCOPE_LABEL[poll.scope]}</Badge>
                     {poll.realtime && <Badge variant='outline'>เรียลไทม์</Badge>}
                 </div>

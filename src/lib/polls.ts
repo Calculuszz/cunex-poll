@@ -90,6 +90,18 @@ export async function reviewPoll(id: string, status: 'APPROVED' | 'REJECTED'): P
     return exists === 1 ? 'not_pending' : 'not_found'
 }
 
+// ปิดรับคำตอบก่อนกำหนด: ได้เฉพาะโพลที่กำลังโหวต และเลื่อนเวลาปิดมาเป็นตอนนี้ให้ตัวนับถอยหลังตรงกับสถานะ
+export async function closePoll(id: string): Promise<'ok' | 'not_found' | 'not_voting'> {
+    const { rowCount } = await pool.query(
+        `UPDATE polls SET type = 'DONE', close_at = LEAST(close_at, now()) WHERE id = $1 AND type = 'VOTING'`,
+        [id],
+    )
+    if (rowCount === 1) return 'ok'
+
+    const { rowCount: exists } = await pool.query('SELECT 1 FROM polls WHERE id = $1', [id])
+    return exists === 1 ? 'not_voting' : 'not_found'
+}
+
 // สร้างโพลใหม่ (ไม่ส่ง id) หรือเขียนทับฉบับร่างเดิม (ส่ง id) ทั้งข้อมูลโพลและคำถามในทรานแซกชันเดียว
 // แก้ได้เฉพาะโพลที่เป็นฉบับร่าง ส่วนโพลอื่นคืน not_draft
 export async function savePoll(input: CreateInput, id?: string): Promise<{ id: string } | 'not_found' | 'not_draft'> {

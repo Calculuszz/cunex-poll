@@ -166,6 +166,11 @@
     /*yellow*/
     --color-yellow-100: oklch(96.5% 0.037 84.6);
     --color-yellow-200: oklch(82% 0.148 81.6);
+    /* yellow-200 สว่างเกินจะเป็นตัวหนังสือบนพื้น yellow-100 จึงมีเฉดเข้มไว้ใช้กับข้อความในชิปสถานะ */
+    --color-yellow-700: oklch(52% 0.11 75);
+    /*blue (ฟ้า)*/
+    --color-blue-100: oklch(95.5% 0.022 235);
+    --color-blue-200: oklch(51% 0.115 240);
     /*green*/
     --color-green-100: oklch(95.7% 0.019 162.9);
     --color-green-200:  oklch(53.7% 0.064 174.2);
@@ -262,4 +267,10 @@ input{
 
 *{
     box-sizing: border-box;
+}
+
+/* แถบเลื่อนบางสำหรับกล่องที่เลื่อนแนวนอนในตัว (เช่นแผนภูมิแท่ง) ให้รู้ว่ายังมีต่อแต่ไม่เด่นแย่งกราฟ */
+@utility thin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ink-400) transparent;
 }

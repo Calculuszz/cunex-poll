@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useCreatePollStore, type CodeKind, type PollScope } from '@/store/createPollStore'
 import { FacultyPicker } from './facultyPicker'
 import { CODE_KIND_LABEL, CODE_LENGTH, CODE_PATTERNS, parseCodes } from './buildPayload'
+import { PresetTools } from './presetTools'
 
 const CODE_KIND_ITEMS = [
   { label: "นิสิต (10 หลัก)", value: "STUDENT" },
@@ -100,6 +101,7 @@ function CodeListInput() {
                 ใส่รหัส {length} หลักหนึ่งรหัสต่อหนึ่งบรรทัด · {lines.length} รหัส
                 {invalid.length > 0 && <span className='text-destructive'> · ไม่ถูกรูปแบบ {invalid.length} รายการ</span>}
             </span>
+            <PresetTools />
         </div>
     )
 }

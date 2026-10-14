@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Badge } from '../ui/badge'
 import { Search } from "lucide-react"
 import { useDebouncedField } from '@/hooks/useDebouncedField'
-import { SCOPE_LABEL, STATUS_LABEL } from '@/lib/pollLabels'
+import { SCOPE_LABEL, STATUS_BADGE_CLASS, STATUS_LABEL } from '@/lib/pollLabels'
 import type { IPollCardDTO } from '@/dtos/pollcardDto'
 import { pollHref } from '@/lib/pollHref'
 
@@ -61,7 +61,7 @@ export function PollSearch({ polls }: { polls: IPollCardDTO[] }) {
                                     >
                                         <span className='font-heading text-base font-bold line-clamp-1'>{poll.title}</span>
                                         <div className='flex flex-wrap gap-1'>
-                                            <Badge variant='secondary'>{STATUS_LABEL[poll.type]}</Badge>
+                                            <Badge className={STATUS_BADGE_CLASS[poll.type]}>{STATUS_LABEL[poll.type]}</Badge>
                                             <Badge variant='outline'>{SCOPE_LABEL[poll.scope]}</Badge>
                                         </div>
                                     </Link>

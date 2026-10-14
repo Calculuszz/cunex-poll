@@ -2,6 +2,7 @@ import { Geist_Mono } from "next/font/google"
 
 import "@/style/globals.css"
 import { cn } from "@/lib/utils"
+import { Toaster } from "@/components/ui/sonner"
 
 // ฟอนต์ไทยทั้งหมดประกาศเป็น @font-face ใน globals.css แล้ว เหลือแค่ mono
 // ที่ยังใช้ Geist_Mono เพราะตระกูลจุฬาฯ ไม่มีตัว monospace
@@ -21,7 +22,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("antialiased", "font-sans", fontMono.variable)}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster position="top-center" />
+      </body>
     </html>
   )
 }

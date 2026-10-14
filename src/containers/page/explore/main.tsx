@@ -15,6 +15,7 @@ export async function ExplorePage() {
             <PollSearch polls={polls} />
             <PollGrid
                 polls={polls}
+                empty={{ title: 'ยังไม่มีโพลที่เปิดให้กรอก', description: 'เมื่อมีโพลเปิดโหวต จะแสดงที่นี่ให้เข้าไปตอบได้' }}
                 renderAction={() => (
                     // ยังไม่มีหน้าทำโพล จึงยังไม่ได้ผูกปุ่มกับ route ใด
                     <Button className='w-full px-4 py-5'>

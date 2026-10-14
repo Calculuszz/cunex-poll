@@ -41,8 +41,13 @@ export function ReturnButton() {
         )
     }
     return (
-        <div onClick={() => router.back()} className={`font-heading font-bold cursor-pointer ${pathName !== "/" ? "flex" : "hidden"}`}>
+        <button
+            type='button'
+            aria-label='ย้อนกลับ'
+            onClick={() => router.back()}
+            className={`rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${pathName !== "/" ? "flex" : "hidden"}`}
+        >
             <ChevronLeft className='size-7 text-primary'/>
-        </div>
+        </button>
     )
 }

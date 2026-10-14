@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { getPollDetail, reviewPoll, savePoll } from '@/lib/polls'
+import { closePoll, getPollDetail, reviewPoll, savePoll } from '@/lib/polls'
 import { parseCreateBody } from '@/lib/pollInput'
 
-// backend ชั่วคราว: GET รายละเอียดโพล, PATCH พิจารณาโพลที่รออนุมัติ, PUT แก้ไขฉบับร่างหรือส่งขออนุมัติจากฉบับร่าง
+// backend ชั่วคราว: GET รายละเอียดโพล, PATCH พิจารณาโพลที่รออนุมัติหรือปิดรับคำตอบ, PUT แก้ไขฉบับร่างหรือส่งขออนุมัติจากฉบับร่าง
 // ยังไม่มี auth จึงใครก็เรียกได้ ต้องเพิ่มการตรวจสิทธิ์ก่อนใช้งานจริง
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -23,8 +23,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     const status = typeof body === 'object' && body !== null ? (body as Record<string, unknown>).status : undefined
+    // DONE = ปิดรับคำตอบจากหน้า dashboard
+    if (status === 'DONE') {
+        const closed = await closePoll(id)
+        if (closed === 'not_found') return NextResponse.json({ error: 'ไม่พบโพล' }, { status: 404 })
+        if (closed === 'not_voting') {
+            return NextResponse.json({ error: 'ปิดรับคำตอบได้เฉพาะโพลที่กำลังโหวต' }, { status: 409 })
+        }
+        return NextResponse.json({ id, type: status })
+    }
     if (status !== 'APPROVED' && status !== 'REJECTED') {
-        return NextResponse.json({ error: 'status ต้องเป็น APPROVED หรือ REJECTED' }, { status: 400 })
+        return NextResponse.json({ error: 'status ต้องเป็น APPROVED, REJECTED หรือ DONE' }, { status: 400 })
     }
 
     const result = await reviewPoll(id, status)

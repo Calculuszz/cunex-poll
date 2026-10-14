@@ -1,7 +1,11 @@
 import React from 'react'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { PollSearch } from '@/components/common/search'
-import { CreateButton } from '@/containers/page/main/components/create'
-import { PollGrid } from '@/containers/page/main/components/pollGrid'
+import { CreateMenu } from '@/containers/page/main/components/create'
+import { PollGrid, type PollGridEmpty } from '@/containers/page/main/components/pollGrid'
 import { MainTabs } from '@/containers/widgets/tabs'
 import { getPolls } from '@/lib/polls'
 import { pollHref } from '@/lib/pollHref'
@@ -14,6 +18,27 @@ const TAB_STATUSES: Record<string, IPollCardDTO['type'][]> = {
     else: ['DRAFT', 'PENDING'],
 }
 
+const TAB_EMPTY: Record<string, PollGridEmpty> = {
+    ready: {
+        title: 'ยังไม่มีโพลที่พร้อมใช้งาน',
+        description: 'โพลที่อนุมัติแล้วหรือกำลังเปิดโหวตจะอยู่ตรงนี้ เริ่มจากสร้างโพลแรกได้เลย',
+        action: (
+            <Link href='/create' className={cn(buttonVariants(), 'px-4 py-5 font-heading text-base font-bold')}>
+                <Plus />
+                สร้างโพล
+            </Link>
+        ),
+    },
+    close: {
+        title: 'ยังไม่มีโพลที่จบโหวต',
+        description: 'เมื่อโพลถึงเวลาปิดหรือถูกปิดรับคำตอบ ผลโหวตจะเก็บไว้ที่นี่',
+    },
+    else: {
+        title: 'ไม่มีฉบับร่างหรือโพลที่รออนุมัติ',
+        description: 'โพลที่บันทึกเป็นฉบับร่างหรือส่งขออนุมัติแล้วจะแสดงที่นี่',
+    },
+}
+
 export async function MainPage() {
     const polls = await getPolls()
 
@@ -23,10 +48,14 @@ export async function MainPage() {
             <PollSearch polls={polls} />
             <MainTabs
                 renderPanel={(tab) => (
-                    <PollGrid polls={polls.filter((poll) => TAB_STATUSES[tab]?.includes(poll.type))} linkTo={pollHref} />
+                    <PollGrid
+                        polls={polls.filter((poll) => TAB_STATUSES[tab]?.includes(poll.type))}
+                        linkTo={pollHref}
+                        empty={TAB_EMPTY[tab]}
+                    />
                 )}
             />
-            <CreateButton/>
+            <CreateMenu/>
         </div>
     )
 }
