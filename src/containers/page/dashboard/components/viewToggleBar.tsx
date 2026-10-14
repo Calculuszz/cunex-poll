@@ -11,11 +11,12 @@ const ITEMS: { value: ResultView; label: string; Icon: typeof List }[] = [
 ]
 
 // เลือกมุมมองผลโหวตได้หลายแบบพร้อมกัน แต่ต้องเหลืออย่างน้อยหนึ่งแบบเสมอ
-// ปุ่มเปรียบเทียบยังไม่เปิดใช้ จองช่องไว้สำหรับฟีเจอร์ถัดไป
-export function ViewToggleBar({ views, onChange, total }: {
+// ปุ่มเปรียบเทียบยังไม่เปิดใช้ จองช่องไว้สำหรับฟีเจอร์ถัดไป (หน้าตั้งค่าการเผยแพร่ไม่ใช้ จึงปิดได้ด้วย compare={false})
+export function ViewToggleBar({ views, onChange, total, compare = true }: {
     views: ResultView[]
     onChange: (views: ResultView[]) => void
-    total: number
+    total?: number
+    compare?: boolean
 }) {
     const item = 'size-9 rounded-md text-ink-900 hover:bg-inner-bg aria-pressed:bg-primary aria-pressed:text-primary-foreground [&_svg:not([class*=size-])]:size-5'
     return (
@@ -36,11 +37,13 @@ export function ViewToggleBar({ views, onChange, total }: {
                         <Icon />
                     </ToggleGroupItem>
                 ))}
-                <ToggleGroupItem value='compare' aria-label='เปรียบเทียบ (เร็วๆ นี้)' disabled className={item}>
-                    <GitCompareArrows />
-                </ToggleGroupItem>
+                {compare && (
+                    <ToggleGroupItem value='compare' aria-label='เปรียบเทียบ (เร็วๆ นี้)' disabled className={item}>
+                        <GitCompareArrows />
+                    </ToggleGroupItem>
+                )}
             </ToggleGroup>
-            <span className='text-base font-semibold text-ink-500'>ตอบแล้ว {total.toLocaleString('th-TH')} คน</span>
+            {total !== undefined && <span className='text-base font-semibold text-ink-500'>ตอบแล้ว {total.toLocaleString('th-TH')} คน</span>}
         </div>
     )
 }

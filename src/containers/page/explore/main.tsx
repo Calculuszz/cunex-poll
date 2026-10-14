@@ -1,12 +1,14 @@
 import React from 'react'
 import { PollSearch } from '@/components/common/search'
-import { Button } from '@/components/ui/button'
 import { PollGrid } from '@/containers/page/main/components/pollGrid'
 import { getPolls } from '@/lib/polls'
+import { getExploreVoteStates } from '@/lib/votes'
+import { CURRENT_USER } from '@/lib/currentUser'
+import { ExploreActions } from './exploreActions'
 
 // หน้านี้แสดงเฉพาะโพลที่กำลังเปิดให้กรอก
 export async function ExplorePage() {
-    const allPolls = await getPolls()
+    const [allPolls, states] = await Promise.all([getPolls(), getExploreVoteStates(CURRENT_USER.studentId)])
     const polls = allPolls.filter((poll) => poll.type === 'VOTING')
 
     return (
@@ -16,12 +18,7 @@ export async function ExplorePage() {
             <PollGrid
                 polls={polls}
                 empty={{ title: 'ยังไม่มีโพลที่เปิดให้กรอก', description: 'เมื่อมีโพลเปิดโหวต จะแสดงที่นี่ให้เข้าไปตอบได้' }}
-                renderAction={() => (
-                    // ยังไม่มีหน้าทำโพล จึงยังไม่ได้ผูกปุ่มกับ route ใด
-                    <Button className='w-full px-4 py-5'>
-                        <span className='font-heading font-bold text-base'>เริ่มทำโพล</span>
-                    </Button>
-                )}
+                renderAction={(poll) => <ExploreActions pollId={poll.id} state={states.get(poll.id)} />}
             />
         </div>
     )

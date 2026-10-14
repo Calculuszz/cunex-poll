@@ -1,5 +1,5 @@
-type PollStatus = "DRAFT" | "PENDING" | "APPROVED" | "VOTING" | "DONE" | "REJECTED";
-type Scope = "A" | "B" | "C" | "D"
+export type PollStatus = "DRAFT" | "PENDING" | "APPROVED" | "VOTING" | "DONE" | "REJECTED";
+export type Scope = "A" | "B" | "C" | "D"
 
 export interface IPollCardDTO{
     id: string;

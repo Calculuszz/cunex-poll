@@ -1,5 +1,6 @@
 import type { CreateInput } from '@/lib/pollInput'
 import { connection } from 'next/server'
+import { DEFAULT_DISPLAY, parseDisplaySettings, type ResultDisplaySettings } from '@/lib/resultDisplay'
 import { pool } from '@/lib/db'
 import { toPollCardDTO, type IPollCardDTO } from '@/dtos/pollcardDto'
 
@@ -29,7 +30,8 @@ const DETAIL_SQL = `
         p.title,
         p.description AS "desc",
         p.close_at AS "close",
-        p.audience
+        p.audience,
+        p.result_display AS "resultDisplay"
     FROM polls p
     WHERE p.id = $1
 `
@@ -41,6 +43,7 @@ export type PollDetail = IPollCardDTO & {
     showExplore: boolean
     identifySender: boolean
     audience: { faculties: string[]; departments: string[]; studentCodes: string[]; codeKind?: 'STUDENT' | 'STAFF' }
+    resultDisplay: ResultDisplaySettings
     items: PollItemRow[]
 }
 
@@ -74,6 +77,7 @@ export async function getPollDetail(id: string): Promise<PollDetail | null> {
             studentCodes: row.audience?.studentCodes ?? [],
             codeKind: row.audience?.codeKind,
         },
+        resultDisplay: parseDisplaySettings(row.resultDisplay) ?? DEFAULT_DISPLAY,
         items,
     }
 }
@@ -153,4 +157,13 @@ export async function savePoll(input: CreateInput, id?: string): Promise<{ id: s
     } finally {
         client.release()
     }
+}
+
+// บันทึกการตั้งค่าเผยแพร่ผล ตั้งได้เฉพาะโพลที่เปิดโหวตแล้ว (ก่อนนั้นยังไม่มีผลให้เผยแพร่)
+export async function saveResultDisplay(id: string, settings: ResultDisplaySettings): Promise<'ok' | 'not_found' | 'bad_state'> {
+    const { rows } = await pool.query<{ type: string }>('SELECT type FROM polls WHERE id = $1', [id])
+    if (rows.length === 0) return 'not_found'
+    if (rows[0].type !== 'VOTING' && rows[0].type !== 'DONE') return 'bad_state'
+    await pool.query('UPDATE polls SET result_display = $2 WHERE id = $1', [id, JSON.stringify(settings)])
+    return 'ok'
 }

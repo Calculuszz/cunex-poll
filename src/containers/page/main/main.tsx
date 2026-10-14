@@ -42,8 +42,9 @@ const TAB_EMPTY: Record<string, PollGridEmpty> = {
 export async function MainPage() {
     const polls = await getPolls()
 
+    // pb-24 เว้นที่ให้การ์ดแถวสุดท้ายเลื่อนพ้นปุ่มเมนูลอยมุมขวาล่าง (สูง 56px + ขอบ 16px)
     return (
-        <div className=' relative flex flex-col gap-2'>
+        <div className='relative flex flex-col gap-2 pb-24'>
             <h1 className=' text-4xl font-bold font-heading'>โพลของคุณ</h1>
             <PollSearch polls={polls} />
             <MainTabs

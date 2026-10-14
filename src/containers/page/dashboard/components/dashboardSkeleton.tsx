@@ -55,17 +55,3 @@ export function DashboardSkeleton() {
         </div>
     )
 }
-
-export function RealtimeSkeleton() {
-    return (
-        <div className='mx-auto flex w-full max-w-2xl flex-col gap-5 pb-8' aria-busy aria-label='กำลังโหลด'>
-            <div className='flex flex-col gap-2'>
-                <Skeleton className='h-9 w-4/5' />
-                <Skeleton className='h-5 w-1/2' />
-            </div>
-            <Skeleton className='h-11 w-full rounded-lg' />
-            <ToggleBarSkeleton />
-            <QuestionCardSkeleton />
-        </div>
-    )
-}

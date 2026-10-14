@@ -40,17 +40,17 @@ export async function getPollResults(pollId: string): Promise<PollResults | null
              WHERE poll_id = $1 AND data->>'kind' = 'input' ORDER BY position`,
             [pollId],
         ),
-        pool.query<{ n: number }>('SELECT count(*)::int AS n FROM poll_responses WHERE poll_id = $1', [pollId]),
+        pool.query<{ n: number }>("SELECT count(*)::int AS n FROM poll_responses WHERE poll_id = $1 AND status = 'SUBMITTED'", [pollId]),
         pool.query<{ position: number; n: number }>(
             `SELECT a.position, count(DISTINCT a.response_id)::int AS n
              FROM poll_answers a JOIN poll_responses r ON r.id = a.response_id
-             WHERE r.poll_id = $1 GROUP BY a.position`,
+             WHERE r.poll_id = $1 AND r.status = 'SUBMITTED' GROUP BY a.position`,
             [pollId],
         ),
         pool.query<{ position: number; option_id: string; n: number }>(
             `SELECT a.position, a.option_id, count(*)::int AS n
              FROM poll_answers a JOIN poll_responses r ON r.id = a.response_id
-             WHERE r.poll_id = $1 AND a.option_id IS NOT NULL GROUP BY a.position, a.option_id`,
+             WHERE r.poll_id = $1 AND r.status = 'SUBMITTED' AND a.option_id IS NOT NULL GROUP BY a.position, a.option_id`,
             [pollId],
         ),
         // limit ที่ฐานข้อมูล ข้อความโตตามจำนวนผู้ตอบ ไม่ดึงมาทั้งหมดแล้วตัดทีหลัง
@@ -59,7 +59,7 @@ export async function getPollResults(pollId: string): Promise<PollResults | null
                 SELECT a.id, a.position, a.text_value, r.created_at,
                        row_number() OVER (PARTITION BY a.position ORDER BY r.created_at DESC, a.id DESC) AS rn
                 FROM poll_answers a JOIN poll_responses r ON r.id = a.response_id
-                WHERE r.poll_id = $1 AND a.text_value IS NOT NULL
+                WHERE r.poll_id = $1 AND r.status = 'SUBMITTED' AND a.text_value IS NOT NULL
              ) t WHERE rn <= $2 ORDER BY position, rn`,
             [pollId, TEXT_PREVIEW_LIMIT],
         ),
@@ -107,7 +107,7 @@ export async function getTextAnswers(pollId: string, position: number): Promise<
     const { rows } = await pool.query<TextRow>(
         `SELECT a.id, a.position, a.text_value, r.created_at
          FROM poll_answers a JOIN poll_responses r ON r.id = a.response_id
-         WHERE r.poll_id = $1 AND a.position = $2 AND a.text_value IS NOT NULL
+         WHERE r.poll_id = $1 AND r.status = 'SUBMITTED' AND a.position = $2 AND a.text_value IS NOT NULL
          ORDER BY r.created_at DESC, a.id DESC LIMIT $3`,
         [pollId, position, TEXT_ANSWER_MAX],
     )
@@ -137,13 +137,13 @@ export async function exportPollCsv(pollId: string): Promise<PollExport | 'not_f
             [pollId],
         ),
         pool.query<{ id: string; created_at: Date }>(
-            'SELECT id, created_at FROM poll_responses WHERE poll_id = $1 ORDER BY created_at, id',
+            "SELECT id, created_at FROM poll_responses WHERE poll_id = $1 AND status = 'SUBMITTED' ORDER BY created_at, id",
             [pollId],
         ),
         pool.query<{ response_id: string; position: number; option_id: string | null; text_value: string | null }>(
             `SELECT a.response_id, a.position, a.option_id, a.text_value
              FROM poll_answers a JOIN poll_responses r ON r.id = a.response_id
-             WHERE r.poll_id = $1 ORDER BY a.id`,
+             WHERE r.poll_id = $1 AND r.status = 'SUBMITTED' ORDER BY a.id`,
             [pollId],
         ),
     ])

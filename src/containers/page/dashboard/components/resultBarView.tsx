@@ -1,20 +1,19 @@
 import React from 'react'
-import type { ResultOption } from '@/lib/pollResultTypes'
-import { formatCountPct, optionColor } from '@/lib/resultView'
+import { formatOptionNumbers, type DisplayNumbers, type DisplayOption } from '@/lib/resultDisplay'
+import { optionColor } from '@/lib/resultView'
 
 const GRIDLINES = [0.25, 0.5, 0.75, 1]
 
 // แผนภูมิแท่งแนวตั้ง ความสูงเทียบกับตัวเลือกที่ได้มากสุด
 // แท่งใช้ scaleY และป้ายตัวเลขเลื่อนด้วย translateY ให้ขยับตามยอดแท่งโดยไม่แตะ layout
 // ตัวเลือกเยอะจะเลื่อนแนวนอนในการ์ดเอง แต่ละแท่งกว้างอย่างน้อย 64px
-export function ResultBarView({ options, respondents }: { options: ResultOption[]; respondents: number }) {
-    const max = Math.max(0, ...options.map((o) => o.count))
+export function ResultBarView({ options, numbers }: { options: DisplayOption[]; numbers: DisplayNumbers }) {
     return (
         <div className='rounded-xl border p-3'>
             <div className='thin-scrollbar overflow-x-auto pb-2'>
                 <div className='flex min-w-full w-max'>
                     {options.map((o, i) => {
-                        const ratio = max === 0 ? 0 : o.count / max
+                        const ratio = o.weight
                         return (
                             <div key={o.id} className='flex min-w-16 flex-1 flex-col'>
                                 {/* pt-6 เว้นที่ให้ป้ายตัวเลขของแท่งที่สูงสุดไม่ล้นขอบบน */}
@@ -32,7 +31,7 @@ export function ResultBarView({ options, respondents }: { options: ResultOption[
                                             style={{ transform: `translateY(${(1 - ratio) * 100}%)` }}
                                         >
                                             <span className='absolute inset-x-0 bottom-full pb-1 text-center text-xs text-ink-500 whitespace-nowrap tabular-nums'>
-                                                {formatCountPct(o.count, respondents)}
+                                                {formatOptionNumbers(o, numbers)}
                                             </span>
                                         </div>
                                     </div>

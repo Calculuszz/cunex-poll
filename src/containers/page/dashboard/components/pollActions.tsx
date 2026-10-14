@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Ban, ChartColumnBig, Loader2, Share2 } from 'lucide-react'
+import { Ban, Loader2, Settings2, Share2 } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
@@ -10,7 +10,7 @@ import { SharePollModal } from './sharePollModal'
 
 const pill = 'flex-1 rounded-full font-heading text-base font-bold'
 
-// ปุ่มแชร์ / ผลเรียลไทม์ / ปิดรับคำตอบ (ปิดได้เฉพาะตอนกำลังโหวต)
+// ปุ่มแชร์ / ตั้งค่าการเผยแพร่ผลให้ผู้ตอบ / ปิดรับคำตอบ (ปิดได้เฉพาะตอนกำลังโหวต)
 export function PollActions({ pollId, voting }: { pollId: string; voting: boolean }) {
     const router = useRouter()
     const [shareOpen, setShareOpen] = useState(false)
@@ -47,9 +47,9 @@ export function PollActions({ pollId, voting }: { pollId: string; voting: boolea
                 <Share2 />
                 แชร์
             </Button>
-            <Link href={`/dashboard/${pollId}/realtime`} className={cn(buttonVariants({ variant: 'outline' }), pill)}>
-                <ChartColumnBig />
-                ผลเรียลไทม์
+            <Link href={`/dashboard/${pollId}/publish`} className={cn(buttonVariants({ variant: 'outline' }), pill)}>
+                <Settings2 />
+                เผยแพร่ผล
             </Link>
             {voting && (
                 <Button className={pill} onClick={() => setCloseOpen(true)}>

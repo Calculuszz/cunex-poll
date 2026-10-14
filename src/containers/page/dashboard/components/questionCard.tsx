@@ -1,6 +1,7 @@
 import React from 'react'
 import { isChoiceQuestion, type ResultQuestion } from '@/lib/pollResultTypes'
 import type { ResultView } from '@/lib/resultView'
+import { toDisplayOptions, type DisplayNumbers, type DisplayOption } from '@/lib/resultDisplay'
 import { ResultListView } from './resultListView'
 import { ResultDonutView } from './resultDonutView'
 import { ResultBarView } from './resultBarView'
@@ -13,16 +14,35 @@ const CAPTION: Record<ResultQuestion['type'], string> = {
 }
 
 // เนื้อหาผลของคำถามแบบเลือก ตามมุมมองที่เปิดอยู่ เรียงลำดับ รายการ → โดนัท → แท่ง เสมอ
-export function ChoiceResults({ question, views }: { question: ResultQuestion; views: ResultView[] }) {
-    const options = question.options ?? []
-    const n = question.respondentCount
+// ใช้ทั้งหน้าเจ้าของ (เห็นทุกตัวเลข) และหน้าผู้ตอบ (ตัวเลขที่ซ่อนเป็น null)
+export function DisplayChoiceResults({ options, total, numbers, views, empty }: {
+    options: DisplayOption[]
+    total: number | null
+    numbers: DisplayNumbers
+    views: ResultView[]
+    empty: boolean
+}) {
     return (
         <div className='flex flex-col gap-6'>
-            {n === 0 && <p className='text-ink-500'>ยังไม่มีผู้ตอบ</p>}
-            {views.includes('list') && <ResultListView options={options} respondents={n} showHeader={views.length === 1 && n > 0} />}
-            {views.includes('pie') && <ResultDonutView options={options} respondents={n} />}
-            {views.includes('bar') && <ResultBarView options={options} respondents={n} />}
+            {empty && <p className='text-ink-500'>ยังไม่มีผู้ตอบ</p>}
+            {views.includes('list') && <ResultListView options={options} numbers={numbers} total={total} showHeader={views.length === 1 && !empty} />}
+            {views.includes('pie') && <ResultDonutView options={options} numbers={numbers} total={total} />}
+            {views.includes('bar') && <ResultBarView options={options} numbers={numbers} />}
         </div>
+    )
+}
+
+const ALL_NUMBERS = { count: true, percent: true }
+
+export function ChoiceResults({ question, views }: { question: ResultQuestion; views: ResultView[] }) {
+    return (
+        <DisplayChoiceResults
+            options={toDisplayOptions(question, ALL_NUMBERS)}
+            total={question.respondentCount}
+            numbers={ALL_NUMBERS}
+            views={views}
+            empty={question.respondentCount === 0}
+        />
     )
 }
 
