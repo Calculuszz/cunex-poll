@@ -8,10 +8,13 @@ import { Search } from "lucide-react"
 import { useDebouncedField } from '@/hooks/useDebouncedField'
 import { SCOPE_LABEL, STATUS_BADGE_CLASS, STATUS_LABEL } from '@/lib/pollLabels'
 import type { IPollCardDTO } from '@/dtos/pollcardDto'
-import { pollHref } from '@/lib/pollHref'
+import { adminPollHref, pollHref, votePollHref } from '@/lib/pollHref'
 
 // ค้นหาเฉพาะโพลที่อยู่ในหน้านั้น ผลลัพธ์แสดงเป็น popup ใต้ช่องค้นหา
-export function PollSearch({ polls }: { polls: IPollCardDTO[] }) {
+// linkTarget = 'admin' ผลค้นหาพาไป /admin/(slug) · 'vote' พาไปหน้ากรอก /(slug)
+// (ส่งเป็นค่าแทนฟังก์ชันเพราะ server component ส่งฟังก์ชันให้ client ไม่ได้)
+export function PollSearch({ polls, linkTarget = 'owner' }: { polls: IPollCardDTO[]; linkTarget?: 'owner' | 'admin' | 'vote' }) {
+    const hrefOf = linkTarget === 'admin' ? adminPollHref : linkTarget === 'vote' ? votePollHref : pollHref
     const [query, setQuery] = useState('')
     // ช่องพิมพ์แสดงผลทันที ส่วนการกรองใช้ query ที่ debounce แล้ว
     const [input, setInput] = useDebouncedField(query, setQuery)
@@ -56,7 +59,7 @@ export function PollSearch({ polls }: { polls: IPollCardDTO[] }) {
                             {results.map((poll) => (
                                 <li key={poll.id}>
                                     <Link
-                                        href={pollHref(poll)}
+                                        href={hrefOf(poll)}
                                         className='flex flex-col gap-1 rounded-md px-2 py-2 outline-none transition-colors duration-150 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring'
                                     >
                                         <span className='font-heading text-base font-bold line-clamp-1'>{poll.title}</span>

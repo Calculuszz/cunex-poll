@@ -2,7 +2,7 @@ import { connection } from 'next/server'
 import type { PoolClient } from 'pg'
 import { pool } from '@/lib/db'
 import { getPollDetail } from '@/lib/polls'
-import { audienceLabel } from '@/lib/audienceLabel'
+import { audienceLabel, audienceScope } from '@/lib/audienceLabel'
 import {
     canRepeat,
     firstMissingRequired,
@@ -40,7 +40,12 @@ export async function getVoterPoll(id: string): Promise<VoterPoll | null> {
         realtime: poll.realtime,
         allowRepeat: poll.allowRepeat,
         closeAt: new Date(poll.closeTime).toISOString(),
+        closedAt: poll.closedAt ? new Date(poll.closedAt).toISOString() : null,
+        closedEarly: poll.closedEarly,
+        closeReason: poll.closedEarly ? poll.closeReason : null,
         audienceLabel: audienceLabel(poll),
+        audienceScope: audienceScope(poll),
+        identifySender: poll.identifySender && poll.scope !== 'C',
         items,
         questionCount: poll.items.filter((row) => row.data.kind === 'input').length,
         resultsPublished: poll.resultDisplay.published,

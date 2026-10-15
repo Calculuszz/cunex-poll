@@ -13,6 +13,10 @@ const LIST_SQL = `
         p.title,
         p.description AS "desc",
         p.close_at AS "close",
+        p.closed_at AS "closedAt",
+        p.closed_early AS "closedEarly",
+        p.show_explore AS "showExplore",
+        (p.identify_sender AND p.scope <> 'C') AS "identifySender",
         (SELECT count(*)::int FROM poll_items i WHERE i.poll_id = p.id AND i.data->>'kind' = 'input') AS question
     FROM polls p
     ORDER BY p.created_at DESC
@@ -25,11 +29,14 @@ const DETAIL_SQL = `
         p.scope,
         p.realtime,
         p.allow_repeat AS "allowRepeat",
-        p.show_explore AS "showExplore",
         p.identify_sender AS "identifySender",
         p.title,
         p.description AS "desc",
         p.close_at AS "close",
+        p.closed_at AS "closedAt",
+        p.closed_early AS "closedEarly",
+        p.close_reason AS "closeReason",
+        p.closed_by AS "closedBy",
         p.audience,
         p.result_display AS "resultDisplay"
     FROM polls p
@@ -40,8 +47,10 @@ export type PollItemRow = { position: number; data: Record<string, unknown> }
 
 export type PollDetail = IPollCardDTO & {
     allowRepeat: boolean
-    showExplore: boolean
     identifySender: boolean
+    closeReason: string | null
+    // ข้อมูลภายใน ห้ามส่งไปหน้าสาธารณะ (System flow §7)
+    closedBy: string | null
     audience: { faculties: string[]; departments: string[]; studentCodes: string[]; codeKind?: 'STUDENT' | 'STAFF' }
     resultDisplay: ResultDisplaySettings
     items: PollItemRow[]
@@ -52,6 +61,22 @@ export type PollDetail = IPollCardDTO & {
 export async function getPolls(): Promise<IPollCardDTO[]> {
     await connection()
     const { rows } = await pool.query(LIST_SQL)
+    return rows.map(toPollCardDTO)
+}
+
+// หน้ารวมโพล: เฉพาะโพลที่กำลังโหวต ยังไม่เลยเวลาปิด เจ้าของเปิดสวิตช์ "เพิ่มลงหน้า explore" และผู้ใช้มีสิทธิ์ตอบ
+// แบบ D ต้องมีรหัสของผู้ใช้อยู่ในรายชื่อ · แบบ B ยังตรวจคณะไม่ได้ (ยังไม่มีข้อมูลคณะจาก SSO) จึงปล่อยผ่านไปก่อน
+export async function getExplorePolls(studentId: string): Promise<IPollCardDTO[]> {
+    await connection()
+    const { rows } = await pool.query(
+        LIST_SQL.replace(
+            'FROM polls p',
+            `FROM polls p
+             WHERE p.type = 'VOTING' AND p.show_explore AND p.close_at > now()
+               AND (p.scope <> 'D' OR p.audience->'studentCodes' ? $1)`,
+        ),
+        [studentId],
+    )
     return rows.map(toPollCardDTO)
 }
 
@@ -68,8 +93,9 @@ export async function getPollDetail(id: string): Promise<PollDetail | null> {
     return {
         ...toPollCardDTO(row),
         allowRepeat: row.allowRepeat,
-        showExplore: row.showExplore,
         identifySender: row.identifySender,
+        closeReason: row.closeReason,
+        closedBy: row.closedBy,
         // โพลที่สร้างก่อนมีบางฟิลด์ใน audience (seed เป็น {}) จึงเติมค่าว่างให้ครบก่อนส่งให้ UI
         audience: {
             faculties: row.audience?.faculties ?? [],
@@ -94,11 +120,13 @@ export async function reviewPoll(id: string, status: 'APPROVED' | 'REJECTED'): P
     return exists === 1 ? 'not_pending' : 'not_found'
 }
 
-// ปิดรับคำตอบก่อนกำหนด: ได้เฉพาะโพลที่กำลังโหวต และเลื่อนเวลาปิดมาเป็นตอนนี้ให้ตัวนับถอยหลังตรงกับสถานะ
-export async function closePoll(id: string): Promise<'ok' | 'not_found' | 'not_voting'> {
+// ปิดรับคำตอบเอง: ได้เฉพาะโพลที่กำลังโหวต (System flow §7)
+// close_at คงไว้เป็นเวลาที่ตั้งไว้เดิม ส่วนเวลาที่ปิดจริงเก็บที่ closed_at ให้หน้าจอโชว์คู่กันได้
+export async function closePoll(id: string, reason: string | null, closedBy: string): Promise<'ok' | 'not_found' | 'not_voting'> {
     const { rowCount } = await pool.query(
-        `UPDATE polls SET type = 'DONE', close_at = LEAST(close_at, now()) WHERE id = $1 AND type = 'VOTING'`,
-        [id],
+        `UPDATE polls SET type = 'DONE', closed_at = now(), closed_early = now() < close_at, close_reason = $2, closed_by = $3
+         WHERE id = $1 AND type = 'VOTING'`,
+        [id, reason, closedBy],
     )
     if (rowCount === 1) return 'ok'
 
@@ -157,6 +185,45 @@ export async function savePoll(input: CreateInput, id?: string): Promise<{ id: s
     } finally {
         client.release()
     }
+}
+
+// กด Publish: APPROVED → VOTING (System flow §7) กดได้ทั้งเจ้าของและแอดมิน
+// เลยเวลาปิดแล้วเปิดไม่ได้ (โพลที่ไม่เคยเปิดโหวตจะถูกตัดเป็น DONE)
+export async function publishPoll(id: string): Promise<'ok' | 'not_found' | 'not_approved' | 'expired'> {
+    const { rowCount } = await pool.query(
+        `UPDATE polls SET type = 'VOTING' WHERE id = $1 AND type = 'APPROVED' AND close_at > now()`,
+        [id],
+    )
+    if (rowCount === 1) return 'ok'
+
+    const { rows } = await pool.query<{ type: string; expired: boolean }>(
+        'SELECT type, close_at <= now() AS expired FROM polls WHERE id = $1',
+        [id],
+    )
+    if (rows.length === 0) return 'not_found'
+    return rows[0].type === 'APPROVED' && rows[0].expired ? 'expired' : 'not_approved'
+}
+
+// เปิด/ปิดผลเรียลไทม์ทีหลัง ได้เฉพาะก่อนเปิดโหวต (System flow §8) พอเข้า VOTING แล้วล็อก
+export async function setRealtime(id: string, realtime: boolean): Promise<'ok' | 'not_found' | 'locked'> {
+    const { rowCount } = await pool.query(
+        `UPDATE polls SET realtime = $2 WHERE id = $1 AND type IN ('DRAFT', 'PENDING', 'APPROVED')`,
+        [id, realtime],
+    )
+    if (rowCount === 1) return 'ok'
+
+    const { rowCount: exists } = await pool.query('SELECT 1 FROM polls WHERE id = $1', [id])
+    return exists === 1 ? 'locked' : 'not_found'
+}
+
+// เจ้าของโพลเห็นรหัสผู้ตอบเมื่อเปิดสวิตช์ "ระบุคนส่ง" (เช่นใช้ทำแบบทดสอบ) โพลสาธารณะไม่มีตัวตนให้ระบุ
+// ใช้ตัดสินที่ API ว่าจะส่งรหัสผู้ตอบออกไปไหม ไม่ใช่ซ่อนที่ UI
+export async function identifiesSender(id: string): Promise<boolean> {
+    const { rows } = await pool.query<{ ok: boolean }>(
+        `SELECT identify_sender AND scope <> 'C' AS ok FROM polls WHERE id = $1`,
+        [id],
+    )
+    return rows[0]?.ok ?? false
 }
 
 // บันทึกการตั้งค่าเผยแพร่ผล ตั้งได้เฉพาะโพลที่เปิดโหวตแล้ว (ก่อนนั้นยังไม่มีผลให้เผยแพร่)

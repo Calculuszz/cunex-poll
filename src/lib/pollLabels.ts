@@ -37,3 +37,12 @@ const closeFormatter = new Intl.DateTimeFormat('th-TH', {
 export function formatCloseTime(date: Date) {
     return closeFormatter.format(date)
 }
+
+// ความยาวสูงสุดของเหตุผลตอนปิดรับคำตอบก่อนกำหนด ใช้ทั้งช่องกรอกและ API
+export const CLOSE_REASON_MAX = 300
+
+// เวลาปิดที่การ์ดควรโชว์: โพลที่ปิดก่อนกำหนดต้องโชว์เวลาที่ปิดจริง ไม่งั้นอ่านแล้วนึกว่ายังเปิดอยู่ (System flow §7)
+export function cardCloseLabel(poll: Pick<IPollCardDTO, 'closeTime' | 'closedAt' | 'closedEarly'>) {
+    if (poll.closedEarly && poll.closedAt) return `ปิดก่อนกำหนด ${formatCloseTime(poll.closedAt)}`
+    return `ปิด ${formatCloseTime(poll.closeTime)}`
+}

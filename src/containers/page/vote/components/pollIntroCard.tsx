@@ -2,12 +2,13 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, List, Loader2, Timer } from 'lucide-react'
+import { Ban, CheckCircle2, List, Loader2, Timer } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { estimateMinutes, type IneligibleReason, type MyResponse, type VoterPoll } from '@/lib/voteForm'
 import { formatThaiDateTime, formatTimeLeftShort } from '@/lib/thaiDate'
 import { cn } from '@/lib/utils'
+import { AudienceScopeView } from '@/components/common/audienceScopeView'
 
 const pill = 'h-11 w-full rounded-full font-heading text-base font-bold'
 const outlinePill = cn(buttonVariants({ variant: 'outline' }), pill, 'border-primary text-primary')
@@ -26,12 +27,14 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 // การ์ดหน้าแรกของโพล ปุ่มด้านล่างเปลี่ยนตามสถานะคำตอบของผู้ใช้และสถานะโพล
-export function PollIntroCard({ poll, me, reason, resumePage, canSeeResults }: {
+// onStart ส่งมาเมื่อเป็นหน้าดูตัวอย่าง: กดเริ่มโหวตแล้วไปหน้าคำถามในเครื่อง ไม่สร้างฉบับร่างที่ server
+export function PollIntroCard({ poll, me, reason, resumePage, canSeeResults, onStart }: {
     poll: VoterPoll
     me: MyResponse
     reason: IneligibleReason | null
     resumePage: number
     canSeeResults: boolean
+    onStart?: () => void
 }) {
     const router = useRouter()
     const [expanded, setExpanded] = useState(false)
@@ -39,6 +42,7 @@ export function PollIntroCard({ poll, me, reason, resumePage, canSeeResults }: {
 
     // เริ่มโหวต = สร้างฉบับร่างว่างก่อน หน้าคำถามจะได้เข้าได้ (เข้าตรงโดยไม่มีร่างจะถูกส่งกลับหน้านี้)
     const start = async () => {
+        if (onStart) return onStart()
         setStarting(true)
         try {
             const res = await fetch(`/api/polls/${poll.id}/my-response`, {
@@ -61,6 +65,8 @@ export function PollIntroCard({ poll, me, reason, resumePage, canSeeResults }: {
     }
 
     const closed = reason === 'CLOSED'
+    // ถูกปิดก่อนกำหนด ต่างจากหมดเวลา คนที่จำเวลาปิดได้จะได้ไม่คิดว่าตัวเองจำผิด (System flow §7)
+    const closedEarly = poll.closedEarly && poll.closedAt !== null
     const notOpen = reason === 'NOT_OPEN'
     const voted = me.submittedAt !== null
 
@@ -70,7 +76,7 @@ export function PollIntroCard({ poll, me, reason, resumePage, canSeeResults }: {
     } else if (closed) {
         actions = (
             <>
-                <Button disabled className={pill}>ปิดโหวตแล้ว</Button>
+                <Button disabled className={pill}>{closedEarly ? 'ถูกปิดก่อนกำหนด' : 'ปิดโหวตแล้ว'}</Button>
                 {canSeeResults && <Link href={`/${poll.id}/results`} className={outlinePill}>ดูผลโหวต</Link>}
             </>
         )
@@ -116,9 +122,23 @@ export function PollIntroCard({ poll, me, reason, resumePage, canSeeResults }: {
                 )}
             </div>
 
+            {closedEarly && (
+                <div role='status' className='flex gap-2 rounded-xl bg-inner-bg px-3 py-2'>
+                    <Ban className='mt-0.5 size-4 shrink-0 text-ink-500' />
+                    <div className='flex flex-col'>
+                        <span className='font-bold'>เจ้าของโพลปิดรับคำตอบก่อนกำหนด</span>
+                        {poll.closeReason && <span className='text-ink-500 break-words'>เหตุผล: {poll.closeReason}</span>}
+                    </div>
+                </div>
+            )}
+
             <dl className='flex flex-col gap-2'>
-                <MetaRow label='ขอบเขตผู้ตอบ'>{poll.audienceLabel}</MetaRow>
-                <MetaRow label='เวลาปิดโหวต'>{formatThaiDateTime(poll.closeAt)} ({formatTimeLeftShort(poll.closeAt)})</MetaRow>
+                <MetaRow label='ขอบเขตผู้ตอบ'><AudienceScopeView label={poll.audienceLabel} scope={poll.audienceScope} /></MetaRow>
+                <MetaRow label='เวลาปิดโหวต'>
+                    {closedEarly
+                        ? `ปิดจริง ${formatThaiDateTime(poll.closedAt!)} · กำหนดเดิม ${formatThaiDateTime(poll.closeAt)}`
+                        : `${formatThaiDateTime(poll.closeAt)} (${formatTimeLeftShort(poll.closeAt)})`}
+                </MetaRow>
                 {poll.description && (
                     <MetaRow label='รายละเอียด'>
                         <button

@@ -74,6 +74,14 @@ export function buildPollPayload(form: CreatePollState, items: FormItem[]): Buil
         audience.studentCodes = codes
     }
 
+    // โหมดรูปใหญ่ต้องมีรูปทุกตัวเลือก (System flow §5) ฉบับร่างบันทึกได้ แต่ส่งขออนุมัติไม่ได้
+    const questions = items.filter((item) => item.kind === 'input')
+    const gridIndex = questions.findIndex((q) =>
+        (q.type === 'radio' || q.type === 'checkbox') && q.optionLayout === 'grid' && q.options.some((o) => !o.imageUrl))
+    if (gridIndex !== -1) {
+        return { ok: false, error: `คำถามข้อ ${gridIndex + 1} ใช้แบบรูปใหญ่ ต้องใส่รูปให้ครบทุกตัวเลือก` }
+    }
+
     return {
         ok: true,
         payload: {

@@ -39,7 +39,7 @@ export async function VoteIntroPage({ slug }: { slug: string }) {
                     canSeeResults={canViewResults(poll, me)}
                 />
             )}
-            <AnonymityNote className='mt-4' />
+            <AnonymityNote identified={poll.identifySender} className='mt-4' />
         </>
     )
 }

@@ -136,7 +136,11 @@ export function PollTypeMore() {
                 <Switch id='poll-sender' checked={!isPublic && identifySender} onCheckedChange={(v) => update({ identifySender: v })} disabled={isPublic} />
                 <Label htmlFor='poll-sender' className=' text-base font-bold font-heading'>ระบุคนส่ง</Label>
             </div>
-            {isPublic && <span className='text-sm text-ink-500'>โพลสาธารณะไม่ระบุคนส่ง</span>}
+            <span className='text-sm text-ink-500'>
+                {isPublic
+                    ? 'โพลสาธารณะไม่ระบุคนส่ง'
+                    : 'เปิดแล้วคุณจะเห็นรหัสของผู้ตอบคู่กับคำตอบ เช่น ใช้ทำแบบทดสอบ ผู้ตอบจะได้รับแจ้งก่อนเริ่มตอบ'}
+            </span>
         </div>
     )
 }

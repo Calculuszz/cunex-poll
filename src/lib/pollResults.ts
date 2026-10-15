@@ -124,7 +124,8 @@ export type PollExport = { filename: string; csv: string }
 // CSV ตาม API contract §5.5: หนึ่งแถวต่อผู้ส่งหนึ่งคน หนึ่งคอลัมน์ต่อหนึ่งคำถาม
 // ค่าเป็น label ของตัวเลือก (เลือกหลายข้อคั่นด้วย |) ข้อที่ไม่ได้ตอบเป็นเซลล์ว่าง เรียงตามเวลาส่ง
 // ขึ้นต้นด้วย BOM ให้ Excel อ่านภาษาไทยถูก · export ได้เฉพาะ VOTING/DONE
-export async function exportPollCsv(pollId: string): Promise<PollExport | 'not_found' | 'bad_state'> {
+// withIdentity = เพิ่มคอลัมน์รหัสผู้ตอบ ผู้เรียกต้องตรวจว่าเป็นแอดมินก่อน
+export async function exportPollCsv(pollId: string, withIdentity = false): Promise<PollExport | 'not_found' | 'bad_state'> {
     const { rows: polls } = await pool.query<{ type: string }>('SELECT type FROM polls WHERE id = $1', [pollId])
     if (polls.length === 0) return 'not_found'
     const status = polls[0].type
@@ -136,8 +137,8 @@ export async function exportPollCsv(pollId: string): Promise<PollExport | 'not_f
              WHERE poll_id = $1 AND data->>'kind' = 'input' ORDER BY position`,
             [pollId],
         ),
-        pool.query<{ id: string; created_at: Date }>(
-            "SELECT id, created_at FROM poll_responses WHERE poll_id = $1 AND status = 'SUBMITTED' ORDER BY created_at, id",
+        pool.query<{ id: string; created_at: Date; respondent: string | null }>(
+            "SELECT id, created_at, respondent FROM poll_responses WHERE poll_id = $1 AND status = 'SUBMITTED' ORDER BY created_at, id",
             [pollId],
         ),
         pool.query<{ response_id: string; position: number; option_id: string | null; text_value: string | null }>(
@@ -161,12 +162,13 @@ export async function exportPollCsv(pollId: string): Promise<PollExport | 'not_f
         cells.set(String(a.response_id), byPosition)
     }
 
-    const header = ['ลำดับ', 'เวลาที่ส่ง', ...items.rows.map((i) => i.data.label)]
+    const header = ['ลำดับ', 'เวลาที่ส่ง', ...(withIdentity ? ['ผู้ตอบ'] : []), ...items.rows.map((i) => i.data.label)]
     const lines = responses.rows.map((r, index) => {
         const byPosition = cells.get(String(r.id))
         return [
             String(index + 1),
             bangkokStamp(r.created_at),
+            ...(withIdentity ? [r.respondent ?? ''] : []),
             ...items.rows.map((i) => (byPosition?.get(i.position) ?? []).join('|')),
         ]
     })

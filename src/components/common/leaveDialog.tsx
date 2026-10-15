@@ -79,6 +79,8 @@ export function LeaveDialog() {
                                 close()
                                 removeAll()
                                 resetPoll()
+                                // ทิ้งของที่แก้แล้ว ครั้งหน้าที่เปิดฉบับร่างนี้ต้องโหลดจาก DB ใหม่
+                                useCreateDraftStore.getState().setHydratedId(null)
                                 if (t) leave(t)
                             }}
                         >

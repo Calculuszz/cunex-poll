@@ -21,4 +21,37 @@ export const MOCK_FACULTIES = [
             { value: 'arts-en', label: 'ภาษาอังกฤษ' },
         ],
     },
+    {
+        value: 'econ', label: 'เศรษฐศาสตร์',
+        departments: [
+            { value: 'econ-fin', label: 'เศรษฐศาสตร์การเงิน' },
+            { value: 'econ-intl', label: 'เศรษฐศาสตร์ระหว่างประเทศ' },
+        ],
+    },
+    {
+        value: 'commarts', label: 'นิเทศศาสตร์',
+        departments: [
+            { value: 'commarts-mass', label: 'การสื่อสารมวลชน' },
+            { value: 'commarts-film', label: 'ภาพยนตร์' },
+        ],
+    },
+    {
+        value: 'arch', label: 'สถาปัตยกรรมศาสตร์',
+        departments: [
+            { value: 'arch-arch', label: 'สถาปัตยกรรม' },
+            { value: 'arch-land', label: 'ภูมิสถาปัตยกรรม' },
+        ],
+    },
+    {
+        value: 'psy', label: 'จิตวิทยา',
+        departments: [
+            { value: 'psy-psy', label: 'จิตวิทยา' },
+        ],
+    },
+    {
+        value: 'law', label: 'นิติศาสตร์',
+        departments: [
+            { value: 'law-law', label: 'นิติศาสตร์' },
+        ],
+    },
 ]

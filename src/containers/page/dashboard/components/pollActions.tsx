@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { Ban, Loader2, Settings2, Share2 } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { CLOSE_REASON_MAX } from '@/lib/pollLabels'
 import { cn } from '@/lib/utils'
 import { SharePollModal } from './sharePollModal'
 
@@ -15,6 +18,7 @@ export function PollActions({ pollId, voting }: { pollId: string; voting: boolea
     const router = useRouter()
     const [shareOpen, setShareOpen] = useState(false)
     const [closeOpen, setCloseOpen] = useState(false)
+    const [reason, setReason] = useState('')
     const [pending, setPending] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -25,7 +29,7 @@ export function PollActions({ pollId, voting }: { pollId: string; voting: boolea
             const res = await fetch(`/api/polls/${pollId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'DONE' }),
+                body: JSON.stringify({ status: 'DONE', reason: reason.trim() || undefined }),
             })
             if (!res.ok) {
                 const data = await res.json().catch(() => null)
@@ -69,6 +73,20 @@ export function PollActions({ pollId, voting }: { pollId: string; voting: boolea
                         <DialogDescription className='text-center text-base'>
                             ผู้ตอบจะส่งคำตอบเพิ่มไม่ได้อีก<br />และเปิดรับคำตอบกลับมาใหม่ไม่ได้
                         </DialogDescription>
+                        {/* เหตุผลไม่บังคับ ถ้าใส่ไว้ คนที่เปิดลิงก์โพลจะเห็น (System flow §7) */}
+                        <div className='flex w-full flex-col gap-1 pt-4'>
+                            <Label htmlFor='close-reason' className='text-base font-bold'>เหตุผล (ไม่บังคับ)</Label>
+                            <Textarea
+                                id='close-reason'
+                                value={reason}
+                                maxLength={CLOSE_REASON_MAX}
+                                disabled={pending}
+                                onChange={(e) => setReason(e.target.value)}
+                                placeholder='เช่น ได้จำนวนผู้ตอบครบแล้ว'
+                                className='text-base'
+                            />
+                            <span className='text-sm text-ink-500'>ผู้ที่เปิดลิงก์โพลจะเห็นเหตุผลนี้ · {reason.length}/{CLOSE_REASON_MAX}</span>
+                        </div>
                         <div className='flex w-full gap-2 py-4'>
                             <Button variant='outline' className='flex-1 font-heading text-base font-bold' disabled={pending} onClick={() => setCloseOpen(false)}>
                                 ยกเลิก

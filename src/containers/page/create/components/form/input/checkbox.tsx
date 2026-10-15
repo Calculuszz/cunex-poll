@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { useDebouncedField } from '@/hooks/useDebouncedField'
 import { blankOption } from '@/lib/createFormItem'
 import { useElementStore, type InputItem } from '@/store/elementStore'
-import { OptionLayoutSelect } from './optionLayout'
+import { OptionLayoutSelect, missingImageCount } from './optionLayout'
 import { OptionRow, useOptionCommit } from './optionRow'
 
 export type CheckboxInputItem = Extract<InputItem, { type: 'checkbox' }>
@@ -92,6 +92,7 @@ export function CheckboxInput({ item }: { item: CheckboxInputItem }) {
                 id={`${item.id}-layout`}
                 value={layout}
                 onChange={(next) => update(item.id, { optionLayout: next })}
+                missingImages={missingImageCount(item.options)}
             />
 
             <div className='flex items-center gap-2'>

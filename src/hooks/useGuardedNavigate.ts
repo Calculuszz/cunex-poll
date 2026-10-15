@@ -13,6 +13,8 @@ export function useGuardedNavigate() {
     const request = useLeaveGuardStore((s) => s.request)
 
     return useCallback((href: string, event?: React.MouseEvent) => {
+        // หน้าดูตัวอย่างไม่ได้แก้อะไร (ร่างยังอยู่ใน store) ออกได้เลยไม่ต้องเตือน
+        if (pathname === "/create/preview") return false
         if (pathname !== "/create" && !pathname.startsWith("/create/")) return false
         // ให้ Link ไม่เปลี่ยนหน้าเอง เพราะต้องรอผู้ใช้ยืนยันก่อน
         event?.preventDefault()

@@ -1,6 +1,7 @@
 // ตัวช่วยของหน้ากรอกโพล ใช้ได้ทั้ง server และ client (ไม่มี import ของ pg)
 import type { ElementItem, InputItem } from '@/store/elementStore'
 import type { PollStatus, Scope } from '@/dtos/pollcardDto'
+import type { AudienceScope } from '@/lib/audienceLabel'
 
 // radio/select → optionId เดียว · checkbox → array ของ optionId · text → ข้อความ (API contract §4)
 export type AnswerValue = string | string[]
@@ -19,7 +20,14 @@ export type VoterPoll = {
     realtime: boolean
     allowRepeat: boolean
     closeAt: string
+    // ปิดก่อนกำหนด: หน้ากรอกต้องบอกว่า "ถูกปิดก่อน" ไม่ใช่หมดเวลา (System flow §7) · ไม่ส่ง closedBy มาหน้านี้
+    closedAt: string | null
+    closedEarly: boolean
+    closeReason: string | null
     audienceLabel: string
+    audienceScope: AudienceScope | null
+    // เจ้าของโพลเห็นรหัสผู้ตอบ (สวิตช์ "ระบุคนส่ง")
+    identifySender: boolean
     // โพลที่ยังไม่เปิดให้ตอบจะไม่ส่ง items มา (ของที่ยังไม่ควรมีใครเห็น)
     items: VoteItem[]
     questionCount: number

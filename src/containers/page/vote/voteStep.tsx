@@ -146,6 +146,7 @@ export function VoteStep({ poll, pageIndex, initialAnswers, lastSavedAt }: {
                 open={confirmOpen}
                 onOpenChange={setConfirmOpen}
                 pollTitle={poll.title}
+                identified={poll.identifySender}
                 pending={submitting}
                 onConfirm={submit}
             />

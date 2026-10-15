@@ -6,10 +6,11 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { AnonymityNote } from './anonymityNote'
 
 // ยืนยันก่อนส่งคำตอบ (ส่งแล้วแก้ไม่ได้) ระหว่างส่งปิด dialog ไม่ได้ และปุ่มกดซ้ำไม่ได้
-export function ConfirmSubmitModal({ open, onOpenChange, pollTitle, pending, onConfirm }: {
+export function ConfirmSubmitModal({ open, onOpenChange, pollTitle, identified = false, pending, onConfirm }: {
     open: boolean
     onOpenChange: (open: boolean) => void
     pollTitle: string
+    identified?: boolean
     pending: boolean
     onConfirm: () => void
 }) {
@@ -30,7 +31,7 @@ export function ConfirmSubmitModal({ open, onOpenChange, pollTitle, pending, onC
                             แก้ไขต่อ
                         </Button>
                     </div>
-                    <AnonymityNote className='pt-2' />
+                    <AnonymityNote identified={identified} className='pt-2' />
                 </div>
             </DialogContent>
         </Dialog>

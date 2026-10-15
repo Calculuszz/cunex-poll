@@ -29,10 +29,10 @@ export function SubmitDialog({ open, onOpenChange, onPreview, onSubmit, pending,
                         <span className=' text-center max-w-full text-base'>
                             แบบฟอร์มนี้จะถูกส่งให้ผู้ดูแลระบบตรวจสอบ<br/>และอนุมัติก่อนนำไปใช้งาน หลังจากส่งแล้วแบบฟอร์ม<br/>จะอยู่ในสถานะ “รออนุมัติ”
                         </span>
-                        <div className=' text-lg underline cursor-pointer font-bold'>ดูตัวอย่าง</div>
+                        <button type='button' onClick={onPreview} className=' text-lg underline cursor-pointer font-bold'>ดูตัวอย่าง</button>
                     </div>
                     <div className='flex w-full gap-2 py-4'>
-                        <Button variant={'outline'} className="flex-1 font-heading font-bold text-base">แก้ไขต่อ</Button>
+                        <Button variant={'outline'} className="flex-1 font-heading font-bold text-base" disabled={pending} onClick={() => onOpenChange(false)}>แก้ไขต่อ</Button>
                         <Button className='flex-1' onClick={onSubmit} disabled={pending} aria-busy={pending}>
                             {pending ? <Loader2 className='animate-spin' /> : <Send />}
                             <span className='font-heading font-bold text-base'>ส่งขออนุมัติ</span>

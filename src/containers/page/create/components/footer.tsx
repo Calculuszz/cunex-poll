@@ -6,6 +6,7 @@ import { Send, Eye, Download, ArrowLeft, ArrowRight, Loader2 } from 'lucide-reac
 import type { CreateStep } from '@/store/createStepStore'
 import { useCreatePollStore } from '@/store/createPollStore'
 import { useElementStore } from '@/store/elementStore'
+import { useCreateDraftStore } from '@/store/createDraftStore'
 import { SubmitDialog } from './submitDialog'
 import { buildPollPayload } from './buildPayload'
 import { saveDraft } from './saveDraft'
@@ -46,6 +47,7 @@ export function CreateFooter({ step, onStepChange, draftId }: {
             // ส่งสำเร็จแล้วร่างเดิมไม่มีประโยชน์ จึงล้างทั้งข้อมูลโพลและคำถาม
             useCreatePollStore.getState().reset()
             useElementStore.getState().removeAll()
+            useCreateDraftStore.getState().setHydratedId(null)
             setSubmitOpen(false)
             router.push('/')
         } catch {
@@ -54,6 +56,9 @@ export function CreateFooter({ step, onStepChange, draftId }: {
             setPending(false)
         }
     }
+
+    // หน้าดูตัวอย่างอ่านจากร่างใน store โดยตรง ไม่ต้องบันทึกก่อน
+    const openPreview = () => router.push('/create/preview')
 
     const handleSaveDraft = async () => {
         setDraftSaving(true)
@@ -96,12 +101,11 @@ export function CreateFooter({ step, onStepChange, draftId }: {
                         <Send/>
                         <span className='font-heading text-lg font-bold'>ส่งขออนุมัติ</span>
                     </Button>
-                    <Button aria-label='ดูตัวอย่าง' className={" aspect-square bg-yellow-500 "}><Eye/></Button>
-                    {/* ยังไม่มีหน้า preview จึงปุ่มดูตัวอย่างแค่ปิด dialog */}
+                    <Button aria-label='ดูตัวอย่าง' className={" aspect-square bg-yellow-500 "} onClick={openPreview}><Eye/></Button>
                     <SubmitDialog
                         open={submitOpen}
                         onOpenChange={setSubmitOpen}
-                        onPreview={() => setSubmitOpen(false)}
+                        onPreview={() => { setSubmitOpen(false); openPreview() }}
                         onSubmit={handleSubmit}
                         pending={pending}
                         error={error}

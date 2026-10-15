@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button, buttonVariants } from '@/components/ui/button'
 
-// ปุ่มของการ์ดที่รออนุมัติ: ปฏิเสธ (ทำจากการ์ดได้เลย) และดูข้อมูล (ไปหน้า dashboard)
+// ปุ่มของการ์ดที่รออนุมัติ: ปฏิเสธ (ทำจากการ์ดได้เลย) และดูข้อมูล (ไปหน้าโพลของแอดมิน)
 export function ReviewActions({ pollId }: { pollId: string }) {
     const router = useRouter()
     const [busy, setBusy] = useState(false)
@@ -39,7 +39,7 @@ export function ReviewActions({ pollId }: { pollId: string }) {
                 <Button variant='destructive' className='min-w-24 flex-1 px-4 py-5' disabled={busy} aria-busy={busy} onClick={reject}>
                     <span className='font-heading font-bold text-base'>ปฏิเสธ</span>
                 </Button>
-                <Link href={`/dashboard/${pollId}`} className={buttonVariants({ variant: 'outline', className: 'min-w-24 flex-1 px-4 py-5' })}>
+                <Link href={`/admin/${pollId}`} className={buttonVariants({ variant: 'outline', className: 'min-w-24 flex-1 px-4 py-5' })}>
                     <span className='font-heading font-bold text-base'>ดูข้อมูล</span>
                 </Link>
             </div>

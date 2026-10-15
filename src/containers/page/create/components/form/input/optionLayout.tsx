@@ -34,16 +34,24 @@ export const OPTION_LAYOUTS: {
     },
 ]
 
+// ตัวเลือกที่ยังไม่มีรูป: โหมดรูปใหญ่ต้องมีรูปทุกตัวเลือก ไม่งั้นกริดพังเป็นช่องว่าง (System flow §5)
+export const missingImageCount = (options: { imageUrl?: string }[]) => options.filter((o) => !o.imageUrl).length
+
+// missingImages > 0 = สลับเป็นแบบรูปใหญ่ไม่ได้จนกว่าจะใส่รูปครบ
+// ถ้าเป็นแบบรูปใหญ่อยู่แล้วแต่รูปหายไป (เพิ่มตัวเลือกใหม่/ลบรูป) เตือนไว้ และการส่งขออนุมัติจะถูกบล็อก
 export function OptionLayoutSelect({
     id,
     value,
     onChange,
+    missingImages = 0,
 }: {
     id: string
     value: OptionLayout
     onChange: (next: OptionLayout) => void
+    missingImages?: number
 }) {
     const current = OPTION_LAYOUTS.find((o) => o.value === value) ?? OPTION_LAYOUTS[0]
+    const gridBlocked = missingImages > 0
 
     return (
         <div className='flex flex-col gap-1'>
@@ -61,7 +69,12 @@ export function OptionLayoutSelect({
                 <SelectContent>
                     <SelectGroup>
                         {OPTION_LAYOUTS.map(({ value, label, icon: Icon }) => (
-                            <SelectItem key={value} value={value} className='text-base flex *:items-center'>
+                            <SelectItem
+                                key={value}
+                                value={value}
+                                disabled={value === 'grid' && gridBlocked}
+                                className='text-base flex *:items-center'
+                            >
                                 <Icon />
                                 {label}
                             </SelectItem>
@@ -70,6 +83,13 @@ export function OptionLayoutSelect({
                 </SelectContent>
             </Select>
             <span className='text-sm text-ink-500'>{current.description}</span>
+            {gridBlocked && (
+                <span role={value === 'grid' ? 'alert' : undefined} className={value === 'grid' ? 'text-sm text-destructive' : 'text-sm text-ink-500'}>
+                    {value === 'grid'
+                        ? `ยังมี ${missingImages} ตัวเลือกที่ไม่มีรูป ใส่รูปให้ครบก่อนส่งขออนุมัติ หรือเปลี่ยนเป็นแบบรายการ`
+                        : 'ใช้แบบรูปใหญ่ได้เมื่อใส่รูปครบทุกตัวเลือก'}
+                </span>
+            )}
         </div>
     )
 }

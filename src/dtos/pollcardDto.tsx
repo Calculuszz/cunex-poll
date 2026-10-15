@@ -10,6 +10,12 @@ export interface IPollCardDTO{
     desc: string;
     question: number;
     closeTime: Date
+    // เวลาที่ปิดจริง (null = ยังไม่ปิด หรือหมดเวลาเองโดยไม่มีการบันทึก) คนละตัวกับ closeTime ที่เป็นเวลาที่ตั้งไว้
+    closedAt: Date | null
+    closedEarly: boolean
+    showExplore: boolean
+    // เจ้าของโพลเห็นรหัสผู้ตอบ (สวิตช์ "ระบุคนส่ง") ป้ายบนการ์ดให้ผู้ตอบรู้ก่อนกดเข้า
+    identifySender: boolean
 }
 
 export function toPollCardDTO(raw: any):IPollCardDTO{
@@ -21,6 +27,10 @@ export function toPollCardDTO(raw: any):IPollCardDTO{
         title: raw.title,
         desc: raw.desc,
         question: raw.question,
-        closeTime: raw.close
+        closeTime: raw.close,
+        closedAt: raw.closedAt ?? null,
+        closedEarly: raw.closedEarly ?? false,
+        showExplore: raw.showExplore ?? false,
+        identifySender: raw.identifySender ?? false,
     }
 }

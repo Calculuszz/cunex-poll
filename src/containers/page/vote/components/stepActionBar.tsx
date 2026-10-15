@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 // แถบปุ่มติดล่างจอ: หน้าแรกมีแค่ถัดไป · หน้ากลางมีย้อนกลับ+ถัดไป · หน้าสุดท้ายมีย้อนกลับ+ส่งคำตอบ
-export function StepActionBar({ isFirst, isLast, canNext, busy, onBack, onNext, onSubmit }: {
+// preview = หน้าดูตัวอย่างของผู้สร้าง ปุ่มส่งกดไม่ได้และมีป้ายบอกว่าเป็นตัวอย่าง
+export function StepActionBar({ isFirst, isLast, canNext, busy, onBack, onNext, onSubmit, preview }: {
     isFirst: boolean
     isLast: boolean
     canNext: boolean
@@ -12,6 +13,7 @@ export function StepActionBar({ isFirst, isLast, canNext, busy, onBack, onNext, 
     onBack: () => void
     onNext: () => void
     onSubmit: () => void
+    preview?: boolean
 }) {
     const pill = 'h-11 rounded-full font-heading text-base font-bold'
     return (
@@ -23,9 +25,9 @@ export function StepActionBar({ isFirst, isLast, canNext, busy, onBack, onNext, 
                 </Button>
             )}
             {isLast ? (
-                <Button className={cn(pill, 'flex-1')} disabled={busy} aria-busy={busy} onClick={onSubmit}>
+                <Button className={cn(pill, 'flex-1')} disabled={busy || preview} aria-busy={busy} onClick={onSubmit}>
                     {busy ? <Loader2 className='animate-spin' /> : <Send />}
-                    ส่งคำตอบ
+                    {preview ? 'ส่งคำตอบ (ตัวอย่าง)' : 'ส่งคำตอบ'}
                 </Button>
             ) : (
                 <Button className={cn(pill, isFirst ? 'ml-auto px-8' : 'flex-1')} disabled={!canNext || busy} aria-busy={busy} onClick={onNext}>
