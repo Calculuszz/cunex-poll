@@ -166,18 +166,26 @@ Omitted or empty answers count as unanswered. The poll row is locked while a bal
 
 | Method | Path | Who | Purpose |
 |---|---|---|---|
-| GET | `/polls/:pollId/results?breakdown=none\|faculty\|year` | owner, admin, or voter when allowed* | Tallies per option + total ballots. Served from a 3 s Redis cache, `ETag` → `304`. |
-| GET | `/polls/:pollId/results/text?elementId=&cursor=` | owner, admin | Free-text answers, newest first, without ballot ids. |
+| GET | `/polls/:pollId/results?breakdown=none\|faculty\|year` | owner, admin, or voter when allowed* | Counts per option + total ballots. 3 s Redis cache (one DB query per poll per replica at a time), `ETag` → `304`. `403 RESULTS_HIDDEN` when not allowed yet. |
+| GET | `/polls/:pollId/results/text?elementId=&cursor=&limit=` | owner, admin | Free-text answers for one question, as `{ text }` only: no ballot id, no time, order unrelated to submit time. |
 
 \* Voters can view results when `showResultsRealtime=true`, or once the poll is `closed`.
 
 ```jsonc
 { "totalBallots": 1243, "generatedAt": "…",
   "elements": [{ "elementId": "uuid", "answered": 1200,
-    "options": [{ "optionId": "uuid", "count": 640 }],
-    "breakdown": [{ "group": "21", "count": 300, "options": [ … ] },
-                  { "group": "other", "hidden": true }] }] }   // groups below k are merged into "other"
+                 "options": [{ "optionId": "uuid", "count": 640 }] }],
+  // only with ?breakdown=faculty|year
+  "breakdown": { "by": "faculty", "minGroupSize": 5,
+    "groups": [
+      { "group": "21", "total": 300,
+        "elements": [{ "elementId": "uuid", "options": [{ "optionId": "uuid", "count": 180 }] }] },
+      { "group": "other", "hidden": true } ] } }
 ```
+
+Groups with fewer than `RESULTS_MIN_GROUP_SIZE` (default 5) ballots are merged into `other`;
+if `other` is still below that, it is returned as `hidden` with no numbers. Ballots from
+Google/Email users have no faculty/year and fall in group `unknown`.
 
 ## 8. Admin
 

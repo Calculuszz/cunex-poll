@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { BallotsModule } from './modules/ballots/ballots.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { PollsModule } from './modules/polls/polls.module.js';
+import { ResultsModule } from './modules/results/results.module.js';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { PollsModule } from './modules/polls/polls.module.js';
     AuthModule,
     PollsModule,
     BallotsModule,
+    ResultsModule,
     AdminModule,
     HealthModule,
   ],

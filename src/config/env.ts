@@ -37,6 +37,8 @@ export const envSchema = z
       .positive()
       .default(7 * 24 * 60 * 60),
     VOTER_KEY_PEPPER: z.string().min(32),
+    // k-anonymity: faculty/year groups with fewer ballots are merged into "other".
+    RESULTS_MIN_GROUP_SIZE: z.coerce.number().int().min(1).default(5),
     // CUNEX userIds that become admin on login. Bootstraps the first admins;
     // later admins are granted through the admin API.
     ADMIN_BOOTSTRAP_CUNEX_IDS: csv,
