@@ -50,6 +50,57 @@ export class UsersRepository {
     }
   }
 
+  /**
+   * Creates or refreshes a Google-login user. Google gives no faculty or year,
+   * so these users stay unverified and can only answer public polls.
+   */
+  async upsertFromGoogle(sub: string, email: string | null): Promise<User> {
+    const once = () =>
+      this.db.transaction().execute(async (tx) => {
+        const identity = await tx
+          .selectFrom('userIdentities')
+          .select('userId')
+          .where('provider', '=', 'google')
+          .where('providerSubject', '=', sub)
+          .executeTakeFirst();
+        if (identity) {
+          await tx
+            .updateTable('userIdentities')
+            .set({ email })
+            .where('provider', '=', 'google')
+            .where('providerSubject', '=', sub)
+            .execute();
+          return tx
+            .updateTable('users')
+            .set({ lastLoginAt: new Date() })
+            .where('id', '=', identity.userId)
+            .returningAll()
+            .executeTakeFirstOrThrow();
+        }
+        const user = await tx
+          .insertInto('users')
+          .values({ lastLoginAt: new Date() })
+          .returningAll()
+          .executeTakeFirstOrThrow();
+        await tx
+          .insertInto('userIdentities')
+          .values({
+            userId: user.id,
+            provider: 'google',
+            providerSubject: sub,
+            email,
+          })
+          .execute();
+        return user;
+      });
+    try {
+      return await once();
+    } catch (err) {
+      if ((err as { code?: string }).code === UNIQUE_VIOLATION) return once();
+      throw err;
+    }
+  }
+
   private upsertFromCunexOnce(
     profile: CunexProfile,
     grantAdmin: boolean,

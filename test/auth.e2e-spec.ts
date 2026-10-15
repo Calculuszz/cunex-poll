@@ -155,3 +155,13 @@ describe('health', () => {
     });
   });
 });
+
+describe('Google login when not configured', () => {
+  it('sends the browser back with google_unavailable', async () => {
+    const res = await http().get('/api/v1/auth/google/login');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(
+      `${APP_ORIGIN}/login?error=google_unavailable`,
+    );
+  });
+});

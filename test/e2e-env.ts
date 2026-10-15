@@ -11,7 +11,9 @@ import { runMigrations } from '../scripts/migrator.js';
 export const APP_ORIGIN = 'http://localhost:5173';
 export const TEST_REDIS_URL = 'redis://localhost:6379/15';
 
-export async function createTestApp(): Promise<{
+export async function createTestApp(
+  envOverrides: Record<string, string> = {},
+): Promise<{
   app: NestExpressApplication;
   db: pg.Client;
 }> {
@@ -50,6 +52,9 @@ export async function createTestApp(): Promise<{
     CUNEX_MODE: 'mock',
     ADMIN_BOOTSTRAP_CUNEX_IDS: '',
     S3_BUCKET: 'pollcunex-test',
+    GOOGLE_CLIENT_ID: '',
+    GOOGLE_CLIENT_SECRET: '',
+    ...envOverrides,
   });
 
   // Imported only now: ConfigModule.forRoot() reads process.env when the
