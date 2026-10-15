@@ -23,8 +23,6 @@ export type Generated<T> =
     ? ColumnType<S, I | undefined, U>
     : ColumnType<T, T | undefined, T>;
 
-export type ImageStatus = 'failed' | 'pending' | 'ready';
-
 export type Int8 = ColumnType<
   string,
   bigint | number | string,
@@ -91,7 +89,7 @@ export interface ElementOptions {
   description: string | null;
   elementId: string;
   id: Generated<string>;
-  imageId: string | null;
+  imageUrl: string | null;
   label: string;
   popup: Json | null;
   position: number;
@@ -102,19 +100,6 @@ export interface Faculties {
   nameEn: string;
   nameTh: string;
   updatedAt: Generated<Timestamp>;
-}
-
-export interface Images {
-  byteSize: number | null;
-  createdAt: Generated<Timestamp>;
-  height: number | null;
-  id: Generated<string>;
-  mimeType: string | null;
-  ownerId: string;
-  sourceUrl: string | null;
-  status: Generated<ImageStatus>;
-  storageKey: string | null;
-  width: number | null;
 }
 
 export interface NotificationBatches {
@@ -159,7 +144,7 @@ export interface Polls {
   audience: Generated<PollAudience>;
   closedAt: Timestamp | null;
   closesAt: Timestamp | null;
-  coverImageId: string | null;
+  coverImageUrl: string | null;
   createdAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
   description: Generated<string>;
@@ -202,7 +187,6 @@ export interface DB {
   ballotTextAnswers: BallotTextAnswers;
   elementOptions: ElementOptions;
   faculties: Faculties;
-  images: Images;
   notificationBatches: NotificationBatches;
   pollAudienceRules: PollAudienceRules;
   pollElements: PollElements;

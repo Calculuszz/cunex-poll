@@ -1,36 +1,38 @@
 import { randomUUID } from 'node:crypto';
-import { InjectQueue } from '@nestjs/bullmq';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Queue } from 'bullmq';
 import { AppError } from '../../common/errors.js';
 import type { Env } from '../../config/env.js';
 import { StorageService } from '../../infra/storage/storage.service.js';
-import type { User } from '../users/users.repository.js';
 import { type ImageType, sniffImageType } from './image-type.js';
-import { type ImageRow, ImagesRepository } from './images.repository.js';
-import { checkUrl, UnsafeUrlError } from './safe-fetch.js';
 
-export const IMAGES_QUEUE = 'images';
+const EXTENSION: Record<ImageType, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
 
-const notFound = () =>
-  new AppError('IMAGE_NOT_FOUND', HttpStatus.NOT_FOUND, 'Image not found');
+// Keys we hand out: images/<uuid>.<ext>. Anything else in a poll is rejected.
+const KEY = /^images\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
+
+export type ImageCheck = 'ok' | 'missing' | 'not_an_image';
 
 @Injectable()
 export class ImagesService {
   private readonly maxBytes: number;
 
   constructor(
-    private readonly repo: ImagesRepository,
     private readonly storage: StorageService,
-    @InjectQueue(IMAGES_QUEUE) private readonly queue: Queue,
     config: ConfigService<Env, true>,
   ) {
     this.maxBytes = config.get('IMAGE_MAX_BYTES');
   }
 
-  /** Step 1 of an upload: reserve an id and hand out a presigned PUT. */
-  async startUpload(user: User, mimeType: ImageType, byteSize: number) {
+  /**
+   * Hands out a one-time upload slot. The browser PUTs the file straight to
+   * S3 (it never passes through the API) and puts `publicUrl` in the poll.
+   */
+  async startUpload(mimeType: ImageType, byteSize: number) {
     if (byteSize > this.maxBytes) {
       throw new AppError(
         'IMAGE_TOO_LARGE',
@@ -39,115 +41,33 @@ export class ImagesService {
         { maxBytes: this.maxBytes },
       );
     }
-    const image = await this.repo.create({
-      ownerId: user.id,
-      storageKey: `images/${randomUUID()}`,
-      mimeType,
-      byteSize,
-    });
+    const key = `images/${randomUUID()}.${EXTENSION[mimeType]}`;
     return {
-      imageId: image.id,
-      upload: {
-        method: 'PUT' as const,
-        url: await this.storage.uploadUrl(
-          image.storageKey!,
-          mimeType,
-          byteSize,
-        ),
-        headers: { 'Content-Type': mimeType },
-      },
+      uploadUrl: await this.storage.uploadUrl(key, mimeType, byteSize),
+      uploadHeaders: { 'Content-Type': mimeType },
+      publicUrl: this.storage.publicUrl(key),
+      expiresInSeconds: 600,
     };
   }
 
-  /**
-   * Step 2: the client says the upload finished. We check the stored object
-   * ourselves: right size, and its first bytes really are the declared type.
-   */
-  async completeUpload(user: User, id: string) {
-    const image = await this.owned(user, id);
-    if (image.status === 'ready') return this.view(image);
-    if (image.status === 'failed' || image.sourceUrl) {
-      throw invalidFile('This upload can no longer be completed');
-    }
-
-    const head = await this.storage.head(image.storageKey!);
-    if (!head) {
-      throw new AppError(
-        'UPLOAD_NOT_FOUND',
-        HttpStatus.CONFLICT,
-        'Nothing was uploaded yet',
-      );
-    }
-    const sniffed = sniffImageType(
-      await this.storage.readStart(image.storageKey!, 16),
-    );
-    if (head.size !== image.byteSize || sniffed !== image.mimeType) {
-      await this.repo.finish(id, { status: 'failed' });
-      throw invalidFile('The file is not the declared image');
-    }
-    await this.repo.finish(id, {
-      status: 'ready',
-      mimeType: sniffed,
-      byteSize: head.size,
-    });
-    return this.view((await this.repo.find(id))!);
+  /** True if the URL is one we could have handed out (our bucket, our key shape). */
+  isOurs(url: string): boolean {
+    const key = this.storage.keyFromUrl(url);
+    return !!key && KEY.test(key);
   }
 
-  /** Import from a URL. The worker downloads it; poll GET /images/:id. */
-  async startImport(user: User, url: string) {
-    try {
-      checkUrl(url);
-    } catch (err) {
-      if (err instanceof UnsafeUrlError) {
-        throw new AppError(
-          'INVALID_URL',
-          HttpStatus.UNPROCESSABLE_ENTITY,
-          `URL not allowed: ${err.message}`,
-        );
-      }
-      throw err;
-    }
-    const image = await this.repo.create({
-      ownerId: user.id,
-      storageKey: `images/${randomUUID()}`,
-      sourceUrl: url,
-    });
-    await this.queue.add(
-      'import-image',
-      { imageId: image.id },
-      { jobId: `import-${image.id}`, attempts: 3 },
-    );
-    return { imageId: image.id, status: image.status };
+  /** Was the file really uploaded, and is it really a JPEG/PNG/WebP? */
+  async check(url: string): Promise<ImageCheck> {
+    const key = this.storage.keyFromUrl(url);
+    if (!key || !KEY.test(key)) return 'missing';
+    const head = await this.storage.head(key);
+    if (!head) return 'missing';
+    const type = sniffImageType(await this.storage.readStart(key, 16));
+    const expected = key.endsWith('.png')
+      ? 'image/png'
+      : key.endsWith('.webp')
+        ? 'image/webp'
+        : 'image/jpeg';
+    return type === expected ? 'ok' : 'not_an_image';
   }
-
-  async get(user: User, id: string) {
-    return this.view(await this.owned(user, id));
-  }
-
-  private async owned(user: User, id: string) {
-    const image = await this.repo.find(id);
-    if (!image || image.ownerId !== user.id) throw notFound();
-    return image;
-  }
-
-  private async view(image: ImageRow) {
-    return {
-      id: image.id,
-      status: image.status,
-      mimeType: image.mimeType,
-      byteSize: image.byteSize,
-      url:
-        image.status === 'ready'
-          ? await this.storage.readUrl(image.storageKey!)
-          : null,
-    };
-  }
-}
-
-function invalidFile(detail: string) {
-  return new AppError(
-    'INVALID_IMAGE_FILE',
-    HttpStatus.UNPROCESSABLE_ENTITY,
-    detail,
-  );
 }

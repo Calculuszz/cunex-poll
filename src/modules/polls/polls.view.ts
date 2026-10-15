@@ -11,7 +11,7 @@ export interface PollSummary {
   status: PollRow['status'];
   title: string;
   description: string;
-  coverImageId: string | null;
+  coverImageUrl: string | null;
   audience: PollRow['audience'];
   closesAt: Date | null;
   openedAt: Date | null;
@@ -26,7 +26,7 @@ export function toSummary(p: PollRow, myBallot?: MyBallot): PollSummary {
     status: p.status,
     title: p.title,
     description: p.description,
-    coverImageId: p.coverImageId,
+    coverImageUrl: p.coverImageUrl,
     audience: p.audience,
     closesAt: p.closesAt,
     openedAt: p.openedAt,
@@ -43,8 +43,6 @@ export function toDetail(
     canSeeReviews: boolean;
     myBallot: MyBallot;
     canViewResults: boolean;
-    /** imageId → URL for every image the poll uses */
-    imageUrls: Record<string, string>;
   },
 ) {
   const { poll } = agg;
@@ -54,7 +52,7 @@ export function toDetail(
     version: poll.version,
     title: poll.title,
     description: poll.description,
-    coverImageId: poll.coverImageId,
+    coverImageUrl: poll.coverImageUrl,
     closesAt: poll.closesAt,
     submittedAt: poll.submittedAt,
     openedAt: poll.openedAt,
@@ -83,7 +81,7 @@ export function toDetail(
               id: o.id,
               label: o.label,
               description: o.description,
-              imageId: o.imageId,
+              imageUrl: o.imageUrl,
               popup: o.popup,
             })),
           }
@@ -92,7 +90,6 @@ export function toDetail(
     isOwner: ctx.isOwner,
     myBallot: ctx.myBallot,
     canViewResults: ctx.canViewResults,
-    imageUrls: ctx.imageUrls,
     ...(ctx.canSeeReviews ? { reviews: agg.reviews } : {}),
   };
 }
@@ -103,7 +100,7 @@ export function toDraftInput(agg: PollAggregate): PollDraftInput {
   return pollDraftSchema.parse({
     title: poll.title,
     description: poll.description,
-    coverImageId: poll.coverImageId,
+    coverImageUrl: poll.coverImageUrl,
     closesAt: poll.closesAt?.toISOString() ?? null,
     audience:
       poll.audience === 'public'
@@ -124,7 +121,7 @@ export function toDraftInput(agg: PollAggregate): PollDraftInput {
             options: e.options.map((o) => ({
               label: o.label,
               description: o.description,
-              imageId: o.imageId,
+              imageUrl: o.imageUrl,
               popup: o.popup,
             })),
           }
@@ -137,16 +134,4 @@ function hasOptions(type: string) {
   return (
     type === 'single_choice' || type === 'multi_choice' || type === 'dropdown'
   );
-}
-
-/** Every image id a poll references: cover, image elements, options. */
-export function referencedImageIds(agg: PollAggregate): string[] {
-  const ids = new Set<string>();
-  if (agg.poll.coverImageId) ids.add(agg.poll.coverImageId);
-  for (const e of agg.elements) {
-    const imageId = (e.config as { imageId?: string } | null)?.imageId;
-    if (e.type === 'image' && imageId) ids.add(imageId);
-    for (const o of e.options) if (o.imageId) ids.add(o.imageId);
-  }
-  return [...ids];
 }

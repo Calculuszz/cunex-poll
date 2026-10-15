@@ -271,20 +271,6 @@ export class PollsRepository {
     return codes.filter((c) => !set.has(c));
   }
 
-  /** Image ids that don't exist, aren't ready, or belong to someone else. */
-  async unusableImages(ids: string[], ownerId: string): Promise<string[]> {
-    if (ids.length === 0) return [];
-    const ok = await this.db
-      .selectFrom('images')
-      .select('id')
-      .where('id', 'in', ids)
-      .where('ownerId', '=', ownerId)
-      .where('status', '=', 'ready')
-      .execute();
-    const set = new Set(ok.map((r) => r.id));
-    return ids.filter((id) => !set.has(id));
-  }
-
   listFaculties() {
     return this.db
       .selectFrom('faculties')
@@ -325,7 +311,7 @@ function pollColumns(d: PollDraftInput) {
   return {
     title: d.title,
     description: d.description,
-    coverImageId: d.coverImageId ?? null,
+    coverImageUrl: d.coverImageUrl ?? null,
     closesAt: d.closesAt ? new Date(d.closesAt) : null,
     audience: d.audience.type,
     showResultsRealtime: d.settings.showResultsRealtime,
@@ -378,7 +364,7 @@ async function writeContent(
             position: i,
             label: o.label,
             description: o.description ?? null,
-            imageId: o.imageId ?? null,
+            imageUrl: o.imageUrl ?? null,
             popup: o.popup ? JSON.stringify(o.popup) : null,
           })),
         )

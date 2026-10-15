@@ -114,7 +114,7 @@ describe('draft lifecycle', () => {
     expect(res.body.audience.rules).toHaveLength(2);
   });
 
-  it('rejects faculties and images that do not exist', async () => {
+  it('rejects unknown faculties and images from outside our storage', async () => {
     const faculty = await eng
       .put(`/polls/${id}`)
       .set('If-Match', '2')
@@ -131,9 +131,13 @@ describe('draft lifecycle', () => {
     const image = await eng
       .put(`/polls/${id}`)
       .set('If-Match', '2')
-      .send({ ...completeDraft(), coverImageId: crypto.randomUUID() });
+      .send({
+        ...completeDraft(),
+        coverImageUrl: 'https://evil.example/tracker.png',
+      });
     expect(image.status).toBe(422);
-    expect(image.body.code).toBe('INVALID_IMAGE');
+    expect(image.body.code).toBe('INVALID_IMAGE_URL');
+    expect(image.body.problems[0].path).toBe('coverImageUrl');
   });
 
   it('other users cannot see or touch the draft', async () => {

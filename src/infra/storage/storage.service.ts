@@ -10,35 +10,44 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   Injectable,
   Logger,
-  type OnModuleInit,
   type OnApplicationShutdown,
+  type OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.js';
 
 const UPLOAD_URL_SECONDS = 10 * 60;
-const READ_URL_SECONDS = 60 * 60;
 
 /**
  * S3-compatible object storage (AWS S3, GCS interop, on-prem S3, or
- * SeaweedFS in local dev). Images are served from S3_PUBLIC_BASE_URL (CDN in
- * production); without one, reads use short-lived presigned URLs.
+ * SeaweedFS in local dev). Objects are served straight from the bucket, which
+ * must allow public reads; S3_PUBLIC_BASE_URL can point at a CDN later.
  */
 @Injectable()
 export class StorageService implements OnModuleInit, OnApplicationShutdown {
   private readonly logger = new Logger(StorageService.name);
   private readonly s3: S3Client;
   private readonly bucket: string;
-  private readonly publicBase?: string;
+  /** Prefix of every public object URL, without a trailing slash. */
+  readonly publicBase: string;
   private readonly createBucket: boolean;
 
   constructor(config: ConfigService<Env, true>) {
     this.bucket = config.get('S3_BUCKET');
-    this.publicBase = config.get('S3_PUBLIC_BASE_URL')?.replace(/\/$/, '');
+    // `||` not `??`: for an optional key left blank in .env, ConfigService
+    // falls back to the raw '' in process.env instead of the validated undefined.
+    const endpoint = config.get('S3_ENDPOINT')?.replace(/\/$/, '') || undefined;
+    const region = config.get('S3_REGION');
+    this.publicBase = (
+      config.get('S3_PUBLIC_BASE_URL') ||
+      (endpoint
+        ? `${endpoint}/${this.bucket}`
+        : `https://${this.bucket}.s3.${region}.amazonaws.com`)
+    ).replace(/\/$/, '');
     this.createBucket = ['development', 'test'].includes(config.get('APP_ENV'));
     this.s3 = new S3Client({
-      region: config.get('S3_REGION'),
-      endpoint: config.get('S3_ENDPOINT'),
+      region,
+      endpoint,
       forcePathStyle: config.get('S3_FORCE_PATH_STYLE'),
       // Otherwise the SDK bakes a CRC32 of the *empty* body into presigned
       // PUT URLs (the file isn't known at signing time) and every browser
@@ -70,6 +79,16 @@ export class StorageService implements OnModuleInit, OnApplicationShutdown {
 
   onApplicationShutdown() {
     this.s3.destroy();
+  }
+
+  publicUrl(key: string): string {
+    return `${this.publicBase}/${key}`;
+  }
+
+  /** The object key if `url` points into our bucket, otherwise undefined. */
+  keyFromUrl(url: string): string | undefined {
+    const prefix = `${this.publicBase}/`;
+    return url.startsWith(prefix) ? url.slice(prefix.length) : undefined;
   }
 
   /**
@@ -113,25 +132,5 @@ export class StorageService implements OnModuleInit, OnApplicationShutdown {
       }),
     );
     return Buffer.from(await res.Body!.transformToByteArray());
-  }
-
-  async put(key: string, body: Buffer, contentType: string) {
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-        Body: body,
-        ContentType: contentType,
-      }),
-    );
-  }
-
-  readUrl(key: string): Promise<string> {
-    if (this.publicBase) return Promise.resolve(`${this.publicBase}/${key}`);
-    return getSignedUrl(
-      this.s3,
-      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
-      { expiresIn: READ_URL_SECONDS },
-    );
   }
 }

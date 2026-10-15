@@ -49,7 +49,7 @@ describe('pollDraftSchema', () => {
         {
           type: 'image',
           config: {
-            imageId: '6f1c1f9e-3b0e-4d8f-9a55-0d6a3c7f2b11',
+            url: 'https://storage.example/pollcunex-images/images/6f1c1f9e-3b0e-4d8f-9a55-0d6a3c7f2b11.png',
             caption: 'c',
           },
         },

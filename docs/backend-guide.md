@@ -35,7 +35,7 @@
 ```mermaid
 flowchart TB
     cunexApp["CUNEX app (webview)<br/>เมนู · notification · ลิงก์แชร์"]
-    web["เว็บเปิดตรง<br/>login CUNEX / Google / Email"]
+    web["เว็บเปิดตรง<br/>login CUNEX / Google"]
     lb["Load balancer + CDN<br/>TLS · WAF · rate limit · static · รูปภาพ"]
     subgraph api["API — NestJS · stateless รันอย่างน้อย 2 ตัว"]
         auth["Auth<br/>แลก token · session"]
@@ -78,8 +78,6 @@ flowchart TB
 | GET | `/auth/cunex/login` | ทุกคน | พาไปหน้า login ของ CUNEX |
 | GET | `/auth/cunex/callback?token=` | ทุกคน | แลก token กับ `/profile` สร้าง session แล้ว redirect ไป URL ที่ไม่มี token |
 | GET | `/auth/google/login`, `/auth/google/callback` | ทุกคน | login ด้วย Google |
-| POST | `/auth/email/otp` | ทุกคน | ส่งรหัส 6 หลักทางอีเมล |
-| POST | `/auth/email/verify` | ทุกคน | ตรวจรหัสแล้วสร้าง session |
 | POST | `/auth/logout` | คนที่ login | ออกจากระบบ |
 | POST | `/auth/dev/login` | เฉพาะ dev/staging | ป็อปอัป "เลือกบัญชีทดลอง" |
 | GET | `/me` | คนที่ login | ข้อมูลตัวเอง (role, คณะ, ปีเข้า) |

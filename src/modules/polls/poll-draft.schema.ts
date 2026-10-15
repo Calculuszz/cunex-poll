@@ -11,10 +11,13 @@ const popupSchema = z.object({
   body: text(5000).min(1),
 });
 
+// A publicUrl from POST /images/uploads; the API checks it points into our bucket.
+const imageUrl = z.url().max(500);
+
 const optionSchema = z.object({
   label: text(300).min(1),
   description: text(1000).nullish(),
-  imageId: z.uuid().nullish(),
+  imageUrl: imageUrl.nullish(),
   popup: popupSchema.nullish(),
 });
 
@@ -90,7 +93,7 @@ const description = z.object({
 const image = z.object({
   type: z.literal('image'),
   title,
-  config: z.object({ imageId: z.uuid(), caption: text(300).optional() }),
+  config: z.object({ url: imageUrl, caption: text(300).optional() }),
 });
 
 const infoPopup = z.object({
@@ -158,7 +161,7 @@ const audienceSchema = z.discriminatedUnion('type', [
 export const pollDraftSchema = z.object({
   title: text(200).default(''),
   description: text(5000).default(''),
-  coverImageId: z.uuid().nullish(),
+  coverImageUrl: imageUrl.nullish(),
   closesAt: z.iso.datetime({ offset: true }).nullish(),
   audience: audienceSchema.default({ type: 'public' }),
   settings: z

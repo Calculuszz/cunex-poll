@@ -4,10 +4,10 @@ import { AppError } from '../../common/errors.js';
 import type { Env } from '../../config/env.js';
 import type { PollStatus } from '../../infra/database/db.js';
 import { voterKey } from '../ballots/voter-key.js';
-import { StorageService } from '../../infra/storage/storage.service.js';
-import { ImagesRepository } from '../images/images.repository.js';
+import { ImagesService } from '../images/images.service.js';
 import type { User } from '../users/users.repository.js';
 import { findProblems } from './completeness.js';
+import { imageRefs } from './poll-images.js';
 import { canSeePoll, canViewResults, isAcceptingVotes } from './poll-access.js';
 import {
   pollLocked as locked,
@@ -23,7 +23,6 @@ import {
 } from './polls.repository.js';
 import {
   type MyBallot,
-  referencedImageIds,
   toDetail,
   toDraftInput,
   toSummary,
@@ -36,8 +35,7 @@ export class PollsService {
   constructor(
     private readonly repo: PollsRepository,
     private readonly jobs: PollJobs,
-    private readonly images: ImagesRepository,
-    private readonly storage: StorageService,
+    private readonly images: ImagesService,
     config: ConfigService<Env, true>,
   ) {
     this.pepper = config.get('VOTER_KEY_PEPPER');
@@ -82,7 +80,6 @@ export class PollsService {
       canSeeReviews: isOwner || user.role === 'admin',
       myBallot: myBallot!,
       canViewResults: canViewResults(poll, user),
-      imageUrls: await this.imageUrls(agg),
     });
   }
 
@@ -90,7 +87,29 @@ export class PollsService {
     const agg = await this.owned(user, id);
     if (!EDITABLE.includes(agg.poll.status)) throw locked(agg.poll.status);
 
-    const problems = findProblems(toDraftInput(agg), new Date());
+    const draft = toDraftInput(agg);
+    const problems = findProblems(draft, new Date());
+    // The browser uploaded these itself; make sure each one really arrived
+    // and really is an image before an admin ever looks at the poll.
+    const checks = await Promise.all(
+      imageRefs(draft).map(async (r) => ({
+        ...r,
+        result: await this.images.check(r.url),
+      })),
+    );
+    for (const c of checks) {
+      if (c.result === 'missing') {
+        problems.push({
+          path: c.path,
+          message: 'ไม่พบไฟล์รูป (อัปโหลดไม่สำเร็จ)',
+        });
+      } else if (c.result === 'not_an_image') {
+        problems.push({
+          path: c.path,
+          message: 'ไฟล์นี้ไม่ใช่รูป JPEG/PNG/WebP',
+        });
+      }
+    }
     if (problems.length > 0) {
       throw new AppError(
         'POLL_INCOMPLETE',
@@ -212,14 +231,6 @@ export class PollsService {
     }
   }
 
-  private async imageUrls(agg: PollAggregate) {
-    const keys = await this.images.readyKeys(referencedImageIds(agg));
-    const entries = await Promise.all(
-      keys.map(async (k) => [k.id, await this.storage.readUrl(k.storageKey!)]),
-    );
-    return Object.fromEntries(entries) as Record<string, string>;
-  }
-
   private async myBallots(user: User, polls: PollRow[]): Promise<MyBallot[]> {
     const voted = await this.repo.votedPollIds(
       polls.map((p) => ({
@@ -256,21 +267,20 @@ export class PollsService {
       }
     }
 
-    const imageIds = new Set<string>();
-    if (draft.coverImageId) imageIds.add(draft.coverImageId);
-    for (const el of draft.elements) {
-      if (el.type === 'image') imageIds.add(el.config.imageId);
-      if ('options' in el) {
-        for (const o of el.options) if (o.imageId) imageIds.add(o.imageId);
-      }
-    }
-    const bad = await this.repo.unusableImages([...imageIds], user.id);
-    if (bad.length > 0) {
+    // Only images uploaded through POST /images/uploads: an outside URL would
+    // let a third-party server see everyone who opens the poll.
+    const foreign = imageRefs(draft).filter((r) => !this.images.isOurs(r.url));
+    if (foreign.length > 0) {
       throw new AppError(
-        'INVALID_IMAGE',
+        'INVALID_IMAGE_URL',
         HttpStatus.UNPROCESSABLE_ENTITY,
-        'Images must be uploaded by you and finished processing',
-        { imageIds: bad },
+        'Images must be uploaded through /images/uploads',
+        {
+          problems: foreign.map((r) => ({
+            path: r.path,
+            message: 'ต้องอัปโหลดรูปผ่านระบบ',
+          })),
+        },
       );
     }
   }

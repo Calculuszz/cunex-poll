@@ -1,5 +1,3 @@
-import type { INestApplicationContext } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type pg from 'pg';
 import { as, createTestApp, loginAs } from './e2e-env.js';
@@ -12,84 +10,71 @@ const PNG = Buffer.from(
 const NOT_AN_IMAGE = Buffer.from('<svg onload="alert(1)"></svg>      ');
 
 let app: NestExpressApplication;
-let worker: INestApplicationContext;
 let db: pg.Client;
 let me: ReturnType<typeof as>;
-let other: ReturnType<typeof as>;
 
 beforeAll(async () => {
   ({ app, db } = await createTestApp());
-  const { WorkerModule } = await import('../src/worker.module.js');
-  worker = await NestFactory.createApplicationContext(WorkerModule, {
-    logger: false,
-  });
   me = as(app, await loginAs(app, 'eng-2567'));
-  other = as(app, await loginAs(app, 'med-2566'));
 });
 
 afterAll(async () => {
-  await worker?.close();
   await app?.close();
   await db?.end();
 });
 
-async function upload(
-  as: ReturnType<typeof import('./e2e-env.js').as>,
-  declared: { mimeType: string; byteSize: number },
-  body: Buffer,
-) {
-  const start = await as.post('/images/uploads').send(declared);
-  expect(start.status).toBe(201);
-  const put = await fetch(start.body.upload.url, {
-    method: 'PUT',
-    headers: start.body.upload.headers,
-    body: new Uint8Array(body),
-  });
-  return { imageId: start.body.imageId as string, putStatus: put.status };
+interface Slot {
+  uploadUrl: string;
+  uploadHeaders: Record<string, string>;
+  publicUrl: string;
 }
 
-describe('direct upload', () => {
-  it('upload → complete → ready, served from storage', async () => {
-    const { imageId, putStatus } = await upload(
-      me,
-      { mimeType: 'image/png', byteSize: PNG.length },
-      PNG,
-    );
-    expect(putStatus).toBe(200);
+async function slot(mimeType: string, byteSize: number): Promise<Slot> {
+  const res = await me.post('/images/uploads').send({ mimeType, byteSize });
+  expect(res.status).toBe(201);
+  return res.body as Slot;
+}
 
-    const done = await me.post(`/images/${imageId}/complete`);
-    expect(done.status).toBe(200);
-    expect(done.body).toMatchObject({ status: 'ready', mimeType: 'image/png' });
+const put = (s: Slot, body: Buffer) =>
+  fetch(s.uploadUrl, {
+    method: 'PUT',
+    headers: s.uploadHeaders,
+    body: new Uint8Array(body),
+  });
 
-    const served = await fetch(done.body.url);
+/** A draft that passes every other submit check, using `url` as its image. */
+const draftWith = (url: string) => ({
+  title: 'มีรูป',
+  closesAt: new Date(Date.now() + 86400_000).toISOString(),
+  elements: [
+    { type: 'image', config: { url, caption: 'ภาพประกอบ' } },
+    {
+      type: 'single_choice',
+      title: 'เลือก',
+      options: [{ label: 'a', imageUrl: url }, { label: 'b' }],
+    },
+  ],
+});
+
+describe('upload slot', () => {
+  it('returns an upload URL and a permanent public URL', async () => {
+    const s = await slot('image/png', PNG.length);
+    expect(s.publicUrl).toMatch(/\/images\/[0-9a-f-]{36}\.png$/);
+    expect(s.uploadHeaders).toEqual({ 'Content-Type': 'image/png' });
+
+    expect((await put(s, PNG)).status).toBe(200);
+    // public read, no signature needed
+    const served = await fetch(s.publicUrl);
+    expect(served.status).toBe(200);
     expect(Buffer.from(await served.arrayBuffer()).equals(PNG)).toBe(true);
   });
 
-  it('storage refuses a body bigger than declared', async () => {
-    const { imageId, putStatus } = await upload(
-      me,
-      { mimeType: 'image/png', byteSize: 10 },
-      PNG,
-    );
-    expect(putStatus).toBeGreaterThanOrEqual(400);
-    const done = await me.post(`/images/${imageId}/complete`);
-    expect(done.status).toBe(409);
-    expect(done.body.code).toBe('UPLOAD_NOT_FOUND');
+  it('storage refuses a body other than the declared size', async () => {
+    const s = await slot('image/png', 10);
+    expect((await put(s, PNG)).status).toBeGreaterThanOrEqual(400);
   });
 
-  it('a non-image renamed as PNG is rejected on complete', async () => {
-    const { imageId } = await upload(
-      me,
-      { mimeType: 'image/png', byteSize: NOT_AN_IMAGE.length },
-      NOT_AN_IMAGE,
-    );
-    const done = await me.post(`/images/${imageId}/complete`);
-    expect(done.status).toBe(422);
-    expect(done.body.code).toBe('INVALID_IMAGE_FILE');
-    expect((await me.get(`/images/${imageId}`)).body.status).toBe('failed');
-  });
-
-  it('rejects oversized declarations and unknown types', async () => {
+  it('rejects oversized declarations and non-image types', async () => {
     const big = await me
       .post('/images/uploads')
       .send({ mimeType: 'image/png', byteSize: 50 * 1024 * 1024 });
@@ -103,57 +88,48 @@ describe('direct upload', () => {
   });
 });
 
-describe('using images in polls', () => {
-  let imageId: string;
-  beforeAll(async () => {
-    ({ imageId } = await upload(
-      me,
-      { mimeType: 'image/png', byteSize: PNG.length },
-      PNG,
-    ));
-    await me.post(`/images/${imageId}/complete`);
+describe('images in a poll', () => {
+  it('a real uploaded image passes submit', async () => {
+    const s = await slot('image/png', PNG.length);
+    await put(s, PNG);
+    const { body } = await me.post('/polls').send(draftWith(s.publicUrl));
+    expect(body.elements[0].config.url).toBe(s.publicUrl);
+    expect(body.elements[1].options[0].imageUrl).toBe(s.publicUrl);
+
+    const submit = await me.post(`/polls/${body.id}/submit`);
+    expect(submit.status).toBe(200);
   });
 
-  it('poll detail carries a URL for each image it uses', async () => {
-    const res = await me.post('/polls').send({
-      title: 'มีรูป',
-      coverImageId: imageId,
-      elements: [{ type: 'image', config: { imageId, caption: 'ภาพประกอบ' } }],
+  it('submit catches a slot that was never uploaded, or a fake image', async () => {
+    const never = await slot('image/png', PNG.length);
+    const fake = await slot('image/png', NOT_AN_IMAGE.length);
+    expect((await put(fake, NOT_AN_IMAGE)).status).toBe(200);
+
+    const { body } = await me.post('/polls').send({
+      ...draftWith(never.publicUrl),
+      coverImageUrl: fake.publicUrl,
     });
-    expect(res.status).toBe(201);
-    expect(Object.keys(res.body.imageUrls)).toEqual([imageId]);
+    expect(body.id).toBeTruthy();
+
+    const submit = await me.post(`/polls/${body.id}/submit`);
+    expect(submit.status).toBe(422);
+    expect(submit.body.code).toBe('POLL_INCOMPLETE');
+    expect(
+      submit.body.problems.map((p: { path: string }) => p.path).sort(),
+    ).toEqual(
+      [
+        'coverImageUrl',
+        'elements.0.config.url',
+        'elements.1.options.0.imageUrl',
+      ].sort(),
+    );
   });
 
-  it('images are private to their owner', async () => {
-    expect((await other.get(`/images/${imageId}`)).status).toBe(404);
-    const res = await other
+  it('URLs outside our bucket are refused on save', async () => {
+    const res = await me
       .post('/polls')
-      .send({ title: 'ขโมยรูป', coverImageId: imageId });
+      .send(draftWith('https://images.example.com/cat.png'));
     expect(res.status).toBe(422);
-    expect(res.body.code).toBe('INVALID_IMAGE');
-  });
-});
-
-describe('import from URL', () => {
-  it('rejects non-https URLs up front', async () => {
-    const res = await me
-      .post('/images/import')
-      .send({ url: 'http://example.com/a.png' });
-    expect(res.status).toBe(422);
-    expect(res.body.code).toBe('INVALID_URL');
-  });
-
-  it('the worker refuses hosts that resolve to our own network', async () => {
-    const res = await me
-      .post('/images/import')
-      .send({ url: 'https://localhost/a.png' });
-    expect(res.status).toBe(202);
-
-    let status = 'pending';
-    for (let i = 0; i < 50 && status === 'pending'; i++) {
-      await new Promise((r) => setTimeout(r, 200));
-      status = (await me.get(`/images/${res.body.imageId}`)).body.status;
-    }
-    expect(status).toBe('failed');
+    expect(res.body.code).toBe('INVALID_IMAGE_URL');
   });
 });

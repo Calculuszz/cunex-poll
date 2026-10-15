@@ -11,7 +11,7 @@ Base path: `/api/v1` · JSON in/out · times are ISO-8601 UTC.
 | Errors | `application/problem+json` (RFC 9457): `{ type, title, status, detail, code }`. `code` is a stable machine id, e.g. `POLL_LOCKED`. |
 | Pagination | Cursor based: `?limit=20&cursor=<opaque>` → `{ items, nextCursor }`. |
 | Concurrency | Draft saves send `If-Match: <version>`; stale versions return `412 VERSION_CONFLICT`. |
-| Rate limits | Per session + per IP in Redis. OTP and ballot endpoints have stricter limits. `429` with `Retry-After`. |
+| Rate limits | Per user in Redis: ballots 20/min, image uploads 30/min. `429` with `Retry-After`. |
 | Visibility | A poll that the caller may not see returns `404` (not `403`), so poll ids can't be probed. |
 
 Roles: **anon** (no session) · **user** (any login) · **verified** (logged in via CUNEX at least once) · **owner** (created the poll) · **admin**.
@@ -26,8 +26,6 @@ Roles: **anon** (no session) · **user** (any login) · **verified** (logged in 
 | GET | `/auth/cunex/callback?token=&returnTo=` | anon | Exchange CUNEX token via `/profile`, upsert user + faculty, create session, **302 to `returnTo` without the token**. Also the entry URL CUNEX opens from its menu, notifications and UniversalLinks. |
 | GET | `/auth/google/login?returnTo=` | anon | 302 to Google OIDC (PKCE + state in Redis). |
 | GET | `/auth/google/callback` | anon | Finish OIDC, create session, 302. |
-| POST | `/auth/email/otp` | anon | `{ email }` → `204`. Sends a 6-digit code (TTL 10 min, 5 attempts). Always `204`, even for unknown emails. |
-| POST | `/auth/email/verify` | anon | `{ email, code }` → `200 Me` + session cookie. |
 | POST | `/auth/logout` | user | Delete session → `204`. |
 | POST | `/auth/dev/login` | anon | `{ role: "user" \| "admin" }` → test accounts popup. **Only mounted when `APP_ENV != production`.** |
 | GET | `/me` | user | `Me` |
@@ -58,7 +56,7 @@ Roles: **anon** (no session) · **user** (any login) · **verified** (logged in 
 ```jsonc
 // PollDetail
 { "id": "uuid", "status": "open", "version": 7,
-  "title": "…", "description": "…", "coverImageId": "uuid",
+  "title": "…", "description": "…", "coverImageUrl": "https://…/images/<uuid>.png",
   "closesAt": "2026-10-20T10:00:00Z", "submittedAt": "…", "openedAt": "…", "closedAt": null,
   "audience": { "type": "restricted", "rules": [{ "facultyCode": "21", "studentYear": null }] },
   "settings": { "showResultsRealtime": false, "allowAnswerEdit": true, "listedPublicly": true },
@@ -89,25 +87,25 @@ The Preview mode screen uses `GET /polls/:pollId`, which returns any status to t
 Notes:
 - Element and option ids are regenerated on every `PUT` (drafts have no ballots yet); don't cache them across saves.
 - `422 UNKNOWN_FACULTY` (`facultyCodes`) when an audience rule names a faculty not in `GET /faculties`.
-- `422 INVALID_IMAGE` (`imageIds`) when an image isn't yours or hasn't finished uploading.
+- `422 INVALID_IMAGE_URL` (`problems`) when an image URL is not from `POST /images/uploads`.
 - Wrong status for the action → `409 POLL_LOCKED` with `pollStatus`.
 
 **Why one `PUT` for the whole draft, not per-element CRUD:** the editor is a single form saved with "บันทึกฉบับร่าง". Reorder ("swipe"), add and remove all happen client-side, and one transactional replace avoids partially saved drafts and position conflicts. Drafts are small (tens of elements).
 
 ```jsonc
 // PollDraft
-{ "title": "…", "description": "…", "coverImageId": "uuid", "closesAt": "…",
+{ "title": "…", "description": "…", "coverImageUrl": "https://…/images/<uuid>.png", "closesAt": "…",
   "audience": { "type": "public" } | { "type": "restricted", "rules": [{ "facultyCode": "21", "studentYear": 2567 }] },
   "settings": { "showResultsRealtime": false, "allowAnswerEdit": true, "listedPublicly": true },
   "elements": [
     { "type": "single_choice", "title": "อยากให้ธีมงานปีนี้เป็นแบบไหน", "isRequired": true,
       "config": { "layout": "list" },
       "options": [
-        { "label": "ย้อนยุคสยาม", "description": null, "imageId": null, "popup": null },
+        { "label": "ย้อนยุคสยาม", "description": null, "imageUrl": null, "popup": null },
         { "label": "แสงสีร่วมสมัย", "popup": { "buttonText": "ดูรายละเอียด", "title": "…", "body": "…" } } ] },
     { "type": "page_break" },
     { "type": "text_question", "title": "ข้อเสนอแนะ", "config": { "placeholder": "…", "maxLength": 500 } },
-    { "type": "image", "config": { "imageId": "uuid", "caption": "…" } }
+    { "type": "image", "config": { "url": "https://…/images/<uuid>.png", "caption": "…" } }
   ] }
 ```
 
@@ -120,7 +118,7 @@ Element `config` per type (validated with a zod discriminated union on `type`):
 | `multi_choice` | `{ layout, minSelect?, maxSelect? }` | 2–50 |
 | `dropdown` | `{}` | 2–200 |
 | `description` | `{ showHeading, sections: [{ heading?, body }] }` | — |
-| `image` | `{ imageId, caption? }` | — |
+| `image` | `{ url, caption? }` | — |
 | `info_popup` | `{ buttonText, title, body }` | — |
 | `accordion` | `{ title, body }` | — |
 | `page_break` | `{}` | — |
@@ -129,15 +127,21 @@ Element `config` per type (validated with a zod discriminated union on `type`):
 
 | Method | Path | Who | Purpose |
 |---|---|---|---|
-| POST | `/images/uploads` | user | `{ mimeType: "image/jpeg"\|"image/png"\|"image/webp", byteSize }` → `201 { imageId, upload: { method: "PUT", url, headers } }`. The URL is valid 10 min and only accepts exactly that Content-Type and size. `422 IMAGE_TOO_LARGE` over `IMAGE_MAX_BYTES` (5 MB). |
-| POST | `/images/:imageId/complete` | owner of image | After the PUT. The server checks the stored file's size and **first bytes** (real JPEG/PNG/WebP signature) → `ready`. `409 UPLOAD_NOT_FOUND` if nothing was uploaded, `422 INVALID_IMAGE_FILE` (→ `failed`) if it isn't the declared image. |
-| POST | `/images/import` | user | `{ url }` → `202 { imageId, status: "pending" }`. The worker downloads it: https on 443 only, no private/internal addresses (checked at connect time, redirects re-checked), ≤ 5 MB, must be a real image. `422 INVALID_URL` for obviously bad URLs. |
-| GET | `/images/:imageId` | owner of image | `{ id, status, mimeType, byteSize, url }`; `url` only when `ready`. Poll this while an import is `pending`. |
+| POST | `/images/uploads` | user | `{ mimeType: "image/jpeg"\|"image/png"\|"image/webp", byteSize }` → `201 { uploadUrl, uploadHeaders, publicUrl, expiresInSeconds }`. `422 IMAGE_TOO_LARGE` over `IMAGE_MAX_BYTES` (5 MB). |
 
-Upload flow: `POST /images/uploads` → `PUT` the file to `upload.url` with `upload.headers` →
-`POST /images/:id/complete` → use `imageId` in the poll draft. `PollDetail.imageUrls` maps every
-image the poll uses to a URL (CDN when `S3_PUBLIC_BASE_URL` is set, otherwise a 1-hour presigned URL).
-Images are private to their uploader: using someone else's `imageId` in a poll is `422 INVALID_IMAGE`.
+Flow (the file never passes through the API):
+
+1. `POST /images/uploads` → get `uploadUrl` (temporary, 10 min) and `publicUrl` (permanent).
+2. `PUT` the file to `uploadUrl` with `uploadHeaders`. Storage only accepts exactly the declared Content-Type and size.
+3. Put `publicUrl` in the poll draft: `coverImageUrl`, an `image` element's `config.url`, or an option's `imageUrl`.
+
+Checks on the API side:
+
+- Saving a draft (`POST`/`PUT /polls`): every image URL must be one we hand out (our bucket, `images/<uuid>.<ext>`). Anything else → `422 INVALID_IMAGE_URL` with `problems`. No outside links.
+- Submitting (`POST /polls/:id/submit`): each file must exist in storage and its first bytes must really be JPEG/PNG/WebP; otherwise it shows up in `POLL_INCOMPLETE.problems` at the image's path.
+
+The bucket needs public read (no CDN yet; set `S3_PUBLIC_BASE_URL` when one exists) and a
+lifecycle rule to delete objects under `images/` that no poll uses (uploads that were abandoned).
 
 ## 6. Ballots
 

@@ -7,7 +7,7 @@ const opt = (id: string, elementId: string) => ({
   position: 0,
   label: id,
   description: null,
-  imageId: null,
+  imageUrl: null,
   popup: null,
 });
 
