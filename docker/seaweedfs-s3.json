@@ -1,0 +1,11 @@
+{
+  "identities": [
+    {
+      "name": "pollcunex-dev",
+      "credentials": [
+        { "accessKey": "pollcunex", "secretKey": "pollcunex-dev-secret" }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

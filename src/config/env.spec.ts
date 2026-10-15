@@ -5,6 +5,8 @@ const base = {
   DATABASE_URL: 'postgres://u:p@localhost:5432/db',
   REDIS_URL: 'redis://localhost:6379',
   VOTER_KEY_PEPPER: 'x'.repeat(32),
+  S3_ACCESS_KEY_ID: 'k',
+  S3_SECRET_ACCESS_KEY: 's',
 };
 
 describe('validateEnv', () => {

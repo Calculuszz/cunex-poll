@@ -7,6 +7,7 @@ import { AdminModule } from './modules/admin/admin.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { BallotsModule } from './modules/ballots/ballots.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { ImagesModule } from './modules/images/images.module.js';
 import { PollsModule } from './modules/polls/polls.module.js';
 import { ResultsModule } from './modules/results/results.module.js';
 
@@ -17,6 +18,7 @@ import { ResultsModule } from './modules/results/results.module.js';
     PollsModule,
     BallotsModule,
     ResultsModule,
+    ImagesModule,
     AdminModule,
     HealthModule,
   ],

@@ -4,6 +4,8 @@ import { AppError } from '../../common/errors.js';
 import type { Env } from '../../config/env.js';
 import type { PollStatus } from '../../infra/database/db.js';
 import { voterKey } from '../ballots/voter-key.js';
+import { StorageService } from '../../infra/storage/storage.service.js';
+import { ImagesRepository } from '../images/images.repository.js';
 import type { User } from '../users/users.repository.js';
 import { findProblems } from './completeness.js';
 import { canSeePoll, canViewResults, isAcceptingVotes } from './poll-access.js';
@@ -21,6 +23,7 @@ import {
 } from './polls.repository.js';
 import {
   type MyBallot,
+  referencedImageIds,
   toDetail,
   toDraftInput,
   toSummary,
@@ -33,6 +36,8 @@ export class PollsService {
   constructor(
     private readonly repo: PollsRepository,
     private readonly jobs: PollJobs,
+    private readonly images: ImagesRepository,
+    private readonly storage: StorageService,
     config: ConfigService<Env, true>,
   ) {
     this.pepper = config.get('VOTER_KEY_PEPPER');
@@ -77,6 +82,7 @@ export class PollsService {
       canSeeReviews: isOwner || user.role === 'admin',
       myBallot: myBallot!,
       canViewResults: canViewResults(poll, user),
+      imageUrls: await this.imageUrls(agg),
     });
   }
 
@@ -204,6 +210,14 @@ export class PollsService {
       const { poll } = await this.owned(user, id);
       throw locked(poll.status);
     }
+  }
+
+  private async imageUrls(agg: PollAggregate) {
+    const keys = await this.images.readyKeys(referencedImageIds(agg));
+    const entries = await Promise.all(
+      keys.map(async (k) => [k.id, await this.storage.readUrl(k.storageKey!)]),
+    );
+    return Object.fromEntries(entries) as Record<string, string>;
   }
 
   private async myBallots(user: User, polls: PollRow[]): Promise<MyBallot[]> {

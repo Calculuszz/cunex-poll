@@ -13,7 +13,7 @@ Requires Node ≥ 22.12, pnpm, Docker.
 ```bash
 cp .env.example .env
 pnpm install
-pnpm db:up          # Postgres 18 (port 55432) + Redis 8 via docker compose
+pnpm db:up          # Postgres 18 (:55432), Redis 8, S3-compatible SeaweedFS (:8333)
 pnpm db:migrate     # applies db/migrations/*.sql
 pnpm start:dev      # API on :3000  (health: /healthz, /readyz)
 pnpm start:worker   # background worker, separate terminal

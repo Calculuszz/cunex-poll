@@ -45,6 +45,24 @@ export const envSchema = z
     // later admins are granted through the admin API.
     ADMIN_BOOTSTRAP_CUNEX_IDS: csv,
 
+    // S3-compatible storage for images. Local dev: SeaweedFS from docker-compose.
+    S3_ENDPOINT: optionalUrl,
+    S3_REGION: z.string().default('us-east-1'),
+    S3_BUCKET: z.string().min(1).default('pollcunex-images'),
+    S3_ACCESS_KEY_ID: z.string().min(1),
+    S3_SECRET_ACCESS_KEY: z.string().min(1),
+    S3_FORCE_PATH_STYLE: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((v) => v === 'true'),
+    // CDN/public base for serving; unset = short-lived presigned read URLs.
+    S3_PUBLIC_BASE_URL: optionalUrl,
+    IMAGE_MAX_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(5 * 1024 * 1024),
+
     // mock = fake CUNEX with fixture students (no credentials needed)
     // live = real CUNEX LLE gateway
     CUNEX_MODE: z.enum(['mock', 'live']).default('mock'),

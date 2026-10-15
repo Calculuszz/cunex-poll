@@ -5,6 +5,7 @@ import { DatabaseModule } from './database/database.module.js';
 import { LoggingModule } from './logging/logging.module.js';
 import { QueueModule } from './queue/queue.module.js';
 import { RedisModule } from './redis/redis.module.js';
+import { StorageModule } from './storage/storage.module.js';
 
 // Shared by the API (AppModule) and the background worker (WorkerModule).
 @Module({
@@ -18,6 +19,7 @@ import { RedisModule } from './redis/redis.module.js';
     DatabaseModule,
     RedisModule,
     QueueModule,
+    StorageModule,
   ],
 })
 export class InfraModule {}

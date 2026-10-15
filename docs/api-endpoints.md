@@ -129,10 +129,15 @@ Element `config` per type (validated with a zod discriminated union on `type`):
 
 | Method | Path | Who | Purpose |
 |---|---|---|---|
-| POST | `/images/uploads` | user | `{ mimeType: "image/jpeg"\|"image/png"\|"image/webp", byteSize }` → `{ imageId, upload: { url, fields } }` (S3 presigned POST, size-capped). |
-| POST | `/images/:imageId/complete` | owner of image | Server checks the object (type, size, dimensions) → `ready`. |
-| POST | `/images/import` | user | `{ url }` → `202 { imageId, status: "pending" }`. The worker downloads it (https only, size and type limits, blocks private IPs). |
-| GET | `/images/:imageId` | owner of image | `{ id, status, url? }`, polled while an import is pending. |
+| POST | `/images/uploads` | user | `{ mimeType: "image/jpeg"\|"image/png"\|"image/webp", byteSize }` → `201 { imageId, upload: { method: "PUT", url, headers } }`. The URL is valid 10 min and only accepts exactly that Content-Type and size. `422 IMAGE_TOO_LARGE` over `IMAGE_MAX_BYTES` (5 MB). |
+| POST | `/images/:imageId/complete` | owner of image | After the PUT. The server checks the stored file's size and **first bytes** (real JPEG/PNG/WebP signature) → `ready`. `409 UPLOAD_NOT_FOUND` if nothing was uploaded, `422 INVALID_IMAGE_FILE` (→ `failed`) if it isn't the declared image. |
+| POST | `/images/import` | user | `{ url }` → `202 { imageId, status: "pending" }`. The worker downloads it: https on 443 only, no private/internal addresses (checked at connect time, redirects re-checked), ≤ 5 MB, must be a real image. `422 INVALID_URL` for obviously bad URLs. |
+| GET | `/images/:imageId` | owner of image | `{ id, status, mimeType, byteSize, url }`; `url` only when `ready`. Poll this while an import is `pending`. |
+
+Upload flow: `POST /images/uploads` → `PUT` the file to `upload.url` with `upload.headers` →
+`POST /images/:id/complete` → use `imageId` in the poll draft. `PollDetail.imageUrls` maps every
+image the poll uses to a URL (CDN when `S3_PUBLIC_BASE_URL` is set, otherwise a 1-hour presigned URL).
+Images are private to their uploader: using someone else's `imageId` in a poll is `422 INVALID_IMAGE`.
 
 ## 6. Ballots
 

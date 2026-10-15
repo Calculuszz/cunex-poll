@@ -49,6 +49,7 @@ export async function createTestApp(): Promise<{
     REDIS_URL: TEST_REDIS_URL,
     CUNEX_MODE: 'mock',
     ADMIN_BOOTSTRAP_CUNEX_IDS: '',
+    S3_BUCKET: 'pollcunex-test',
   });
 
   // Imported only now: ConfigModule.forRoot() reads process.env when the

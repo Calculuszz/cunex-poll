@@ -24,5 +24,17 @@ services:
       interval: 5s
       retries: 10
 
+  # S3-compatible storage for images (prod uses real S3 / GCS / on-prem S3).
+  # Credentials: docker/seaweedfs-s3.json (dev only).
+  s3:
+    image: chrislusf/seaweedfs:4.48
+    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    ports:
+      - "8333:8333"
+    volumes:
+      - s3data:/data
+      - ./docker/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+
 volumes:
   pgdata:
+  s3data:

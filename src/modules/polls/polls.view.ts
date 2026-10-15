@@ -43,6 +43,8 @@ export function toDetail(
     canSeeReviews: boolean;
     myBallot: MyBallot;
     canViewResults: boolean;
+    /** imageId → URL for every image the poll uses */
+    imageUrls: Record<string, string>;
   },
 ) {
   const { poll } = agg;
@@ -90,6 +92,7 @@ export function toDetail(
     isOwner: ctx.isOwner,
     myBallot: ctx.myBallot,
     canViewResults: ctx.canViewResults,
+    imageUrls: ctx.imageUrls,
     ...(ctx.canSeeReviews ? { reviews: agg.reviews } : {}),
   };
 }
@@ -134,4 +137,16 @@ function hasOptions(type: string) {
   return (
     type === 'single_choice' || type === 'multi_choice' || type === 'dropdown'
   );
+}
+
+/** Every image id a poll references: cover, image elements, options. */
+export function referencedImageIds(agg: PollAggregate): string[] {
+  const ids = new Set<string>();
+  if (agg.poll.coverImageId) ids.add(agg.poll.coverImageId);
+  for (const e of agg.elements) {
+    const imageId = (e.config as { imageId?: string } | null)?.imageId;
+    if (e.type === 'image' && imageId) ids.add(imageId);
+    for (const o of e.options) if (o.imageId) ids.add(o.imageId);
+  }
+  return [...ids];
 }
