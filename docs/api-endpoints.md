@@ -138,18 +138,21 @@ Element `config` per type (validated with a zod discriminated union on `type`):
 
 | Method | Path | Who | Purpose |
 |---|---|---|---|
-| GET | `/polls/:pollId/ballot` | user | My current answers (looked up by `voter_key`) → `200 Ballot` or `404`. Used to prefill when editing. |
+| GET | `/polls/:pollId/ballot` | user | My current answers (looked up by `voter_key`) → `200 Ballot` or `404 NO_BALLOT`. Used to prefill when editing. |
 | PUT | `/polls/:pollId/ballot` | user | Submit or replace my answers. `201` first time, `200` on edit. |
 
 `PUT` because the operation is an idempotent upsert of *my* ballot. Errors:
 
 | Status | code | When |
 |---|---|---|
-| 404 | `POLL_NOT_FOUND` | not visible / not eligible |
+| 404 | `POLL_NOT_FOUND` | poll not visible to you (not published, or you are outside its audience) |
 | 409 | `POLL_CLOSED` | status ≠ open **or** now ≥ `closesAt` |
 | 409 | `ALREADY_VOTED` | ballot exists and `allowAnswerEdit=false` |
-| 403 | `NOT_ELIGIBLE` | restricted poll and caller's faculty/year doesn't match (or not CUNEX-verified) |
-| 422 | `INVALID_ANSWERS` | missing required, option not in element, too many selections, … (lists each) |
+| 403 | `NOT_ELIGIBLE` | owner/admin who can see the poll but is outside its audience |
+| 422 | `INVALID_ANSWERS` | missing required, option not in element, too many selections, … (`problems` lists each) |
+| 429 | `RATE_LIMITED` | more than 20 ballot requests a minute; see `Retry-After` |
+
+Omitted or empty answers count as unanswered. The poll row is locked while a ballot is saved, so no vote lands after the poll closes, and a burst of first votes from one person still yields one ballot.
 
 ```jsonc
 // Ballot (request and response)

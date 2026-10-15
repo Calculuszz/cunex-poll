@@ -6,7 +6,7 @@ import type { PollStatus } from '../../infra/database/db.js';
 import { voterKey } from '../ballots/voter-key.js';
 import type { User } from '../users/users.repository.js';
 import { findProblems } from './completeness.js';
-import { isEligible } from './eligibility.js';
+import { canSeePoll, canViewResults, isAcceptingVotes } from './poll-access.js';
 import {
   pollLocked as locked,
   pollNotFound as notFound,
@@ -67,30 +67,16 @@ export class PollsService {
 
   async get(user: User, id: string) {
     const agg = await this.repo.find(id);
-    if (!agg) throw notFound();
+    if (!agg || !canSeePoll(agg, user)) throw notFound();
     const { poll } = agg;
     const isOwner = poll.ownerId === user.id;
-    const isAdmin = user.role === 'admin';
-
-    // Others only see published polls they may answer. 404, not 403, so poll
-    // ids can't be probed.
-    if (!isOwner && !isAdmin) {
-      const published = poll.status === 'open' || poll.status === 'closed';
-      if (!published || !isEligible(poll.audience, agg.rules, user)) {
-        throw notFound();
-      }
-    }
 
     const [myBallot] = await this.myBallots(user, [poll]);
     return toDetail(agg, {
       isOwner,
-      canSeeReviews: isOwner || isAdmin,
+      canSeeReviews: isOwner || user.role === 'admin',
       myBallot: myBallot!,
-      canViewResults:
-        isOwner ||
-        isAdmin ||
-        poll.status === 'closed' ||
-        (poll.status === 'open' && poll.showResultsRealtime),
+      canViewResults: canViewResults(poll, user),
     });
   }
 
@@ -231,7 +217,7 @@ export class PollsService {
       const submitted = voted.has(p.id);
       return {
         submitted,
-        canEdit: submitted && p.status === 'open' && p.allowAnswerEdit,
+        canEdit: submitted && p.allowAnswerEdit && isAcceptingVotes(p),
       };
     });
   }

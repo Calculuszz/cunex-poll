@@ -38,6 +38,9 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     const res = host.switchToHttp().getResponse<Response>();
     const problem = this.toProblem(exception);
     if (problem.status >= 500) this.logger.error(exception);
+    if (typeof problem.retryAfterSeconds === 'number') {
+      res.setHeader('Retry-After', String(problem.retryAfterSeconds));
+    }
     res.status(problem.status).type('application/problem+json').json(problem);
   }
 
