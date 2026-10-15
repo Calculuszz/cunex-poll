@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Selectable } from 'kysely';
 import { Database } from '../../infra/database/database.js';
 import type { Users } from '../../infra/database/db.js';
-import type { CunexProfile } from '../auth/cunex/cunex.client.js';
+import type { CunexProfile } from '../cunex/cunex.client.js';
 
 export type User = Selectable<Users>;
 

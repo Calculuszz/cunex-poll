@@ -20,8 +20,8 @@ import {
   UsersRepository,
 } from '../users/users.repository.js';
 import { CurrentUser, Public } from './auth.decorators.js';
-import { CunexClient, type CunexProfile } from './cunex/cunex.client.js';
-import { MOCK_CUNEX_USERS } from './cunex/mock-cunex.client.js';
+import { CunexClient, type CunexProfile } from '../cunex/cunex.client.js';
+import { MOCK_CUNEX_USERS } from '../cunex/mock-cunex.client.js';
 import { safeReturnTo } from './return-to.js';
 import { SESSION_COOKIE, SessionService } from './session.service.js';
 

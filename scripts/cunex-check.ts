@@ -1,7 +1,7 @@
 // Checks the live CUNEX /profile call with a real token.
 // Usage: pnpm cunex:check <token>   (reads CUNEX_GATEWAY_URL / CLIENT_ID / CLIENT_SECRET from .env)
 // Get a token from CUNEX "ห้องทดลอง" (lab) — the page shows it after you open the app.
-import { LiveCunexClient } from '../src/modules/auth/cunex/live-cunex.client.js';
+import { LiveCunexClient } from '../src/modules/cunex/live-cunex.client.js';
 
 const token = process.argv[2];
 const { CUNEX_GATEWAY_URL, CUNEX_CLIENT_ID, CUNEX_CLIENT_SECRET } = process.env;

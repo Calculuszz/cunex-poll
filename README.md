@@ -23,7 +23,7 @@ CUNEX runs in **mock** mode until we have credentials (`CUNEX_MODE=mock`):
 
 - Open `http://localhost:3000/api/v1/auth/cunex/login?mockUser=med-2566` to log in as a fixture student.
 - Or `POST /api/v1/auth/dev/login` with `{"role":"admin"}` (the test-accounts popup; disabled in production).
-- Fixtures: [src/modules/auth/cunex/mock-cunex.client.ts](src/modules/auth/cunex/mock-cunex.client.ts).
+- Fixtures: [src/modules/cunex/mock-cunex.client.ts](src/modules/cunex/mock-cunex.client.ts).
 
 Switch to `CUNEX_MODE=live` and fill in the `CUNEX_*` values once the CUNEX team sends them.
 

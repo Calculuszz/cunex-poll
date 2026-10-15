@@ -1,7 +1,12 @@
 import { HttpStatus, Logger } from '@nestjs/common';
 import { z } from 'zod';
-import { AppError } from '../../../common/errors.js';
-import { CunexClient, type CunexProfile } from './cunex.client.js';
+import { AppError } from '../../common/errors.js';
+import {
+  CunexClient,
+  type CunexNotification,
+  type CunexProfile,
+  type NotificationReport,
+} from './cunex.client.js';
 
 export interface LiveCunexConfig {
   gatewayUrl: string;
@@ -86,6 +91,64 @@ export class LiveCunexClient extends CunexClient {
 
   loginUrl(): string {
     return this.cfg.loginUrl;
+  }
+
+  async createShareLink(callbackUrl: string): Promise<string> {
+    const body = await this.post('create_link', { callbackUrl });
+    const parsed = z
+      .object({ status: z.literal('success'), shareUrl: z.url() })
+      .safeParse(body);
+    if (!parsed.success) {
+      throw new Error(`CUNEX create_link failed: ${JSON.stringify(body)}`);
+    }
+    return parsed.data.shareUrl;
+  }
+
+  async sendNotifications(
+    items: CunexNotification[],
+  ): Promise<NotificationReport> {
+    const body = await this.post('notification', {
+      data: items.map((n) => ({
+        userId: n.userId,
+        text_TH: n.textTh,
+        ...(n.textEn ? { text_EN: n.textEn } : {}),
+        ...(n.callbackUrl ? { callbackUrl: n.callbackUrl } : {}),
+      })),
+    });
+    const parsed = z
+      .object({ summarySuccess: z.number(), summaryFailed: z.number() })
+      .safeParse(body);
+    if (!parsed.success) {
+      throw new Error(`CUNEX notification failed: ${JSON.stringify(body)}`);
+    }
+    return {
+      succeeded: parsed.data.summarySuccess,
+      failed: parsed.data.summaryFailed,
+    };
+  }
+
+  /** POST for the worker's calls. Errors throw so BullMQ retries the job. */
+  private async post(path: string, payload: unknown): Promise<unknown> {
+    const res = await fetch(
+      new URL(path, withTrailingSlash(this.cfg.gatewayUrl)),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ClientId: this.cfg.clientId,
+          ClientSecret: this.cfg.clientSecret,
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+    const body: unknown = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(
+        `CUNEX ${path} returned ${res.status}: ${JSON.stringify(body)}`,
+      );
+    }
+    return body;
   }
 }
 

@@ -1,4 +1,4 @@
-import { AppError } from '../../../common/errors.js';
+import { AppError } from '../../common/errors.js';
 import { LiveCunexClient } from './live-cunex.client.js';
 
 const client = new LiveCunexClient({
@@ -69,5 +69,66 @@ describe('LiveCunexClient.getProfile', () => {
     await expect(client.getProfile('t')).rejects.toMatchObject({
       code: 'CUNEX_UNAVAILABLE',
     });
+  });
+});
+
+describe('LiveCunexClient worker calls', () => {
+  it('create_link posts the callback URL and returns shareUrl', async () => {
+    const fetchMock = respond(200, {
+      status: 'success',
+      shareUrl: 'https://cunex.page.link/MjWT',
+      created: '2024/08/30 08:30:00',
+    });
+    await expect(
+      client.createShareLink('https://api.example/cb?returnTo=%2Fpolls%2F1'),
+    ).resolves.toBe('https://cunex.page.link/MjWT');
+
+    const [url, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://gateway.example/lle/create_link');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual({
+      callbackUrl: 'https://api.example/cb?returnTo=%2Fpolls%2F1',
+    });
+  });
+
+  it('notification maps fields to LLE names and returns the summary', async () => {
+    const fetchMock = respond(200, {
+      summarySuccess: 1,
+      summaryFailed: 1,
+      data: [],
+    });
+    await expect(
+      client.sendNotifications([
+        {
+          userId: '1',
+          textTh: 'สวัสดี',
+          textEn: 'hello',
+          callbackUrl: 'https://x',
+        },
+        { userId: '2', textTh: 'สวัสดี' },
+      ]),
+    ).resolves.toEqual({ succeeded: 1, failed: 1 });
+
+    const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({
+      data: [
+        {
+          userId: '1',
+          text_TH: 'สวัสดี',
+          text_EN: 'hello',
+          callbackUrl: 'https://x',
+        },
+        { userId: '2', text_TH: 'สวัสดี' },
+      ],
+    });
+  });
+
+  it('throws on an error status so the job is retried', async () => {
+    respond(417, {
+      status: 'failed',
+      errorCode: 'E006',
+      message: 'Quota exceeded',
+    });
+    await expect(client.createShareLink('https://x')).rejects.toThrow(/417/);
   });
 });

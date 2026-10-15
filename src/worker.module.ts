@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { InfraModule } from './infra/infra.module.js';
+import { PollsWorkerModule } from './modules/polls/polls-worker.module.js';
 
-// Background worker: notifications, scheduled poll closing, image import.
-// Queue processors are added to `imports` as each feature lands.
+// Background worker: scheduled poll closing, share links, notifications,
+// image import. Runs as its own process (pnpm start:worker).
 @Module({
-  imports: [InfraModule],
+  imports: [InfraModule, PollsWorkerModule],
 })
 export class WorkerModule {}

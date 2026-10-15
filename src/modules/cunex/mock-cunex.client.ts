@@ -1,6 +1,12 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
-import { AppError } from '../../../common/errors.js';
-import { CunexClient, type CunexProfile } from './cunex.client.js';
+import { createHash } from 'node:crypto';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { AppError } from '../../common/errors.js';
+import {
+  CunexClient,
+  type CunexNotification,
+  type CunexProfile,
+  type NotificationReport,
+} from './cunex.client.js';
 
 // Fake students for local development and tests (CUNEX_MODE=mock).
 // Token format: `mock_<key>`, e.g. mock_eng-2567. `mock_expired` simulates E002.
@@ -68,5 +74,20 @@ export class MockCunexClient extends CunexClient {
     const key =
       mockUser && isMockCunexUser(mockUser) ? mockUser : DEFAULT_MOCK_USER;
     return `/api/v1/auth/cunex/callback?token=mock_${key}`;
+  }
+
+  /** Everything "sent", for tests and the dev log. */
+  readonly sentNotifications: CunexNotification[] = [];
+  private readonly logger = new Logger('MockCunex');
+
+  createShareLink(callbackUrl: string): Promise<string> {
+    const id = createHash('sha1').update(callbackUrl).digest('hex').slice(0, 8);
+    return Promise.resolve(`https://cunex.page.link/mock-${id}`);
+  }
+
+  sendNotifications(items: CunexNotification[]): Promise<NotificationReport> {
+    this.sentNotifications.push(...items);
+    this.logger.log(`would notify ${items.length} CUNEX user(s)`);
+    return Promise.resolve({ succeeded: items.length, failed: 0 });
   }
 }
