@@ -25,7 +25,8 @@
     "db:up": "docker compose up -d",
     "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.ts",
     "db:codegen": "kysely-codegen --dialect postgres --camel-case --exclude-pattern schema_migrations --out-file src/infra/database/db.d.ts --env-file .env",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "cunex:check": "tsx --env-file-if-exists=.env scripts/cunex-check.ts"
   },
   "dependencies": {
     "@nestjs/bullmq": "^12.0.0",
