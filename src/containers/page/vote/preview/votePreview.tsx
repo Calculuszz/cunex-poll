@@ -7,8 +7,8 @@ import { useElementStore } from '@/store/elementStore'
 import { useCreateStepStore } from '@/store/createStepStore'
 import { useCreateDraftStore } from '@/store/createDraftStore'
 import { audienceLabel, audienceScope } from '@/lib/audienceLabel'
-import { parseCodes } from '@/containers/page/create/components/buildPayload'
-import { MOCK_FACULTIES } from '@/containers/page/create/components/mockFaculty'
+import { useFaculties } from '@/hooks/useFaculties'
+import { audienceOfForm } from '@/lib/pollMappers'
 import { firstMissingRequired, paginate, questionsOf, type Answers, type AnswerValue, type VoteItem, type VoterPoll } from '@/lib/voteForm'
 import AvatarPopup from '@/containers/widgets/components/avator-popup'
 import { PollIntroCard } from '../components/pollIntroCard'
@@ -18,9 +18,7 @@ import { QuestionBlock } from '../components/questionBlock'
 import { QuestionProgress } from '../components/questionProgress'
 import { StepActionBar } from '../components/stepActionBar'
 
-const NO_RESPONSE = { status: 'none', answers: {}, lastSavedAt: null, submittedAt: null } as const
-
-// หน้าดูตัวอย่างของผู้สร้าง (System flow §4): อ่านจากร่างที่ยังไม่บันทึกใน store ไม่ใช่จาก DB
+// หน้าดูตัวอย่างของผู้สร้าง: อ่านจากร่างที่ยังไม่บันทึกใน store (ร่างที่ยังไม่ได้กดบันทึกก็ดูได้)
 // ใช้ component ชุดเดียวกับหน้ากรอกจริง ตอบลองได้แต่ส่งไม่ได้ คำตอบอยู่แค่ในหน้านี้
 export function VotePreview() {
     const router = useRouter()
@@ -31,41 +29,38 @@ export function VotePreview() {
     const [pageIndex, setPageIndex] = useState(-1)
     const [answers, setAnswers] = useState<Answers>({})
 
-    const items: VoteItem[] = rawItems.map((item, index) => ({ ...item, key: item.id, position: index + 1 }))
+    const items: VoteItem[] = rawItems.map((item) => ({ ...item, key: item.id }))
     const pages = paginate(items)
     const questions = questionsOf(items)
 
     // ร่างยังไม่มีเวลาปิดได้ ใช้อีก 7 วันแทนเพื่อให้หน้าแรกแสดงได้ (คิดครั้งเดียวตอนเปิดหน้า)
     const [fallbackClose] = useState(() => new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString())
-    const closeAt = form.closeTime ?? fallbackClose
-    const facultyIds = new Set(MOCK_FACULTIES.map((f) => f.value))
-    const audienceSource = {
-        scope: form.scope,
-        audience: {
-            faculties: form.audienceIds.filter((id) => facultyIds.has(id)),
-            departments: form.audienceIds.filter((id) => !facultyIds.has(id)),
-            studentCodes: parseCodes(form.codesText),
-            codeKind: form.codeKind,
-        },
-    }
+    const faculties = useFaculties() ?? []
+    const audience = audienceOfForm(form)
     const poll: VoterPoll = {
         id: 'preview',
         title: form.title || 'ยังไม่ได้ตั้งชื่อโพล',
         description: form.desc,
-        scope: form.scope,
-        status: 'VOTING',
-        realtime: form.realtime,
-        allowRepeat: form.allowRepeat,
-        closeAt,
+        status: 'open',
+        closesAt: form.closeTime ?? fallbackClose,
         closedAt: null,
         closedEarly: false,
         closeReason: null,
-        audienceLabel: audienceLabel(audienceSource),
-        audienceScope: audienceScope(audienceSource),
-        identifySender: form.scope !== 'C' && form.identifySender,
+        audience,
+        audienceLabel: audienceLabel(audience, faculties),
+        audienceScope: audienceScope(audience, faculties),
+        realtime: form.realtime,
+        allowAnswerEdit: form.allowAnswerEdit,
+        allowRepeat: form.audienceType === 'public' || form.allowRepeat,
+        identifySender: form.audienceType !== 'public' && form.identifySender,
         items,
         questionCount: questions.length,
         resultsPublished: true,
+        canViewResults: false,
+        submitted: false,
+        canEdit: false,
+        hasDraft: false,
+        isOwner: true,
     }
 
     // กลับไปแก้ต่อที่ขั้นคำถาม (ขั้นที่ 2) ของร่างเดิม ร่างยังอยู่ครบใน store
@@ -107,7 +102,7 @@ export function VotePreview() {
 
             {page === null ? (
                 <>
-                    <PollIntroCard poll={poll} me={NO_RESPONSE} reason={null} resumePage={1} canSeeResults={false} onStart={() => goTo(0)} />
+                    <PollIntroCard poll={poll} reason={null} onStart={() => goTo(0)} />
                     <AnonymityNote identified={poll.identifySender} className='mt-4' />
                 </>
             ) : (

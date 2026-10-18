@@ -2,7 +2,7 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024
 const MAX_EDGE = 1280
 const JPEG_QUALITY = 0.82
 
-export const COMPRESSED_IMAGE_TYPE = 'image/jpeg'
+export const COMPRESSED_IMAGE_TYPE = 'image/jpeg' as const
 
 /** ข้อความใน error นี้เขียนไว้ให้แสดงกับผู้ใช้ได้ตรงๆ */
 export class ImageFileError extends Error {}

@@ -3,19 +3,19 @@ import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import type { PollStatus, PollSummary } from '@/api/types'
+import { getServerApi, loadOrNotFound } from '@/api/server'
 import { PollSearch } from '@/components/common/search'
 import { CreateMenu } from '@/containers/page/main/components/create'
 import { PollGrid, type PollGridEmpty } from '@/containers/page/main/components/pollGrid'
 import { MainTabs } from '@/containers/widgets/tabs'
-import { getPolls } from '@/lib/polls'
 import { pollHref } from '@/lib/pollHref'
-import type { IPollCardDTO } from '@/dtos/pollcardDto'
 
-// แต่ละแท็บดึงโพลตามสถานะ: พร้อมใช้งาน = อนุมัติแล้วหรือกำลังโหวต, จบโหวต = จบแล้ว, อื่นๆ = ฉบับร่างหรือรออนุมัติ
-const TAB_STATUSES: Record<string, IPollCardDTO['type'][]> = {
-    ready: ['APPROVED', 'VOTING'],
-    close: ['DONE'],
-    else: ['DRAFT', 'PENDING'],
+// แต่ละแท็บดึงโพลตามสถานะ: พร้อมใช้งาน = อนุมัติแล้วหรือกำลังโหวต, จบโหวต = ปิดแล้ว, อื่นๆ = ฉบับร่าง/รออนุมัติ/ไม่อนุมัติ
+const TAB_STATUSES: Record<string, PollStatus[]> = {
+    ready: ['approved', 'open'],
+    close: ['closed'],
+    else: ['draft', 'pending_review', 'rejected'],
 }
 
 const TAB_EMPTY: Record<string, PollGridEmpty> = {
@@ -35,12 +35,28 @@ const TAB_EMPTY: Record<string, PollGridEmpty> = {
     },
     else: {
         title: 'ไม่มีฉบับร่างหรือโพลที่รออนุมัติ',
-        description: 'โพลที่บันทึกเป็นฉบับร่างหรือส่งขออนุมัติแล้วจะแสดงที่นี่',
+        description: 'ฉบับร่าง โพลที่ส่งขออนุมัติ และโพลที่ไม่ผ่านการอนุมัติ (แก้แล้วส่งใหม่ได้) จะแสดงที่นี่',
     },
 }
 
+// โพลของฉันทุกหน้า (GET /me/polls เป็น cursor) · หน้านี้แบ่งตามแท็บ จึงดึงมาให้ครบก่อน มีเพดานกันวนไม่จบ
+const MAX_PAGES = 10
+
+async function loadAllMine() {
+    const api = await getServerApi()
+    const all: PollSummary[] = []
+    let cursor: string | null = null
+    for (let i = 0; i < MAX_PAGES; i++) {
+        const page = await api.polls.mine({ cursor, limit: 100 })
+        all.push(...page.items)
+        cursor = page.nextCursor
+        if (!cursor) break
+    }
+    return all
+}
+
 export async function MainPage() {
-    const polls = await getPolls()
+    const polls = await loadOrNotFound(loadAllMine, '/')
 
     // pb-24 เว้นที่ให้การ์ดแถวสุดท้ายเลื่อนพ้นปุ่มเมนูลอยมุมขวาล่าง (สูง 56px + ขอบ 16px)
     return (
@@ -50,7 +66,7 @@ export async function MainPage() {
             <MainTabs
                 renderPanel={(tab) => (
                     <PollGrid
-                        polls={polls.filter((poll) => TAB_STATUSES[tab]?.includes(poll.type))}
+                        polls={polls.filter((poll) => TAB_STATUSES[tab]?.includes(poll.status))}
                         linkTo={pollHref}
                         empty={TAB_EMPTY[tab]}
                     />

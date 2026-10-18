@@ -6,14 +6,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Badge } from '../ui/badge'
 import { Search } from "lucide-react"
 import { useDebouncedField } from '@/hooks/useDebouncedField'
-import { SCOPE_LABEL, STATUS_BADGE_CLASS, STATUS_LABEL } from '@/lib/pollLabels'
-import type { IPollCardDTO } from '@/dtos/pollcardDto'
+import { AUDIENCE_LABEL, STATUS_BADGE_CLASS, STATUS_LABEL } from '@/lib/pollLabels'
+import type { PollSummary } from '@/api/types'
 import { adminPollHref, pollHref, votePollHref } from '@/lib/pollHref'
 
-// ค้นหาเฉพาะโพลที่อยู่ในหน้านั้น ผลลัพธ์แสดงเป็น popup ใต้ช่องค้นหา
+// ค้นหาเฉพาะโพลที่โหลดมาแล้วในหน้านั้น (API ยังไม่มีพารามิเตอร์ค้นหา) ผลลัพธ์แสดงเป็น popup ใต้ช่องค้นหา
 // linkTarget = 'admin' ผลค้นหาพาไป /admin/(slug) · 'vote' พาไปหน้ากรอก /(slug)
 // (ส่งเป็นค่าแทนฟังก์ชันเพราะ server component ส่งฟังก์ชันให้ client ไม่ได้)
-export function PollSearch({ polls, linkTarget = 'owner' }: { polls: IPollCardDTO[]; linkTarget?: 'owner' | 'admin' | 'vote' }) {
+export function PollSearch({ polls, linkTarget = 'owner' }: { polls: PollSummary[]; linkTarget?: 'owner' | 'admin' | 'vote' }) {
     const hrefOf = linkTarget === 'admin' ? adminPollHref : linkTarget === 'vote' ? votePollHref : pollHref
     const [query, setQuery] = useState('')
     // ช่องพิมพ์แสดงผลทันที ส่วนการกรองใช้ query ที่ debounce แล้ว
@@ -24,7 +24,7 @@ export function PollSearch({ polls, linkTarget = 'owner' }: { polls: IPollCardDT
     const keyword = query.trim().toLowerCase()
     const results = keyword
         ? polls.filter((poll) =>
-            poll.title.toLowerCase().includes(keyword) || poll.desc.toLowerCase().includes(keyword))
+            poll.title.toLowerCase().includes(keyword) || poll.description.toLowerCase().includes(keyword))
         : []
     const open = keyword !== '' && !dismissed
 
@@ -64,8 +64,8 @@ export function PollSearch({ polls, linkTarget = 'owner' }: { polls: IPollCardDT
                                     >
                                         <span className='font-heading text-base font-bold line-clamp-1'>{poll.title}</span>
                                         <div className='flex flex-wrap gap-1'>
-                                            <Badge className={STATUS_BADGE_CLASS[poll.type]}>{STATUS_LABEL[poll.type]}</Badge>
-                                            <Badge variant='outline'>{SCOPE_LABEL[poll.scope]}</Badge>
+                                            <Badge className={STATUS_BADGE_CLASS[poll.status]}>{STATUS_LABEL[poll.status]}</Badge>
+                                            <Badge variant='outline'>{AUDIENCE_LABEL[poll.audience]}</Badge>
                                         </div>
                                     </Link>
                                 </li>

@@ -1,14 +1,14 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const POLL_INTERVAL = 5_000
 
-// ยังไม่มี websocket/SSE ใน backend ชั่วคราว จึงดึงผลซ้ำทุก 5 วินาที
+// ดึงผลซ้ำทุก 5 วินาทีระหว่างโพลเปิดโหวต (backend มี ETag + cache 3 วินาที ผลไม่เปลี่ยนก็ตอบ 304 ราคาถูก)
 // ข้ามรอบตอนแท็บไม่ได้เปิดดูอยู่ และหยุดเมื่อโพลปิดแล้ว (ผลไม่เปลี่ยนอีก)
-// ใช้ได้กับทั้งผลเต็มของเจ้าของและผลที่ผู้ตอบเห็น ขอแค่ payload มี status
-export function useLiveResults<T extends { status: string }>(initial: T, url: string) {
+export function useLiveResults<T>(initial: T, live: boolean, fetcher: (signal: AbortSignal) => Promise<T>) {
     const [results, setResults] = useState(initial)
-    const live = results.status === 'VOTING'
+    const fetcherRef = useRef(fetcher)
+    useEffect(() => { fetcherRef.current = fetcher })
 
     useEffect(() => {
         if (!live) return
@@ -18,8 +18,7 @@ export function useLiveResults<T extends { status: string }>(initial: T, url: st
             controller?.abort()
             controller = new AbortController()
             try {
-                const res = await fetch(url, { signal: controller.signal, cache: 'no-store' })
-                if (res.ok) setResults(await res.json())
+                setResults(await fetcherRef.current(controller.signal))
             } catch {
                 // พลาดรอบเดียวไม่เป็นไร รอบถัดไปจะดึงใหม่
             }
@@ -29,7 +28,7 @@ export function useLiveResults<T extends { status: string }>(initial: T, url: st
             clearInterval(id)
             controller?.abort()
         }
-    }, [live, url])
+    }, [live])
 
     return results
 }

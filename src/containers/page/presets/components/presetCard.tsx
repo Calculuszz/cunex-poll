@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { CODE_KIND_LABEL } from '@/containers/page/create/components/buildPayload'
-import type { PresetKind } from '@/lib/presetInput'
+import { api, errorMessage } from '@/api'
+import type { CodePreset } from '@/api/types'
+import { CODE_KIND_LABEL } from '@/lib/codes'
 
-export type PresetItem = { id: number; name: string; codeKind: PresetKind; codes: string[] }
+export type PresetItem = Pick<CodePreset, 'id' | 'name' | 'codeKind' | 'codes'>
 
 // การ์ด preset: เปลี่ยนชื่อและลบได้ ทั้งสองอย่างยืนยันใน dialog ก่อนเรียก API
 export function PresetCard({ preset }: { preset: PresetItem }) {
@@ -27,24 +28,17 @@ export function PresetCard({ preset }: { preset: PresetItem }) {
         setName(preset.name)
     }
 
-    const send = async (method: 'PATCH' | 'DELETE', body?: unknown) => {
+    // PATCH/DELETE /me/presets/:id [เสนอเพิ่ม]
+    const send = async (method: 'PATCH' | 'DELETE', body?: { name: string }) => {
         setBusy(true)
         setError(null)
         try {
-            const res = await fetch(`/api/presets/${preset.id}`, {
-                method,
-                headers: body ? { 'Content-Type': 'application/json' } : undefined,
-                body: body ? JSON.stringify(body) : undefined,
-            })
-            if (!res.ok) {
-                const data = await res.json().catch(() => null)
-                setError(data?.error ?? 'ดำเนินการไม่สำเร็จ')
-                return
-            }
+            if (method === 'PATCH') await api.presets.rename(preset.id, body!.name)
+            else await api.presets.remove(preset.id)
             closeAll()
             router.refresh()
-        } catch {
-            setError('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง')
+        } catch (err) {
+            setError(errorMessage(err, 'ดำเนินการไม่สำเร็จ'))
         } finally {
             setBusy(false)
         }

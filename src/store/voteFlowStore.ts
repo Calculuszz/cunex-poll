@@ -8,7 +8,9 @@ type VoteFlowStore = {
     answers: Answers
     saved: Answers
     lastSavedAt: string | null
-    init: (pollId: string, answers: Answers, lastSavedAt: string | null) => void
+    // คำถามแบบข้อความ (แปลงคำตอบเป็น Answer ของ API ต้องรู้ว่าค่าไหนคือข้อความ ไม่ใช่ id ตัวเลือก)
+    textKeys: string[]
+    init: (pollId: string, answers: Answers, lastSavedAt: string | null, textKeys: string[]) => void
     setAnswer: (key: string, value: AnswerValue | undefined) => void
     markSaved: (lastSavedAt: string, answers: Answers) => void
     revert: () => void
@@ -20,7 +22,8 @@ export const useVoteFlowStore = create<VoteFlowStore>()((set) => ({
     answers: {},
     saved: {},
     lastSavedAt: null,
-    init: (pollId, answers, lastSavedAt) => set({ pollId, answers, saved: answers, lastSavedAt }),
+    textKeys: [],
+    init: (pollId, answers, lastSavedAt, textKeys) => set({ pollId, answers, saved: answers, lastSavedAt, textKeys }),
     setAnswer: (key, value) => set((s) => {
         const answers = { ...s.answers }
         if (value === undefined) delete answers[key]
@@ -29,7 +32,7 @@ export const useVoteFlowStore = create<VoteFlowStore>()((set) => ({
     }),
     markSaved: (lastSavedAt, answers) => set({ lastSavedAt, saved: answers }),
     revert: () => set((s) => ({ answers: s.saved })),
-    reset: () => set({ pollId: null, answers: {}, saved: {}, lastSavedAt: null }),
+    reset: () => set({ pollId: null, answers: {}, saved: {}, lastSavedAt: null, textKeys: [] }),
 }))
 
 const sameAnswers = (a: Answers, b: Answers) => JSON.stringify(sortKeys(a)) === JSON.stringify(sortKeys(b))

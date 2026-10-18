@@ -9,11 +9,8 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from '@/components/ui/button'
-import { useElementStore } from '@/store/elementStore'
-import { useCreatePollStore } from '@/store/createPollStore'
 import { useLeaveGuardStore } from '@/store/leaveGuardStore'
-import { useCreateDraftStore } from '@/store/createDraftStore'
-import { saveDraft } from '@/containers/page/create/components/saveDraft'
+import { resetCreateForm, saveDraft } from '@/containers/page/create/draftActions'
 import { SearchAlert } from "lucide-react"
 
 // dialog เตือนก่อนออกจากหน้า create ใช้ร่วมกันทั้งปุ่มย้อนกลับและเมนู profile
@@ -22,9 +19,6 @@ export function LeaveDialog() {
     const router = useRouter()
     const target = useLeaveGuardStore((s) => s.target)
     const close = useLeaveGuardStore((s) => s.close)
-    const removeAll = useElementStore((s) => s.removeAll)
-    const resetPoll = useCreatePollStore((s) => s.reset)
-    const draftId = useCreateDraftStore((s) => s.draftId)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -42,12 +36,13 @@ export function LeaveDialog() {
     const handleSaveDraft = async () => {
         setSaving(true)
         setError(null)
-        const result = await saveDraft(draftId)
+        const result = await saveDraft()
         setSaving(false)
         if (!result.ok) {
             setError(result.error)
             return
         }
+        resetCreateForm()
         const t = target
         close()
         if (t) leave(t)
@@ -77,10 +72,8 @@ export function LeaveDialog() {
                             onClick={() => {
                                 const t = target
                                 close()
-                                removeAll()
-                                resetPoll()
-                                // ทิ้งของที่แก้แล้ว ครั้งหน้าที่เปิดฉบับร่างนี้ต้องโหลดจาก DB ใหม่
-                                useCreateDraftStore.getState().setHydratedId(null)
+                                // ทิ้งของที่แก้แล้ว ครั้งหน้าที่เปิดฉบับร่างนี้ต้องโหลดจาก server ใหม่
+                                resetCreateForm()
                                 if (t) leave(t)
                             }}
                         >

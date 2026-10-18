@@ -28,13 +28,15 @@ const cardClass = cn(
 
 const gridCardClass = 'flex-col items-stretch p-2'
 
-// ตัวเลือกที่มีรายละเอียดเพิ่ม (info) เปิด dialog แยก ปุ่มนี้อยู่ใน label แต่เป็นปุ่มจึงไม่ไปติ๊กตัวเลือก
+// ตัวเลือกที่มีรายละเอียดเพิ่ม (info) เปิด dialog แยก
+// ปุ่มนี้ต้องอยู่หลังช่องเลือกใน DOM: label ส่งคลิกไปที่ control ตัวแรกข้างใน ถ้าปุ่มมาก่อน กดข้อความจะเปิด dialog แทนการเลือก
+// (ตำแหน่งที่เห็นยังอยู่ก่อนช่องเลือกด้วย order-1 / order-2)
 function OptionInfo({ option }: { option: Option }) {
     if (!option.info?.body) return null
     return (
         <Dialog>
             <DialogTrigger
-                render={<Button type='button' variant='ghost' size='sm' className='shrink-0 text-primary' onClick={(e) => e.stopPropagation()} />}
+                render={<Button type='button' variant='ghost' size='sm' className='order-1 shrink-0 text-primary' onClick={(e) => e.stopPropagation()} />}
             >
                 <Info />
                 {option.info.trigger || 'ดูข้อมูล'}
@@ -60,7 +62,6 @@ function OptionContent({ option, grid }: { option: Option; grid: boolean }) {
                 />
             )}
             <span className={cn('min-w-0 flex-1 break-words', grid && 'px-1')}>{option.label}</span>
-            <OptionInfo option={option} />
         </>
     )
 }
@@ -107,11 +108,13 @@ export function ChoiceOptions({ question, value, onChange, readOnly, labelledBy 
                                 <>
                                     <OptionContent option={o} grid />
                                     <span className='absolute top-3 right-3'><ReadOnlyMark checked={checked} square={question.type === 'checkbox'} /></span>
+                                    <OptionInfo option={o} />
                                 </>
                             ) : (
                                 <>
                                     <OptionContent option={o} grid={false} />
-                                    <ReadOnlyMark checked={checked} square={question.type === 'checkbox'} />
+                                    <span className='order-2'><ReadOnlyMark checked={checked} square={question.type === 'checkbox'} /></span>
+                                    <OptionInfo option={o} />
                                 </>
                             )}
                             {checked && <span className='sr-only'>(เลือกข้อนี้)</span>}
@@ -151,7 +154,8 @@ export function ChoiceOptions({ question, value, onChange, readOnly, labelledBy 
                 {question.options.map((o) => (
                     <label key={o.id} className={cn(cardClass, grid && gridCardClass)}>
                         <OptionContent option={o} grid={grid} />
-                        <RadioGroupItem value={o.id} className={cn('size-5', grid && 'absolute top-3 right-3 bg-background')} />
+                        <RadioGroupItem value={o.id} className={cn('order-2 size-5', grid && 'absolute top-3 right-3 bg-background')} />
+                        <OptionInfo option={o} />
                     </label>
                 ))}
             </RadioGroup>
@@ -170,8 +174,9 @@ export function ChoiceOptions({ question, value, onChange, readOnly, labelledBy 
                             // คงลำดับตามตัวเลือก ไม่ใช่ตามลำดับที่กด
                             onChange?.(question.options.map((x) => x.id).filter((id) => next.includes(id)))
                         }}
-                        className={cn('size-5', grid && 'absolute top-3 right-3 bg-background')}
+                        className={cn('order-2 size-5', grid && 'absolute top-3 right-3 bg-background')}
                     />
+                    <OptionInfo option={o} />
                 </label>
             ))}
         </div>

@@ -1,31 +1,65 @@
 'use client'
-import React from 'react'
-import { Card } from '../../../../components/ui/card'
-import { Button } from '../../../../components/ui/button'
-import { ShieldCheck, Mail, Info } from "lucide-react"
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ShieldCheck, Info, Loader2, FlaskConical } from "lucide-react"
+import { toast } from 'sonner'
+import { api, authUrls, errorMessage } from '@/api'
+import { Card } from '@/components/ui/card'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
-export function CardLogin() {
-    const router = useRouter();
+// ล็อกอินได้สองทาง (สัญญา §1): CUNEX หรือ Google ทั้งคู่เป็นการเปลี่ยนหน้าไปที่ backend แล้วกลับมาที่ returnTo
+// บัญชีทดสอบ (POST /auth/dev/login) โชว์เฉพาะตอนไม่ใช่ production
+const SHOW_DEV_LOGIN = process.env.NODE_ENV !== 'production'
+
+export function CardLogin({ returnTo, error }: { returnTo: string; error: string | null }) {
+    const router = useRouter()
+    const [devPending, setDevPending] = useState<'user' | 'admin' | null>(null)
+
+    const devLogin = async (role: 'user' | 'admin') => {
+        setDevPending(role)
+        try {
+            await api.auth.devLogin(role)
+            router.replace(returnTo)
+            router.refresh()
+        } catch (err) {
+            toast.error(errorMessage(err, 'เข้าสู่ระบบไม่สำเร็จ'))
+            setDevPending(null)
+        }
+    }
+
+    const outline = cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'py-6! font-heading text-base relative text-ink-700 border-border-light')
+
     return (
         <Card className='w-100 mx-6 flex items-center justify-center shadow-lg container'>
             <section className='w-full px-6'>
                 <p className='font-heading text-2xl font-bold text-center pb-3 pt-1'>เลือกวิธีเข้าสู่ระบบ</p>
                 <hr className=' border-ink-400' />
             </section>
+            {error && <p role='alert' className='mx-6 mt-4 rounded-lg bg-red-100 px-3 py-2 text-center text-red-200'>{error}</p>}
             <section className='w-full flex px-10 *:w-full flex-col gap-3 py-6'>
-                <Button onClick={() => router.push("/")} size={'lg'} className={`py-6! font-heading font-bold text-lg text-center relative`}>
+                <a href={authUrls.cunex(returnTo)} className={cn(buttonVariants({ size: 'lg' }), 'py-6! font-heading font-bold text-lg text-center relative')}>
                     <ShieldCheck className='size-5 absolute top-1/2 -translate-y-1/2 left-4'/>
-                    <h1>เข้าสู่ระบบด้วย CUNEX</h1>
-                </Button>
-                <Button variant={`outline`} size={'lg'} className={`py-6! font-heading text-base relative text-ink-700 border-border-light`}>
+                    เข้าสู่ระบบด้วย CUNEX
+                </a>
+                <a href={authUrls.google(returnTo)} className={outline}>
                     <ShieldCheck className='size-5 absolute top-1/2 -translate-y-1/2 left-4 text-muted'/>
-                    <h1>เข้าสู่ระบบด้วย Google</h1>
-                </Button>
-                <Button size={'lg'} variant={`outline`} className={`py-6! font-heading text-base relative text-ink-700 border-border-light`}>
-                    <Mail className='size-5 absolute top-1/2 -translate-y-1/2 left-4 text-muted'/>
-                    <h1>เข้าสู่ระบบด้วย Email</h1>
-                </Button>
+                    เข้าสู่ระบบด้วย Google
+                </a>
+                <p className='text-center text-sm text-ink-500'>บัญชี Google ตอบได้เฉพาะโพลสาธารณะ</p>
+                {SHOW_DEV_LOGIN && (
+                    <div className='flex flex-col gap-2 rounded-xl border border-dashed p-3'>
+                        <span className='flex items-center gap-1 text-sm font-bold text-ink-500'><FlaskConical className='size-4' />บัญชีทดสอบ (ไม่มีใน production)</span>
+                        <div className='flex gap-2'>
+                            {(['user', 'admin'] as const).map((role) => (
+                                <Button key={role} variant='outline' className='flex-1' disabled={devPending !== null} onClick={() => devLogin(role)}>
+                                    {devPending === role && <Loader2 className='animate-spin' />}
+                                    {role === 'user' ? 'ผู้ใช้ทั่วไป' : 'แอดมิน'}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </section>
             <section className=' w-full flex gap-1 px-4 items-center'>
                 <Info size={16}/>

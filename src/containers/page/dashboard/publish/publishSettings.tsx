@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import type { PollResults } from '@/lib/pollResultTypes'
-import { applyDisplay, type ResultDisplaySettings } from '@/lib/resultDisplay'
+import { api, errorMessage } from '@/api'
+import type { Element, ResultDisplay } from '@/api/types'
+import { toResultsModel, type ResultsModel } from '@/lib/pollResultTypes'
+import { applyDisplay } from '@/lib/resultDisplay'
 import { useLiveResults } from '@/hooks/useLiveResults'
 import { ViewToggleBar } from '@/containers/page/dashboard/components/viewToggleBar'
 import { VoterResultsView } from '@/containers/page/vote/voterResults'
@@ -30,28 +32,31 @@ function Section({ title, description, children }: { title: string; description?
     )
 }
 
-// ฟอร์มตั้งค่า + ตัวอย่างสดของสิ่งที่ผู้ตอบจะเห็น (ใช้ตัวแปลงเดียวกับที่ server ใช้กรองข้อมูลก่อนส่งให้ผู้ตอบ)
-export function PublishSettings({ pollId, realtime, initialSettings, initialResults }: {
+// ฟอร์มตั้งค่า + ตัวอย่างสดของสิ่งที่ผู้ตอบจะเห็น (จำลองการกรองแบบเดียวกับที่ backend ทำก่อนส่งผลให้ผู้ตอบ)
+export function PublishSettings({ pollId, realtime, elements, initialSettings, initialResults }: {
     pollId: string
     realtime: boolean
-    initialSettings: ResultDisplaySettings
-    initialResults: PollResults
+    elements: Element[]
+    initialSettings: ResultDisplay
+    initialResults: ResultsModel
 }) {
-    const results = useLiveResults(initialResults, `/api/polls/${pollId}/results`)
+    const poll = { id: pollId, status: initialResults.status, elements }
+    const results = useLiveResults(initialResults, initialResults.status === 'open', async (signal) =>
+        toResultsModel(poll, await api.polls.results(pollId, 'none', signal)))
     const [saved, setSaved] = useState(initialSettings)
     const [settings, setSettings] = useState(initialSettings)
     const [saving, setSaving] = useState(false)
     const dirty = JSON.stringify(settings) !== JSON.stringify(saved)
 
-    const choices = results.questions.filter((q) => q.type !== 'text')
-    const selected = settings.questions ?? choices.map((q) => q.position)
-    const update = (patch: Partial<ResultDisplaySettings>) => setSettings((s) => ({ ...s, ...patch }))
+    const choices = results.questions.filter((q) => q.type !== 'text_question')
+    const selected = settings.elementIds ?? choices.map((q) => q.elementId)
+    const update = (patch: Partial<ResultDisplay>) => setSettings((s) => ({ ...s, ...patch }))
 
-    const toggleQuestion = (position: number, on: boolean) => {
-        const next = on ? [...selected, position] : selected.filter((p) => p !== position)
-        // เลือกครบทุกข้อเก็บเป็น null = ทุกข้อ ข้อที่ไม่มีในตอนนี้ก็จะรวมไปด้วยเสมอ
-        const all = choices.every((q) => next.includes(q.position))
-        update({ questions: all ? null : choices.map((q) => q.position).filter((p) => next.includes(p)) })
+    const toggleQuestion = (elementId: string, on: boolean) => {
+        const next = on ? [...selected, elementId] : selected.filter((id) => id !== elementId)
+        // เลือกครบทุกข้อเก็บเป็น null = ทุกข้อ
+        const all = choices.every((q) => next.includes(q.elementId))
+        update({ elementIds: all ? null : choices.map((q) => q.elementId).filter((id) => next.includes(id)) })
     }
 
     const save = async () => {
@@ -61,21 +66,12 @@ export function PublishSettings({ pollId, realtime, initialSettings, initialResu
         }
         setSaving(true)
         try {
-            const res = await fetch(`/api/polls/${pollId}/result-display`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(settings),
-            })
-            const data = await res.json().catch(() => null)
-            if (!res.ok) {
-                toast.error(data?.error ?? 'บันทึกไม่สำเร็จ')
-                return
-            }
+            const data = await api.polls.setResultDisplay(pollId, settings)
             setSaved(data)
             setSettings(data)
             toast.success('บันทึกการตั้งค่าแล้ว')
-        } catch {
-            toast.error('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง')
+        } catch (err) {
+            toast.error(errorMessage(err, 'บันทึกไม่สำเร็จ'))
         } finally {
             setSaving(false)
         }
@@ -104,11 +100,11 @@ export function PublishSettings({ pollId, realtime, initialSettings, initialResu
                 <Section title='ข้อที่จะโชว์' description='เฉพาะคำถามแบบเลือก คำตอบแบบข้อความไม่เผยแพร่ให้ผู้ตอบ'>
                     {choices.length === 0 && <p className='text-ink-500'>โพลนี้ไม่มีคำถามแบบเลือก</p>}
                     {choices.map((q) => (
-                        <label key={q.position} className='flex items-start gap-2'>
+                        <label key={q.elementId} className='flex items-start gap-2'>
                             <Checkbox
                                 className='mt-1 size-5'
-                                checked={selected.includes(q.position)}
-                                onCheckedChange={(on) => toggleQuestion(q.position, on)}
+                                checked={selected.includes(q.elementId)}
+                                onCheckedChange={(on) => toggleQuestion(q.elementId, on)}
                             />
                             <span className='min-w-0 break-words'>ข้อ {q.order} {q.title}</span>
                         </label>
@@ -135,7 +131,7 @@ export function PublishSettings({ pollId, realtime, initialSettings, initialResu
             <section aria-label='ตัวอย่างที่ผู้ตอบเห็น' className='flex flex-col gap-2'>
                 <h2 className='font-heading text-lg font-bold'>ตัวอย่างที่ผู้ตอบเห็น</h2>
                 {settings.published ? (
-                    <VoterResultsView results={preview} live={realtime && results.status === 'VOTING'} className='rounded-2xl bg-inner-bg p-4' />
+                    <VoterResultsView results={preview} views={settings.views} live={realtime && results.status === 'open'} className='rounded-2xl bg-inner-bg p-4' />
                 ) : (
                     <p className='rounded-2xl bg-inner-bg px-4 py-6 text-center text-ink-500'>ผู้ตอบจะไม่เห็นผลโหวตของโพลนี้</p>
                 )}

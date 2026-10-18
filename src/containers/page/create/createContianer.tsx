@@ -1,6 +1,7 @@
 'use client'
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { PollType, PollDetail, PollTypeMore, CreateFooter, CreateStepper } from '@/containers/page/create/components'
+import { MessageSquareWarning } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCreateStepStore, type CreateStep } from '@/store/createStepStore'
 import { useCreatePollStore } from '@/store/createPollStore'
@@ -39,8 +40,8 @@ export function CreateContainer({ draft }: { draft?: DraftInitial }) {
     })
 
     useEffect(() => {
-        useCreateDraftStore.getState().setDraftId(draft?.id ?? null)
-        return () => useCreateDraftStore.getState().setDraftId(null)
+        useCreateDraftStore.getState().setDraft(draft?.id ?? null, draft?.version ?? null)
+        return () => useCreateDraftStore.getState().setDraft(null, null)
     }, [draft])
 
     const goTo = (next: CreateStep) => {
@@ -52,6 +53,17 @@ export function CreateContainer({ draft }: { draft?: DraftInitial }) {
     return (
         <div className=' flex flex-col gap-2 justify-between'>
             <CreateStepper step={step} ref={stepperRef} />
+            {/* โพลที่ถูกปฏิเสธกลับมาแก้แล้วส่งใหม่ได้ โชว์ความเห็นของแอดมินไว้ให้แก้ตาม */}
+            {draft?.rejection && (
+                <div role='status' className='flex gap-2 rounded-xl bg-red-100 px-3 py-2 text-red-200'>
+                    <MessageSquareWarning className='mt-0.5 size-5 shrink-0' />
+                    <div className='flex flex-col'>
+                        <span className='font-bold'>ผู้ดูแลระบบไม่อนุมัติโพลนี้</span>
+                        <span className='break-words'>{draft.rejection}</span>
+                        <span className='text-sm'>แก้ตามความเห็นแล้วกดส่งขออนุมัติอีกครั้งได้</span>
+                    </div>
+                </div>
+            )}
             <div className={cn('flex flex-col gap-2', step !== 1 && 'hidden')}>
                 <PollType />
                 <PollDetail />

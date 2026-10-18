@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Ban, Loader2, Settings2, Share2 } from 'lucide-react'
+import { api, errorMessage } from '@/api'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -14,7 +15,8 @@ import { SharePollModal } from './sharePollModal'
 const pill = 'flex-1 rounded-full font-heading text-base font-bold'
 
 // ปุ่มแชร์ / ตั้งค่าการเผยแพร่ผลให้ผู้ตอบ / ปิดรับคำตอบ (ปิดได้เฉพาะตอนกำลังโหวต)
-export function PollActions({ pollId, voting }: { pollId: string; voting: boolean }) {
+// owner = เจ้าของโพล (เผยแพร่ผล/ปิดรับคำตอบเป็นสิทธิ์ของเจ้าของ) · shareUrl มาจาก API (ของจริงเป็นลิงก์ของ CUNEX)
+export function PollActions({ pollId, shareUrl, voting, owner }: { pollId: string; shareUrl: string | null; voting: boolean; owner: boolean }) {
     const router = useRouter()
     const [shareOpen, setShareOpen] = useState(false)
     const [closeOpen, setCloseOpen] = useState(false)
@@ -26,20 +28,11 @@ export function PollActions({ pollId, voting }: { pollId: string; voting: boolea
         setPending(true)
         setError(null)
         try {
-            const res = await fetch(`/api/polls/${pollId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'DONE', reason: reason.trim() || undefined }),
-            })
-            if (!res.ok) {
-                const data = await res.json().catch(() => null)
-                setError(data?.error ?? 'ปิดรับคำตอบไม่สำเร็จ')
-                return
-            }
+            await api.polls.close(pollId, reason.trim() || undefined)
             setCloseOpen(false)
             router.refresh()
-        } catch {
-            setError('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง')
+        } catch (err) {
+            setError(errorMessage(err, 'ปิดรับคำตอบไม่สำเร็จ'))
         } finally {
             setPending(false)
         }
@@ -51,18 +44,20 @@ export function PollActions({ pollId, voting }: { pollId: string; voting: boolea
                 <Share2 />
                 แชร์
             </Button>
-            <Link href={`/dashboard/${pollId}/publish`} className={cn(buttonVariants({ variant: 'outline' }), pill)}>
-                <Settings2 />
-                เผยแพร่ผล
-            </Link>
-            {voting && (
+            {owner && (
+                <Link href={`/dashboard/${pollId}/publish`} className={cn(buttonVariants({ variant: 'outline' }), pill)}>
+                    <Settings2 />
+                    เผยแพร่ผล
+                </Link>
+            )}
+            {owner && voting && (
                 <Button className={pill} onClick={() => setCloseOpen(true)}>
                     <Ban />
                     ปิดรับคำตอบ
                 </Button>
             )}
 
-            <SharePollModal pollId={pollId} open={shareOpen} onOpenChange={setShareOpen} />
+            <SharePollModal pollId={pollId} shareUrl={shareUrl} open={shareOpen} onOpenChange={setShareOpen} />
 
             {/* dialog ยืนยันหน้าตาเดียวกับยืนยันการส่งขออนุมัติ */}
             <Dialog open={closeOpen} onOpenChange={(next) => { if (!pending) { setCloseOpen(next); setError(null) } }}>

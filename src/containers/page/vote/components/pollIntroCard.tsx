@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Ban, CheckCircle2, List, Loader2, Timer } from 'lucide-react'
 import { toast } from 'sonner'
+import { api, errorMessage } from '@/api'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { estimateMinutes, type IneligibleReason, type MyResponse, type VoterPoll } from '@/lib/voteForm'
+import { estimateMinutes, paginate, resumePageIndex, type Answers, type IneligibleReason, type VoterPoll } from '@/lib/voteForm'
 import { formatThaiDateTime, formatTimeLeftShort } from '@/lib/thaiDate'
 import { cn } from '@/lib/utils'
 import { AudienceScopeView } from '@/components/common/audienceScopeView'
@@ -27,97 +28,92 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 // การ์ดหน้าแรกของโพล ปุ่มด้านล่างเปลี่ยนตามสถานะคำตอบของผู้ใช้และสถานะโพล
-// onStart ส่งมาเมื่อเป็นหน้าดูตัวอย่าง: กดเริ่มโหวตแล้วไปหน้าคำถามในเครื่อง ไม่สร้างฉบับร่างที่ server
-export function PollIntroCard({ poll, me, reason, resumePage, canSeeResults, onStart }: {
+// draft = ฉบับร่างคำตอบที่ server (ถ้ามี) · onStart ส่งมาเมื่อเป็นหน้าดูตัวอย่าง: ไปหน้าคำถามในหน้าเดียวกัน ไม่สร้างร่าง
+export function PollIntroCard({ poll, reason, draft, onStart }: {
     poll: VoterPoll
-    me: MyResponse
     reason: IneligibleReason | null
-    resumePage: number
-    canSeeResults: boolean
+    draft?: { answers: Answers; savedAt: string } | null
     onStart?: () => void
 }) {
     const router = useRouter()
     const [expanded, setExpanded] = useState(false)
     const [starting, setStarting] = useState(false)
 
-    // เริ่มโหวต = สร้างฉบับร่างว่างก่อน หน้าคำถามจะได้เข้าได้ (เข้าตรงโดยไม่มีร่างจะถูกส่งกลับหน้านี้)
-    const start = async () => {
+    // เริ่มโหวต/โหวตอีกครั้ง = สร้างร่างว่างที่ server ก่อน · แก้คำตอบ = สร้างร่างจากคำตอบเดิม
+    // หน้าคำถามเข้าได้เฉพาะตอนมีร่าง (เข้าตรงโดยไม่มีร่างจะถูกส่งกลับหน้านี้)
+    const start = async (fromBallot = false) => {
         if (onStart) return onStart()
         setStarting(true)
         try {
-            const res = await fetch(`/api/polls/${poll.id}/my-response`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ answers: {} }),
-            })
-            if (!res.ok) {
-                const data = await res.json().catch(() => null)
-                toast.error(data?.error ?? 'เริ่มโหวตไม่สำเร็จ')
-                router.refresh()
-                return
-            }
+            const answers = fromBallot ? (await api.ballot.get(poll.id)).answers : []
+            await api.ballot.putDraft(poll.id, answers)
             router.push(`/${poll.id}/q/1`)
-        } catch {
-            toast.error('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง')
-        } finally {
+        } catch (err) {
+            toast.error(errorMessage(err, 'เริ่มโหวตไม่สำเร็จ'))
+            router.refresh()
             setStarting(false)
         }
     }
+    const resumePage = draft ? resumePageIndex(paginate(poll.items), draft.answers) + 1 : 1
 
-    const closed = reason === 'CLOSED'
-    // ถูกปิดก่อนกำหนด ต่างจากหมดเวลา คนที่จำเวลาปิดได้จะได้ไม่คิดว่าตัวเองจำผิด (System flow §7)
     const closedEarly = poll.closedEarly && poll.closedAt !== null
-    const notOpen = reason === 'NOT_OPEN'
-    const voted = me.submittedAt !== null
+    const myAnswers = poll.submitted && <Link href={`/${poll.id}/my-answers`} className={outlinePill}>ดูคำตอบของคุณ</Link>
+    const results = poll.canViewResults && <Link href={`/${poll.id}/results`} className={outlinePill}>ดูผลโหวต</Link>
+    const startButton = (label: string, fromBallot = false) => (
+        <Button className={pill} disabled={starting} aria-busy={starting} onClick={() => start(fromBallot)}>
+            {starting && <Loader2 className='animate-spin' />}
+            {label}
+        </Button>
+    )
 
     let actions: React.ReactNode
-    if (notOpen) {
+    if (reason === 'NOT_OPEN') {
         actions = <Button disabled className={pill}>โพลนี้ยังไม่เปิดให้ตอบ</Button>
-    } else if (closed) {
+    } else if (reason === 'CLOSED') {
+        actions = <><Button disabled className={pill}>{closedEarly ? 'ถูกปิดก่อนกำหนด' : 'ปิดโหวตแล้ว'}</Button>{myAnswers}{results}</>
+    } else if (reason === 'NOT_ELIGIBLE') {
         actions = (
             <>
-                <Button disabled className={pill}>{closedEarly ? 'ถูกปิดก่อนกำหนด' : 'ปิดโหวตแล้ว'}</Button>
-                {canSeeResults && <Link href={`/${poll.id}/results`} className={outlinePill}>ดูผลโหวต</Link>}
+                <Button disabled className={pill}>บัญชีนี้ไม่อยู่ในกลุ่มผู้ตอบ</Button>
+                <p className='text-center text-sm text-ink-500'>คุณเห็นโพลนี้เพราะเป็นเจ้าของโพลหรือผู้ดูแลระบบ</p>
+                {results}
             </>
         )
-    } else if (me.status === 'draft') {
-        actions = <Link href={`/${poll.id}/q/${resumePage}`} className={cn(buttonVariants(), pill)}>โหวตต่อ</Link>
-    } else if (voted) {
+    } else if (reason === 'ALREADY_VOTED') {
+        actions = <><Button disabled className={pill}>โหวตแล้ว</Button>{myAnswers}{results}</>
+    } else if (poll.hasDraft) {
         actions = (
             <>
-                {reason === 'ALREADY_VOTED'
-                    ? <Button disabled className={pill}>โหวตแล้ว</Button>
-                    : (
-                        // โพลที่ตอบซ้ำได้ ส่งแล้วยังเริ่มรอบใหม่ได้ (นับทุกครั้งที่ส่ง)
-                        <Button className={pill} disabled={starting} aria-busy={starting} onClick={start}>
-                            {starting && <Loader2 className='animate-spin' />}
-                            โหวตอีกครั้ง
-                        </Button>
-                    )}
+                <Link href={`/${poll.id}/q/${resumePage}`} className={cn(buttonVariants(), pill)}>
+                    {poll.submitted && !poll.allowRepeat ? 'แก้คำตอบต่อ' : 'โหวตต่อ'}
+                </Link>
+                {myAnswers}{results}
+            </>
+        )
+    } else if (poll.submitted) {
+        // ลงคะแนนซ้ำได้ = เริ่มรอบใหม่ (นับเพิ่ม) · แก้คำตอบได้ = แทนที่คำตอบเดิม
+        actions = (
+            <>
+                {poll.allowRepeat ? startButton('โหวตอีกครั้ง') : startButton('แก้คำตอบ', true)}
                 <div className='grid grid-cols-2 gap-2'>
                     <Link href='/explore' className={outlinePill}>ไปที่หน้าโพลที่ตอบได้</Link>
-                    <Link href={`/${poll.id}/my-answers`} className={outlinePill}>ดูคำตอบของคุณ</Link>
+                    {myAnswers}
                 </div>
-                {canSeeResults && <Link href={`/${poll.id}/results`} className={outlinePill}>ดูผลโหวต</Link>}
+                {results}
             </>
         )
     } else {
-        actions = (
-            <Button className={pill} disabled={starting} aria-busy={starting} onClick={start}>
-                {starting && <Loader2 className='animate-spin' />}
-                เริ่มโหวต
-            </Button>
-        )
+        actions = startButton('เริ่มโหวต')
     }
 
     return (
         <article className='flex flex-col gap-4 rounded-2xl border bg-card p-4 shadow-sm'>
             <div className='flex flex-col gap-1'>
                 <h1 className='font-heading text-3xl font-bold break-words'>{poll.title}</h1>
-                {me.status === 'draft' && me.lastSavedAt && (
+                {draft && !onStart && (
                     <p className='flex items-center gap-1 text-sm text-ink-500 italic'>
                         <CheckCircle2 className='size-4 shrink-0' />
-                        บันทึกคำตอบล่าสุด: {savedDate.format(new Date(me.lastSavedAt))} ({savedTime.format(new Date(me.lastSavedAt))})
+                        บันทึกคำตอบล่าสุด: {savedDate.format(new Date(draft.savedAt))} ({savedTime.format(new Date(draft.savedAt))})
                     </p>
                 )}
             </div>
@@ -135,9 +131,9 @@ export function PollIntroCard({ poll, me, reason, resumePage, canSeeResults, onS
             <dl className='flex flex-col gap-2'>
                 <MetaRow label='ขอบเขตผู้ตอบ'><AudienceScopeView label={poll.audienceLabel} scope={poll.audienceScope} /></MetaRow>
                 <MetaRow label='เวลาปิดโหวต'>
-                    {closedEarly
-                        ? `ปิดจริง ${formatThaiDateTime(poll.closedAt!)} · กำหนดเดิม ${formatThaiDateTime(poll.closeAt)}`
-                        : `${formatThaiDateTime(poll.closeAt)} (${formatTimeLeftShort(poll.closeAt)})`}
+                    {closedEarly && poll.closesAt
+                        ? `ปิดจริง ${formatThaiDateTime(poll.closedAt!)} · กำหนดเดิม ${formatThaiDateTime(poll.closesAt)}`
+                        : poll.closesAt ? `${formatThaiDateTime(poll.closesAt)} (${formatTimeLeftShort(poll.closesAt)})` : 'ยังไม่ตั้งเวลาปิด'}
                 </MetaRow>
                 {poll.description && (
                     <MetaRow label='รายละเอียด'>

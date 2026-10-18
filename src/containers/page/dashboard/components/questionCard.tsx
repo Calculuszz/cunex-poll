@@ -1,7 +1,6 @@
 import React from 'react'
-import { isChoiceQuestion, type ResultQuestion } from '@/lib/pollResultTypes'
+import { isChoiceQuestion, type DisplayNumbers, type DisplayOption, type ResultQuestion } from '@/lib/pollResultTypes'
 import type { ResultView } from '@/lib/resultView'
-import { toDisplayOptions, type DisplayNumbers, type DisplayOption } from '@/lib/resultDisplay'
 import { ResultListView } from './resultListView'
 import { ResultDonutView } from './resultDonutView'
 import { ResultBarView } from './resultBarView'
@@ -10,7 +9,8 @@ import { TextAnswerList } from './textAnswerList'
 const CAPTION: Record<ResultQuestion['type'], string> = {
     single_choice: 'เลือกหนึ่งข้อ',
     multi_choice: 'เลือกได้หลายข้อ',
-    text: 'ข้อความ',
+    dropdown: 'เลือกจากรายการ',
+    text_question: 'ข้อความ',
 }
 
 // เนื้อหาผลของคำถามแบบเลือก ตามมุมมองที่เปิดอยู่ เรียงลำดับ รายการ → โดนัท → แท่ง เสมอ
@@ -32,19 +32,6 @@ export function DisplayChoiceResults({ options, total, numbers, views, empty }: 
     )
 }
 
-const ALL_NUMBERS = { count: true, percent: true }
-
-export function ChoiceResults({ question, views }: { question: ResultQuestion; views: ResultView[] }) {
-    return (
-        <DisplayChoiceResults
-            options={toDisplayOptions(question, ALL_NUMBERS)}
-            total={question.respondentCount}
-            numbers={ALL_NUMBERS}
-            views={views}
-            empty={question.respondentCount === 0}
-        />
-    )
-}
 
 // โครงการ์ดคำถามที่ใช้ร่วมกันทั้งการ์ดผลโหวตและการ์ดดูคำถามก่อนเปิดโหวต: "ข้อ n" + เส้นคั่น + ชื่อคำถาม + คำอธิบายรอง
 export function QuestionCardShell({ id, order, title, caption, children }: {
@@ -71,24 +58,25 @@ export function QuestionCardShell({ id, order, title, caption, children }: {
 
 export const QUESTION_TYPE_CAPTION = CAPTION
 
-export function QuestionCard({ pollId, question, views }: { pollId: string; question: ResultQuestion; views: ResultView[] }) {
+// การ์ดผลของคำถามหนึ่งข้อในหน้าเจ้าของ/แอดมิน (เห็นทุกตัวเลข)
+export function QuestionCard({ pollId, question, numbers, views }: {
+    pollId: string
+    question: ResultQuestion
+    numbers: DisplayNumbers
+    views: ResultView[]
+}) {
+    const answered = question.respondentCount ?? 0
     return (
         <QuestionCardShell
-            id={`q-${question.position}`}
+            id={`q-${question.elementId}`}
             order={question.order}
             title={question.title}
-            caption={`${CAPTION[question.type]} · ตอบแล้ว ${question.respondentCount.toLocaleString('th-TH')} คน`}
+            caption={`${CAPTION[question.type]} · ตอบแล้ว ${answered.toLocaleString('th-TH')} คน`}
         >
             {isChoiceQuestion(question) ? (
-                <ChoiceResults question={question} views={views} />
+                <DisplayChoiceResults options={question.options} total={question.respondentCount} numbers={numbers} views={views} empty={answered === 0} />
             ) : (
-                <TextAnswerList
-                    pollId={pollId}
-                    position={question.position}
-                    title={question.title}
-                    answers={question.textAnswers ?? []}
-                    total={question.textAnswerCount ?? 0}
-                />
+                <TextAnswerList pollId={pollId} elementId={question.elementId} title={question.title} total={answered} />
             )}
         </QuestionCardShell>
     )

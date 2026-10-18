@@ -3,12 +3,13 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Rocket } from 'lucide-react'
 import { toast } from 'sonner'
+import { api, errorMessage, isApiError } from '@/api'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
-// ปุ่ม Publish ของโพลที่อนุมัติแล้ว: เปิดให้เริ่มรับคำตอบทันที (System flow §7)
-// expired = เลยเวลาปิดแล้ว เปิดไม่ได้ (API ตรวจซ้ำ)
-export function PublishAction({ pollId, expired }: { pollId: string; expired: boolean }) {
+// ปุ่ม Publish ของโพลที่อนุมัติแล้ว (POST /publish) เจ้าของเป็นคนกด · approved → open เริ่มรับคำตอบทันที
+// expired = เลยเวลาปิดแล้ว ต้องเลื่อนเวลาปิดก่อน (backend ตอบ 422 CLOSES_AT_PASSED)
+export function PublishAction({ pollId, expired, owner }: { pollId: string; expired: boolean; owner: boolean }) {
     const router = useRouter()
     const [open, setOpen] = useState(false)
     const [pending, setPending] = useState(false)
@@ -18,32 +19,27 @@ export function PublishAction({ pollId, expired }: { pollId: string; expired: bo
         setPending(true)
         setError(null)
         try {
-            const res = await fetch(`/api/polls/${pollId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'VOTING' }),
-            })
-            if (!res.ok) {
-                const data = await res.json().catch(() => null)
-                setError(data?.error ?? 'เปิดโหวตไม่สำเร็จ')
-                return
-            }
+            await api.polls.publish(pollId)
             setOpen(false)
             toast.success('เปิดโหวตแล้ว แชร์ลิงก์ให้ผู้ตอบได้เลย')
             router.refresh()
-        } catch {
-            setError('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง')
+        } catch (err) {
+            setError(isApiError(err, 'CLOSES_AT_PASSED') ? 'เลยเวลาปิดโหวตแล้ว เลื่อนเวลาปิดก่อนเปิดโหวต' : errorMessage(err, 'เปิดโหวตไม่สำเร็จ'))
         } finally {
             setPending(false)
         }
     }
 
+    const message = !owner
+        ? 'โพลนี้อนุมัติแล้ว รอเจ้าของโพลกดเปิดโหวต'
+        : expired
+            ? 'เลยเวลาปิดโหวตที่ตั้งไว้แล้ว เลื่อนเวลาปิดด้านบนก่อนจึงจะเปิดโหวตได้'
+            : 'โพลนี้อนุมัติแล้ว กดเปิดโหวตเมื่อพร้อมให้เริ่มรับคำตอบ'
+
     return (
         <div className='flex flex-col gap-3 rounded-2xl bg-inner-bg px-4 py-6 text-center'>
-            <p className='text-ink-500'>
-                {expired ? 'เลยเวลาปิดโหวตที่ตั้งไว้แล้ว จึงเปิดโหวตโพลนี้ไม่ได้' : 'โพลนี้อนุมัติแล้ว กดเปิดโหวตเมื่อพร้อมให้เริ่มรับคำตอบ'}
-            </p>
-            {!expired && (
+            <p className='text-ink-500'>{message}</p>
+            {owner && !expired && (
                 <Button className='h-11 w-full rounded-full font-heading text-base font-bold' onClick={() => setOpen(true)}>
                     <Rocket />
                     เปิดโหวต
@@ -57,7 +53,7 @@ export function PublishAction({ pollId, expired }: { pollId: string; expired: bo
                         <Rocket className='size-14 text-primary' />
                         <DialogTitle className='py-6 font-heading text-xl font-bold'>เปิดโหวต ?</DialogTitle>
                         <DialogDescription className='text-center text-base'>
-                            ผู้ที่มีลิงก์จะเริ่มตอบได้ทันที<br />หลังเปิดแล้วแก้โพลและการแสดงผลแบบเรียลไทม์ไม่ได้
+                            ผู้ที่มีลิงก์จะเริ่มตอบได้ทันที<br />หลังเปิดแล้วเปลี่ยนการแสดงผลแบบเรียลไทม์ไม่ได้
                         </DialogDescription>
                         <div className='flex w-full gap-2 py-4'>
                             <Button variant='outline' className='flex-1 font-heading text-base font-bold' disabled={pending} onClick={() => setOpen(false)}>

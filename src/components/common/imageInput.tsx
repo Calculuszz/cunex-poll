@@ -4,7 +4,7 @@ import { ImageUp, LoaderCircle, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { ImageFileError } from '@/lib/imageFile'
-import { isRemoteUpload, uploadImage } from '@/lib/imageUpload'
+import { uploadImage } from '@/lib/imageUpload'
 
 export function ImageInput({
     label = 'รูปภาพ',
@@ -104,7 +104,7 @@ export function ImageInput({
                     className='flex h-30 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed text-base text-ink-500 transition-colors peer-focus-visible:border-ring peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50 peer-disabled:cursor-progress'
                 >
                     {busy ? <LoaderCircle className='size-5 animate-spin' /> : <ImageUp className='size-5' />}
-                    {busy ? (isRemoteUpload ? 'กำลังอัพโหลดรูป...' : 'กำลังเตรียมรูป...') : 'แตะเพื่อเลือกรูป'}
+                    {busy ? 'กำลังอัพโหลดรูป...' : 'แตะเพื่อเลือกรูป'}
                 </label>
             )}
 

@@ -1,28 +1,17 @@
-import type { PollDetail } from '@/lib/polls'
+import type { PollDetail } from '@/api/types'
 import type { FormItem } from '@/store/elementStore'
 import type { CreatePollState } from '@/store/createPollStore'
+import { detailToForm } from '@/lib/pollMappers'
 
-export type DraftInitial = { id: string; form: CreatePollState; items: FormItem[] }
+// version ใช้ส่ง If-Match ตอนบันทึกทับ · rejection = ความเห็นจากแอดมินครั้งล่าสุด (โพลที่ถูกปฏิเสธแล้วกลับมาแก้)
+export type DraftInitial = { id: string; version: number; form: CreatePollState; items: FormItem[]; rejection: string | null }
 
-// ข้อมูลฉบับร่างจาก DB แปลงเป็นค่าของฟอร์มสร้างโพล (กลับทิศกับ buildPayload)
 export function toDraftInitial(poll: PollDetail): DraftInitial {
-    const { audience } = poll
+    const lastReview = poll.reviews?.[0]
     return {
         id: poll.id,
-        form: {
-            title: poll.title,
-            desc: poll.desc,
-            closeTime: poll.closeTime.toISOString(),
-            scope: poll.scope,
-            realtime: poll.realtime,
-            allowRepeat: poll.allowRepeat,
-            showExplore: poll.showExplore,
-            identifySender: poll.identifySender,
-            audienceIds: [...audience.faculties, ...audience.departments],
-            codeKind: audience.codeKind ?? 'STUDENT',
-            codesText: audience.studentCodes.join('\n'),
-        },
-        // คำถามจาก seed ยังไม่มี id จึงสร้างจากโพลกับตำแหน่งแทน (คงที่ทุกครั้งที่โหลด) ใช้เป็น key ของรายการได้
-        items: poll.items.map((item) => ({ ...item.data, id: String(item.data.id ?? `${poll.id}-${item.position}`) }) as FormItem),
+        version: poll.version,
+        ...detailToForm(poll),
+        rejection: poll.status === 'rejected' ? lastReview?.comment ?? 'ผู้ดูแลระบบไม่ได้ให้ความเห็นไว้' : null,
     }
 }

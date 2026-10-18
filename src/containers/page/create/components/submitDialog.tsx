@@ -17,7 +17,8 @@ export function SubmitDialog({ open, onOpenChange, onPreview, onSubmit, pending,
     onPreview: () => void
     onSubmit: () => void
     pending: boolean
-    error: string | null
+    // problems = รายการที่ backend บอกว่ายังไม่ครบ (POLL_INCOMPLETE)
+    error: { message: string; problems?: string[] } | null
 }) {
     return (
         <Dialog open={open} onOpenChange={(next) => { if (!pending) onOpenChange(next) }}>
@@ -39,7 +40,16 @@ export function SubmitDialog({ open, onOpenChange, onPreview, onSubmit, pending,
                         </Button>
                     </div>
                 </div>
-                {error && <p role='alert' className='text-base text-destructive'>{error}</p>}
+                {error && (
+                    <div role='alert' className='flex flex-col gap-1 text-base text-destructive'>
+                        <p>{error.message}</p>
+                        {error.problems && error.problems.length > 0 && (
+                            <ul className='list-disc pl-5 text-sm'>
+                                {error.problems.map((p) => <li key={p}>{p}</li>)}
+                            </ul>
+                        )}
+                    </div>
+                )}
             </DialogContent>
         </Dialog>
     )

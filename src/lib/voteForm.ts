@@ -1,61 +1,109 @@
-// ตัวช่วยของหน้ากรอกโพล ใช้ได้ทั้ง server และ client (ไม่มี import ของ pg)
+// ตัวช่วยของหน้ากรอกโพล ใช้ได้ทั้ง server และ client
+import type { Answer, Audience, Ballot, Faculty, Me, PollDetail, PollStatus } from '@/api/types'
 import type { ElementItem, InputItem } from '@/store/elementStore'
-import type { PollStatus, Scope } from '@/dtos/pollcardDto'
-import type { AudienceScope } from '@/lib/audienceLabel'
+import { audienceLabel, audienceScope, type AudienceScope } from '@/lib/audienceLabel'
+import { elementToItem } from '@/lib/pollMappers'
 
-// radio/select → optionId เดียว · checkbox → array ของ optionId · text → ข้อความ (API contract §4)
+// radio/select → optionId เดียว · checkbox → array ของ optionId · text → ข้อความ
 export type AnswerValue = string | string[]
 export type Answers = Record<string, AnswerValue>
 
-// item ที่ seed ไว้บางตัวไม่มี id จึงใช้ id คงที่จาก position แทน (แบบเดียวกับหน้าแก้ฉบับร่าง)
-export type VoteItem = (InputItem | ElementItem) & { key: string; position: number }
-export type VoteQuestion = InputItem & { key: string; position: number; order: number }
+// key = id ของ element จาก API (คงที่หลังเปิดโหวต)
+export type VoteItem = (InputItem | ElementItem) & { key: string }
+export type VoteQuestion = VoteItem & InputItem & { order: number }
 
 export type VoterPoll = {
     id: string
     title: string
     description: string
-    scope: Scope
     status: PollStatus
-    realtime: boolean
-    allowRepeat: boolean
-    closeAt: string
-    // ปิดก่อนกำหนด: หน้ากรอกต้องบอกว่า "ถูกปิดก่อน" ไม่ใช่หมดเวลา (System flow §7) · ไม่ส่ง closedBy มาหน้านี้
+    closesAt: string | null
+    // ปิดก่อนกำหนด: หน้ากรอกต้องบอกว่า "ถูกปิดก่อน" ไม่ใช่หมดเวลา
     closedAt: string | null
     closedEarly: boolean
     closeReason: string | null
+    audience: Audience
     audienceLabel: string
     audienceScope: AudienceScope | null
-    // เจ้าของโพลเห็นรหัสผู้ตอบ (สวิตช์ "ระบุคนส่ง")
+    realtime: boolean
+    allowAnswerEdit: boolean
+    // ลงคะแนนซ้ำได้: ส่งได้หลายครั้ง นับทุกครั้ง (POST /ballots)
+    allowRepeat: boolean
+    // เจ้าของโพลเห็นรหัสผู้ตอบ ต้องบอกผู้ตอบก่อนเริ่ม
     identifySender: boolean
-    // โพลที่ยังไม่เปิดให้ตอบจะไม่ส่ง items มา (ของที่ยังไม่ควรมีใครเห็น)
     items: VoteItem[]
     questionCount: number
-    // ผู้ตอบเห็นผลได้หรือไม่ (เจ้าของตั้งจากหน้า dashboard)
     resultsPublished: boolean
+    canViewResults: boolean
+    submitted: boolean
+    canEdit: boolean
+    // มีฉบับร่างคำตอบค้างที่ server
+    hasDraft: boolean
+    isOwner: boolean
 }
 
-export type MyResponse = {
-    // draft = กรอกค้างไว้ · submitted = ส่งแล้วและยังไม่มีฉบับร่างใหม่
-    status: 'none' | 'draft' | 'submitted'
-    answers: Answers
-    lastSavedAt: string | null
-    // ส่งครั้งล่าสุดเมื่อไหร่ (มีค่าแม้กำลังกรอกฉบับร่างรอบใหม่ของโพลที่ตอบซ้ำได้)
-    submittedAt: string | null
+export function toVoterPoll(poll: PollDetail, faculties: Faculty[]): VoterPoll {
+    const items = poll.elements.map((e, i) => {
+        const item = elementToItem(e, i)
+        return { ...item, key: item.id } as VoteItem
+    })
+    return {
+        id: poll.id,
+        title: poll.title,
+        description: poll.description,
+        status: poll.status,
+        closesAt: poll.closesAt,
+        closedAt: poll.closedAt,
+        closedEarly: poll.closedEarly,
+        closeReason: poll.closeReason,
+        audience: poll.audience,
+        audienceLabel: audienceLabel(poll.audience, faculties),
+        audienceScope: audienceScope(poll.audience, faculties),
+        realtime: poll.settings.showResultsRealtime,
+        allowAnswerEdit: poll.settings.allowAnswerEdit,
+        allowRepeat: poll.settings.allowRepeat,
+        identifySender: poll.settings.identifySender,
+        items,
+        questionCount: items.filter((i) => i.kind === 'input').length,
+        resultsPublished: poll.resultDisplay.published,
+        canViewResults: poll.canViewResults,
+        submitted: poll.myBallot?.submitted ?? false,
+        canEdit: poll.myBallot?.canEdit ?? false,
+        hasDraft: poll.myBallot?.hasDraft ?? false,
+        isOwner: poll.isOwner,
+    }
 }
 
-export type IneligibleReason = 'NOT_OPEN' | 'CLOSED' | 'OUT_OF_SCOPE' | 'ALREADY_VOTED'
+// สถานะที่ทำให้ตอบไม่ได้ (คิดฝั่งหน้าเว็บเพื่อเลือกข้อความ/ปุ่ม · backend ตรวจซ้ำตอน PUT ballot)
+export type IneligibleReason = 'NOT_OPEN' | 'CLOSED' | 'NOT_ELIGIBLE' | 'ALREADY_VOTED'
 
-export const itemKey = (pollId: string, position: number, id?: string) => id || `${pollId}-${position}`
+// กติกาเดียวกับ backend: public = ใครที่ล็อกอินก็ได้ · chula = ยืนยันผ่าน CUNEX · restricted = ตรงกฎคณะ/สาขา/ปีเข้า
+// codes: ผู้ตอบทั่วไปไม่ได้รายชื่อ (เห็นโพลได้แปลว่าอยู่ในรายชื่อแล้ว) เจ้าของ/แอดมินได้รายชื่อเต็มจึงตรวจได้
+export function isEligible(me: Me, audience: Audience) {
+    if (audience.type === 'public') return true
+    if (!me.isChulaVerified) return false
+    if (audience.type === 'chula') return true
+    if (audience.type === 'codes') return audience.codes.length === 0 || (!!me.studentId && audience.codes.includes(me.studentId))
+    return audience.rules.some((r) =>
+        r.facultyCode === me.faculty?.code
+        && (!r.departmentCode || r.departmentCode === me.departmentCode)
+        && (r.studentYear === null || r.studentYear === me.studentYear))
+}
 
-// โพลแบบ C ตอบซ้ำได้เสมอ (System flow §3)
-export const canRepeat = (poll: Pick<VoterPoll, 'scope' | 'allowRepeat'>) => poll.scope === 'C' || poll.allowRepeat
+// โพลที่ยัง open แต่เลยเวลาปิดแล้วถือว่าปิด เผื่องานตัดสถานะของ backend ยังไม่ได้รัน
+export const isOpenForVoting = (poll: Pick<VoterPoll, 'status' | 'closesAt'>, now = Date.now()) =>
+    poll.status === 'open' && !!poll.closesAt && new Date(poll.closesAt).getTime() > now
 
-// โพลที่สถานะยัง VOTING แต่เลยเวลาปิดแล้วถือว่าปิด เผื่องานที่ตัดสถานะยังไม่ได้รัน
-export const isOpenForVoting = (poll: Pick<VoterPoll, 'status' | 'closeAt'>, now = Date.now()) =>
-    poll.status === 'VOTING' && new Date(poll.closeAt).getTime() > now
+export function ineligibleReason(poll: VoterPoll, me: Me): IneligibleReason | null {
+    if (poll.status === 'closed' || (poll.status === 'open' && !isOpenForVoting(poll))) return 'CLOSED'
+    if (poll.status !== 'open') return 'NOT_OPEN'
+    // เจ้าของ/แอดมินเห็นโพลได้แม้อยู่นอกกลุ่มผู้ตอบ แต่ตอบไม่ได้
+    if (!isEligible(me, poll.audience)) return 'NOT_ELIGIBLE'
+    if (poll.submitted && !poll.canEdit && !poll.allowRepeat) return 'ALREADY_VOTED'
+    return null
+}
 
-// แบ่งหน้าตาม pagebreak (API contract §3) pagebreak ไม่ถูกวาด แค่เป็นตัวตัดหน้า
+// แบ่งหน้าตาม pagebreak (page_break) ตัวแบ่งไม่ถูกวาด แค่เป็นตัวตัดหน้า
 export function paginate<T extends { kind: string; type: string }>(items: T[]): T[][] {
     const pages: T[][] = [[]]
     for (const item of items) {
@@ -76,7 +124,8 @@ export function questionsOf(items: VoteItem[]): VoteQuestion[] {
         .map((item, index) => ({ ...item, order: index + 1 }))
 }
 
-export const TEXT_ANSWER_MAX = 2000
+// เพดานความยาวคำตอบข้อความ (สัญญา: maxLength ของคำถาม สูงสุด 5000)
+export const TEXT_ANSWER_MAX = 5000
 
 export function isAnswered(question: InputItem, value: AnswerValue | undefined) {
     if (value === undefined) return false
@@ -99,32 +148,33 @@ export function resumePageIndex(pages: VoteItem[][], answers: Answers) {
 // เวลาโดยประมาณ ~20 วินาทีต่อข้อ ปัดขึ้นเป็นนาที อย่างน้อย 1 นาที
 export const estimateMinutes = (questionCount: number) => Math.max(1, Math.ceil((questionCount * 20) / 60))
 
-// ทำความสะอาดคำตอบตามชนิดคำถาม ตัดคำตอบของข้อที่ไม่มีอยู่และตัวเลือกที่ไม่มีจริงทิ้ง
-// คืน error ถ้าค่าผิดชนิด (ใช้ที่ server ก่อนเขียนลงฐานข้อมูล)
-export function normalizeAnswers(questions: VoteQuestion[], raw: unknown): { ok: true; value: Answers } | { ok: false; error: string } {
-    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return { ok: false, error: 'answers ต้องเป็น object' }
-    const input = raw as Record<string, unknown>
-    const value: Answers = {}
-    for (const q of questions) {
-        const v = input[q.key]
-        if (v === undefined || v === null) continue
-        if (q.type === 'text') {
-            if (typeof v !== 'string') return { ok: false, error: `คำตอบข้อ ${q.order} ต้องเป็นข้อความ` }
-            if (v.length > TEXT_ANSWER_MAX) return { ok: false, error: `คำตอบข้อ ${q.order} ยาวเกิน ${TEXT_ANSWER_MAX} ตัวอักษร` }
-            if (v.trim()) value[q.key] = v
-            continue
-        }
-        const optionIds = new Set(q.options.map((o) => o.id))
-        if (q.type === 'checkbox') {
-            if (!Array.isArray(v) || !v.every((id) => typeof id === 'string' && optionIds.has(id))) {
-                return { ok: false, error: `ตัวเลือกข้อ ${q.order} ไม่ถูกต้อง` }
-            }
-            const picked = [...new Set(v as string[])]
-            if (picked.length > 0) value[q.key] = picked
-            continue
-        }
-        if (typeof v !== 'string' || !optionIds.has(v)) return { ok: false, error: `ตัวเลือกข้อ ${q.order} ไม่ถูกต้อง` }
-        value[q.key] = v
+// คำตอบในหน้าจอ → body ของ PUT /ballot (ข้อที่ไม่ได้ตอบไม่ส่ง)
+export function toApiAnswers(questions: VoteQuestion[], answers: Answers): Answer[] {
+    return questions.flatMap((q): Answer[] => {
+        const v = answers[q.key]
+        if (!isAnswered(q, v)) return []
+        if (q.type === 'text') return [{ elementId: q.key, text: (v as string).trim() }]
+        return [{ elementId: q.key, optionIds: Array.isArray(v) ? v : [v as string] }]
+    })
+}
+
+// คำตอบในหน้าจอ → Answer ของ API โดยไม่ต้องมีคำถาม (ใช้ตอนบันทึกร่าง) textKeys = คำถามแบบข้อความ
+export function answersToApi(answers: Answers, textKeys: string[]): Answer[] {
+    return Object.entries(answers).flatMap(([key, v]): Answer[] => {
+        if (textKeys.includes(key)) return typeof v === 'string' ? [{ elementId: key, text: v }] : []
+        const ids = Array.isArray(v) ? v : v ? [v] : []
+        return ids.length > 0 ? [{ elementId: key, optionIds: ids }] : []
+    })
+}
+
+// Ballot จาก API → คำตอบในหน้าจอ (ใช้ตอนแก้คำตอบ และหน้าดูคำตอบของฉัน)
+export function fromBallot(questions: VoteQuestion[], ballot: Pick<Ballot, 'answers'>): Answers {
+    const answers: Answers = {}
+    for (const a of ballot.answers) {
+        const q = questions.find((x) => x.key === a.elementId)
+        if (!q) continue
+        if ('text' in a) answers[q.key] = a.text
+        else answers[q.key] = q.type === 'checkbox' ? a.optionIds : a.optionIds[0]
     }
-    return { ok: true, value }
+    return answers
 }

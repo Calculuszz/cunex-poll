@@ -13,7 +13,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { STUDENT_ID_PATTERN } from '@/lib/studentId'
+import { api, errorMessage } from '@/api'
+
+const STUDENT_ID_PATTERN = /^\d{10}$/
 
 // ปุ่มลอยมุมขวาล่างเหมือนปุ่มสร้างโพล เปิด dialog ให้กรอกรหัสนิสิต
 export function AddAdminDialog() {
@@ -41,20 +43,12 @@ export function AddAdminDialog() {
         setPending(true)
         setError(null)
         try {
-            const res = await fetch('/api/admins', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ studentId }),
-            })
-            if (!res.ok) {
-                const data = await res.json().catch(() => null)
-                setError(data?.error ?? 'เพิ่มแอดมินไม่สำเร็จ')
-                return
-            }
+            await api.admin.addAdmin(studentId)
             handleOpenChange(false)
             router.refresh()
-        } catch {
-            setError('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง')
+        } catch (err) {
+            // USER_NOT_FOUND: คนนั้นต้องเข้าสู่ระบบด้วย CUNEX ก่อนหนึ่งครั้ง (ข้อความมาจาก API)
+            setError(errorMessage(err, 'เพิ่มแอดมินไม่สำเร็จ'))
         } finally {
             setPending(false)
         }

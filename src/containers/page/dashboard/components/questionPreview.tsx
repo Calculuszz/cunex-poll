@@ -1,17 +1,19 @@
 import React from 'react'
+import type { Element } from '@/api/types'
+import { isQuestion } from '@/api/types'
 import type { InputItem } from '@/store/elementStore'
-import type { PollItemRow } from '@/lib/polls'
+import { elementToItem } from '@/lib/pollMappers'
 import { cn } from '@/lib/utils'
 import { QUESTION_TYPE_CAPTION, QuestionCardShell } from './questionCard'
 
-const TYPE_KEY = { radio: 'single_choice', select: 'single_choice', checkbox: 'multi_choice', text: 'text' } as const
+const TYPE_KEY = { radio: 'single_choice', select: 'dropdown', checkbox: 'multi_choice', text: 'text_question' } as const
 
 // ดูคำถามของโพลที่ยังไม่เปิดโหวต (รออนุมัติ/อนุมัติแล้ว/ไม่อนุมัติ) แบบอ่านอย่างเดียว
 // ให้แอดมินพิจารณาได้ว่าโพลถามอะไร และเจ้าของตรวจทานก่อนเปิดโหวต
-export function QuestionPreview({ items }: { items: PollItemRow[] }) {
-    const questions = items
-        .map((row) => ({ position: row.position, data: row.data as InputItem & { kind?: string } }))
-        .filter((q) => q.data.kind === 'input')
+export function QuestionPreview({ elements }: { elements: Element[] }) {
+    const questions = elements
+        .filter(isQuestion)
+        .map((e, i) => ({ position: i + 1, data: elementToItem(e, i) as InputItem }))
 
     return (
         <section aria-labelledby='questions-heading' className='flex flex-col gap-4'>
@@ -41,7 +43,7 @@ export function QuestionPreview({ items }: { items: PollItemRow[] }) {
                                         className={cn('size-4 shrink-0 border-2 border-ink-400', data.type === 'checkbox' ? 'rounded-sm' : 'rounded-full')}
                                     />
                                     {o.imageUrl && (
-                                        // รูปอาจเป็น data URL หรือโดเมนใดก็ได้จากการอัปโหลด จึงใช้ img ธรรมดาแทน next/image
+                                        // รูปมาจาก storage ของ backend (โดเมนเปลี่ยนตามที่ตั้ง) จึงใช้ img ธรรมดาแทน next/image
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img src={o.imageUrl} alt={o.imageAlt ?? ''} loading='lazy' className='size-12 shrink-0 rounded-md object-cover' />
                                     )}

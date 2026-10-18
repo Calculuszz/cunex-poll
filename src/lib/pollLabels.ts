@@ -1,30 +1,37 @@
-import type { IPollCardDTO } from '@/dtos/pollcardDto'
+import type { AudienceType, PollStatus, PollSummary } from '@/api/types'
 
-export const STATUS_LABEL: Record<IPollCardDTO['type'], string> = {
-    DRAFT: 'ฉบับร่าง',
-    PENDING: 'รออนุมัติ',
-    APPROVED: 'อนุมัติแล้ว',
-    VOTING: 'กำลังโหวต',
-    DONE: 'จบแล้ว',
-    REJECTED: 'ไม่อนุมัติ',
+export const STATUS_LABEL: Record<PollStatus, string> = {
+    draft: 'ฉบับร่าง',
+    pending_review: 'รออนุมัติ',
+    approved: 'อนุมัติแล้ว',
+    open: 'กำลังโหวต',
+    closed: 'จบแล้ว',
+    rejected: 'ไม่อนุมัติ',
 }
 
 // สีชิปสถานะ ใช้ชุดเดียวกันทุกที่ที่แสดงสถานะโพล
 // เขียว = กำลังรับคำตอบ, เหลือง = รอคนตัดสิน, ฟ้า = อนุมัติแล้วรอเปิด, แดง = ไม่อนุมัติ, เทา = ยังไม่เริ่ม/จบไปแล้ว
-export const STATUS_BADGE_CLASS: Record<IPollCardDTO['type'], string> = {
-    DRAFT: 'bg-badge text-muted',
-    PENDING: 'bg-yellow-100 text-yellow-700',
-    APPROVED: 'bg-blue-100 text-blue-200',
-    VOTING: 'bg-green-100 text-green-200',
-    DONE: 'bg-badge text-muted',
-    REJECTED: 'bg-red-100 text-red-200',
+export const STATUS_BADGE_CLASS: Record<PollStatus, string> = {
+    draft: 'bg-badge text-muted',
+    pending_review: 'bg-yellow-100 text-yellow-700',
+    approved: 'bg-blue-100 text-blue-200',
+    open: 'bg-green-100 text-green-200',
+    closed: 'bg-badge text-muted',
+    rejected: 'bg-red-100 text-red-200',
 }
 
-export const SCOPE_LABEL: Record<IPollCardDTO['scope'], string> = {
-    A: 'ทั้งจุฬา ฯ',
-    B: 'เฉพาะคณะ/สาขา',
-    C: 'สาธารณะ',
-    D: 'กำหนดจากรหัส',
+export const AUDIENCE_LABEL: Record<AudienceType, string> = {
+    chula: 'ทั้งจุฬาฯ',
+    restricted: 'เฉพาะคณะ/สาขา',
+    public: 'สาธารณะ',
+    codes: 'กำหนดจากรหัส',
+}
+
+export const AUDIENCE_DESCRIPTION: Record<AudienceType, string> = {
+    chula: 'นิสิตและบุคลากรจุฬาฯ ที่ยืนยันตัวตนผ่าน CUNEX',
+    restricted: 'เฉพาะคณะ สาขา และปีเข้าที่เลือก ต้องยืนยันตัวตนผ่าน CUNEX',
+    public: 'ทุกคนที่เข้าสู่ระบบ รวมบัญชี Google · ลงคะแนนซ้ำได้เสมอ',
+    codes: 'เฉพาะรหัสนิสิต/บุคลากรที่กำหนด',
 }
 
 // ใช้ timeZone คงที่ เพื่อให้ server กับ client แสดงเวลาเหมือนกันตอน hydrate
@@ -34,15 +41,15 @@ const closeFormatter = new Intl.DateTimeFormat('th-TH', {
     timeZone: 'Asia/Bangkok',
 })
 
-export function formatCloseTime(date: Date) {
-    return closeFormatter.format(date)
+export function formatCloseTime(date: Date | string) {
+    return closeFormatter.format(new Date(date))
 }
 
-// ความยาวสูงสุดของเหตุผลตอนปิดรับคำตอบก่อนกำหนด ใช้ทั้งช่องกรอกและ API
-export const CLOSE_REASON_MAX = 300
+// ความยาวสูงสุดของเหตุผลตอนปิดรับคำตอบก่อนกำหนด (สัญญา: ≤ 500)
+export const CLOSE_REASON_MAX = 500
 
-// เวลาปิดที่การ์ดควรโชว์: โพลที่ปิดก่อนกำหนดต้องโชว์เวลาที่ปิดจริง ไม่งั้นอ่านแล้วนึกว่ายังเปิดอยู่ (System flow §7)
-export function cardCloseLabel(poll: Pick<IPollCardDTO, 'closeTime' | 'closedAt' | 'closedEarly'>) {
+// เวลาปิดที่การ์ดควรโชว์: โพลที่ปิดก่อนกำหนดต้องโชว์เวลาที่ปิดจริง ไม่งั้นอ่านแล้วนึกว่ายังเปิดอยู่
+export function cardCloseLabel(poll: Pick<PollSummary, 'closesAt' | 'closedAt' | 'closedEarly'>) {
     if (poll.closedEarly && poll.closedAt) return `ปิดก่อนกำหนด ${formatCloseTime(poll.closedAt)}`
-    return `ปิด ${formatCloseTime(poll.closeTime)}`
+    return poll.closesAt ? `ปิด ${formatCloseTime(poll.closesAt)}` : 'ยังไม่ตั้งเวลาปิด'
 }

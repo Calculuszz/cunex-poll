@@ -22,8 +22,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { CODE_KIND_LABEL, CODE_LENGTH, CODE_PATTERNS, parseCodes } from '@/containers/page/create/components/buildPayload'
-import { PRESET_NAME_MAX, type PresetKind } from '@/lib/presetInput'
+import { api, errorMessage } from '@/api'
+import type { CodeKind as PresetKind } from '@/api/types'
+import { CODE_KIND_LABEL, CODE_LENGTH, CODE_PATTERNS, parseCodes } from '@/lib/codes'
+
+const PRESET_NAME_MAX = 60
 
 const CODE_KIND_ITEMS = [
     { label: 'นิสิต (10 หลัก)', value: 'STUDENT' },
@@ -64,21 +67,12 @@ export function AddPresetDialog() {
         setPending(true)
         setError(null)
         try {
-            const res = await fetch('/api/presets', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name.trim(), codeKind, codes }),
-            })
-            if (!res.ok) {
-                const data = await res.json().catch(() => null)
-                setError(data?.error ?? 'บันทึก preset ไม่สำเร็จ')
-                return
-            }
+            await api.presets.create({ name: name.trim(), codeKind, codes })
             setPending(false)
             handleOpenChange(false)
             router.refresh()
-        } catch {
-            setError('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง')
+        } catch (err) {
+            setError(errorMessage(err, 'บันทึก preset ไม่สำเร็จ'))
         } finally {
             setPending(false)
         }

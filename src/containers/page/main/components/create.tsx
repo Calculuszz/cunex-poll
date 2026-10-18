@@ -2,11 +2,11 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import gsap from 'gsap'
-import { Bookmark, Plus } from 'lucide-react'
+import { Bookmark, Compass, Plus } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-// ปุ่มเมนูมุมขวาล่าง: กดแล้วปุ่ม "สร้างโพล" กับ "จัดการ preset" เด้งออกมาทีละปุ่ม
+// ปุ่มเมนูมุมขวาล่าง: กดแล้วปุ่ม "สร้างโพล" "จัดการ preset" และ "โพลที่ตอบได้" เด้งออกมาทีละปุ่ม
 // ปิดได้ด้วยกดปุ่มเมนูอีกครั้ง คลิกนอกเมนู หรือกด Escape
 export function CreateMenu() {
     const [open, setOpen] = useState(false)
@@ -101,6 +101,10 @@ export function CreateMenu() {
                 <Link href='/presets' className={itemClass} onClick={close}>
                     <Bookmark className='size-5' />
                     จัดการ preset
+                </Link>
+                <Link href='/explore' className={itemClass} onClick={close}>
+                    <Compass className='size-5' />
+                    โพลที่ตอบได้
                 </Link>
             </div>
             <Button

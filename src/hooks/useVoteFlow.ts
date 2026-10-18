@@ -1,26 +1,21 @@
 'use client'
 import { useState } from 'react'
+import { api, errorMessage } from '@/api'
+import { answersToApi } from '@/lib/voteForm'
 import { useVoteFlowStore } from '@/store/voteFlowStore'
 
 export type SaveResult = { ok: true } | { ok: false; error: string; code?: string }
 
-// บันทึกฉบับร่างของคำตอบปัจจุบันขึ้น server
+// บันทึกฉบับร่างของคำตอบปัจจุบันขึ้น server (PUT /polls/:id/ballot/draft [เสนอเพิ่ม])
 // keepalive ใช้ตอนกำลังออกจากหน้า (ปุ่มย้อนกลับของเบราว์เซอร์) ให้คำขอไปถึงแม้หน้าถูกปิดไปแล้ว
 export async function saveVoteDraft(pollId: string, options?: { keepalive?: boolean }): Promise<SaveResult> {
-    const { answers, markSaved } = useVoteFlowStore.getState()
+    const { answers, textKeys, markSaved } = useVoteFlowStore.getState()
     try {
-        const res = await fetch(`/api/polls/${pollId}/my-response`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ answers }),
-            keepalive: options?.keepalive,
-        })
-        const data = await res.json().catch(() => null)
-        if (!res.ok) return { ok: false, error: data?.error ?? 'บันทึกคำตอบไม่สำเร็จ', code: data?.code }
-        markSaved(data.lastSavedAt, answers)
+        const draft = await api.ballot.putDraft(pollId, answersToApi(answers, textKeys), options)
+        markSaved(draft.savedAt, answers)
         return { ok: true }
-    } catch {
-        return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ คำตอบยังอยู่ ลองใหม่อีกครั้ง' }
+    } catch (err) {
+        return { ok: false, error: errorMessage(err, 'บันทึกคำตอบไม่สำเร็จ คำตอบยังอยู่ ลองใหม่อีกครั้ง') }
     }
 }
 

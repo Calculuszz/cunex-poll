@@ -1,18 +1,24 @@
 import React from 'react'
-import { notFound, redirect } from 'next/navigation'
-import { CURRENT_USER } from '@/lib/currentUser'
+import { redirect } from 'next/navigation'
+import { isApiError } from '@/api'
 import { formatThaiDateTime } from '@/lib/thaiDate'
-import { questionsOf } from '@/lib/voteForm'
-import { getMyLastSubmission, getVoterPoll } from '@/lib/votes'
+import { fromBallot, questionsOf } from '@/lib/voteForm'
+import { loadVoterPoll } from './loadVoter'
 import { VoterHeader } from './components/voterHeader'
 import { QuestionBlock } from './components/questionBlock'
 
-// คำตอบที่ส่งไปแล้วแบบอ่านอย่างเดียว ไม่มีปุ่มแก้ เพราะส่งแล้วถือเป็นคะแนนที่นับไปแล้ว
+// คำตอบที่ส่งไปแล้วแบบอ่านอย่างเดียว (GET /polls/:id/ballot) · แก้คำตอบทำจากหน้าแรกของโพลเมื่อโพลเปิดให้แก้
 export async function MyAnswersPage({ slug }: { slug: string }) {
-    const poll = await getVoterPoll(slug)
-    if (!poll) notFound()
-    const mine = await getMyLastSubmission(poll, CURRENT_USER.studentId)
-    if (!mine) redirect(`/${slug}`)
+    const { poll, api } = await loadVoterPoll(slug, `/${slug}/my-answers`)
+    let ballot
+    try {
+        ballot = await api.ballot.get(slug)
+    } catch (err) {
+        if (isApiError(err, 'NO_BALLOT')) redirect(`/${slug}`)
+        throw err
+    }
+    const questions = questionsOf(poll.items)
+    const answers = fromBallot(questions, ballot)
 
     return (
         <>
@@ -26,11 +32,11 @@ export async function MyAnswersPage({ slug }: { slug: string }) {
                     <span className='text-sm text-ink-500'>ชื่อโพล</span>
                     <span className='font-heading text-xl font-bold break-words'>{poll.title}</span>
                     <hr />
-                    <span className='text-sm text-ink-500'>ส่งเมื่อ: {formatThaiDateTime(mine.submittedAt)}</span>
+                    {ballot.submittedAt && <span className='text-sm text-ink-500'>ส่งเมื่อ: {formatThaiDateTime(ballot.submittedAt)}</span>}
                 </div>
-                {questionsOf(poll.items).map((q) => (
+                {questions.map((q) => (
                     <div key={q.key} className='rounded-2xl border bg-card p-4'>
-                        <QuestionBlock question={q} value={mine.answers[q.key]} readOnly />
+                        <QuestionBlock question={q} value={answers[q.key]} readOnly />
                     </div>
                 ))}
             </div>

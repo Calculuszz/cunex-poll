@@ -12,9 +12,12 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { useCreatePollStore, type CodeKind, type PollScope } from '@/store/createPollStore'
+import type { AudienceType, CodeKind } from '@/api/types'
+import { CODE_KIND_LABEL, CODE_LENGTH, CODE_PATTERNS, parseCodes } from '@/lib/codes'
+import { AUDIENCE_DESCRIPTION, AUDIENCE_LABEL } from '@/lib/pollLabels'
+import { useShallow } from 'zustand/react/shallow'
+import { useCreatePollStore } from '@/store/createPollStore'
 import { FacultyPicker } from './facultyPicker'
-import { CODE_KIND_LABEL, CODE_LENGTH, CODE_PATTERNS, parseCodes } from './buildPayload'
 import { PresetTools } from './presetTools'
 
 const CODE_KIND_ITEMS = [
@@ -22,27 +25,26 @@ const CODE_KIND_ITEMS = [
   { label: "บุคลากร (8 หลัก)", value: "STAFF" },
 ]
 
-export type { PollScope } from '@/store/createPollStore'
-
-const items = [
-  { label: "ทั้งจุฬา ฯ", value: "A" },
-  { label: "เฉพาะคณะ/สาขา", value: "B" },
-  { label: "สาธารณะ", value: "C" },
-  { label: "กำหนดจากรหัส", value: "D" },
+const items: { label: string; value: AudienceType }[] = [
+  { label: AUDIENCE_LABEL.chula, value: "chula" },
+  { label: AUDIENCE_LABEL.restricted, value: "restricted" },
+  { label: AUDIENCE_LABEL.public, value: "public" },
+  { label: AUDIENCE_LABEL.codes, value: "codes" },
 ]
 
+// ขอบเขตผู้ตอบ: ทั้งจุฬาฯ / เฉพาะคณะ-สาขา-ปีเข้า / สาธารณะ / กำหนดจากรหัส
 export function PollType() {
-    const scope = useCreatePollStore((s) => s.scope)
+    const audienceType = useCreatePollStore((s) => s.audienceType)
     const update = useCreatePollStore((s) => s.update)
 
     return (
         <div className='flex flex-col gap-1'>
             <Label className="text-xl font-heading font-bold">ประเภทโพล</Label>
-            <Select items={items} value={scope} onValueChange={(v) => v && update({ scope: v as PollScope })}>
+            <Select items={items} value={audienceType} onValueChange={(v) => v && update({ audienceType: v as AudienceType })}>
                 <SelectTrigger className="w-full text-base h-10!">
                     <SelectValue placeholder="เลือกประเภทโพล" />
                 </SelectTrigger>
-                <SelectContent className={``}>
+                <SelectContent>
                     <SelectGroup>
                     <SelectLabel>เลือกประเภทโพล</SelectLabel>
                     {items.map((item) => (
@@ -53,8 +55,9 @@ export function PollType() {
                     </SelectGroup>
                 </SelectContent>
             </Select>
-            {scope === 'B' && <FacultyPicker />}
-            {scope === 'D' && <CodeListInput />}
+            <span className='text-sm text-ink-500'>{AUDIENCE_DESCRIPTION[audienceType]}</span>
+            {audienceType === 'restricted' && <FacultyPicker />}
+            {audienceType === 'codes' && <CodeListInput />}
         </div>
     )
 }
@@ -107,40 +110,45 @@ function CodeListInput() {
 }
 
 
+// สวิตช์ตั้งค่าโพล · โพลสาธารณะล็อกลงคะแนนซ้ำไว้ที่เปิดและระบุคนส่งไว้ที่ปิด · ลงคะแนนซ้ำแล้ว "แก้คำตอบ" ไม่มีความหมาย
 export function PollTypeMore() {
-    const scope = useCreatePollStore((s) => s.scope)
-    const realtime = useCreatePollStore((s) => s.realtime)
-    const allowRepeat = useCreatePollStore((s) => s.allowRepeat)
-    const showExplore = useCreatePollStore((s) => s.showExplore)
-    const identifySender = useCreatePollStore((s) => s.identifySender)
+    // useShallow: selector คืน object ใหม่ทุกครั้ง ต้องเทียบแบบตื้นไม่งั้นวน render
+    const f = useCreatePollStore(useShallow((s) => ({
+        audienceType: s.audienceType, realtime: s.realtime, allowAnswerEdit: s.allowAnswerEdit,
+        allowRepeat: s.allowRepeat, listedPublicly: s.listedPublicly, identifySender: s.identifySender,
+    })))
     const update = useCreatePollStore((s) => s.update)
-    // โพลสาธารณะล็อกสวิตช์ลงคะแนนซ้ำไว้ที่เปิด และล็อกระบุคนส่งไว้ที่ปิด
-    const isPublic = scope === 'C'
+    const isPublic = f.audienceType === 'public'
+    const repeat = isPublic || f.allowRepeat
+
+    const rows: { key: 'realtime' | 'allowRepeat' | 'allowAnswerEdit' | 'listedPublicly' | 'identifySender'; label: string; checked: boolean; disabled?: boolean; hint: string }[] = [
+        { key: 'realtime', label: 'แสดงผลแบบเรียลไทม์', checked: f.realtime, hint: 'ผู้ที่ตอบแล้วดูผลระหว่างเปิดโหวตได้ (เปลี่ยนได้จนกว่าจะเปิดโหวต)' },
+        {
+            key: 'allowRepeat', label: 'ลงคะแนนซ้ำ', checked: repeat, disabled: isPublic,
+            hint: isPublic ? 'โพลสาธารณะเปิดให้ลงคะแนนซ้ำเสมอ' : 'ส่งได้หลายครั้ง นับทุกครั้งที่ส่ง',
+        },
+        {
+            key: 'allowAnswerEdit', label: 'แก้คำตอบได้', checked: !repeat && f.allowAnswerEdit, disabled: repeat,
+            hint: repeat ? 'ใช้ไม่ได้เมื่อเปิดลงคะแนนซ้ำ' : 'หนึ่งคนหนึ่งคำตอบ แต่กลับมาแก้คำตอบของตัวเองได้จนกว่าจะปิดโหวต',
+        },
+        { key: 'listedPublicly', label: 'แสดงในหน้ารวมโพล', checked: f.listedPublicly, hint: 'ปิดไว้ = เข้าได้ทางลิงก์หรือ QR เท่านั้น' },
+        {
+            key: 'identifySender', label: 'ระบุคนส่ง', checked: !isPublic && f.identifySender, disabled: isPublic,
+            hint: isPublic ? 'โพลสาธารณะไม่ระบุคนส่ง' : 'เปิดแล้วคุณจะเห็นรหัสของผู้ตอบคู่กับคำตอบ เช่น ใช้ทำแบบทดสอบ ผู้ตอบจะได้รับแจ้งก่อนเริ่มตอบ',
+        },
+    ]
 
     return (
-        <div className='flex flex-col gap-1 py-2'>
-            <div className="flex gap-1 items-center">
-                <Switch id='poll-realtime' checked={realtime} onCheckedChange={(v) => update({ realtime: v })} />
-                <Label htmlFor='poll-realtime' className=' text-base font-bold font-heading'>แสดงผลแบบเรียลไทม์</Label>
-            </div>
-            <div className="flex gap-1 items-center">
-                <Switch id='poll-again' checked={isPublic || allowRepeat} onCheckedChange={(v) => update({ allowRepeat: v })} disabled={isPublic} />
-                <Label htmlFor='poll-again' className=' text-base font-bold font-heading'>ลงคะแนนซ้ำ</Label>
-            </div>
-            {isPublic && <span className='text-sm text-ink-500'>โพลสาธารณะเปิดให้ลงคะแนนซ้ำเสมอ</span>}
-            <div className="flex gap-1 items-center">
-                <Switch id='poll-explore' checked={showExplore} onCheckedChange={(v) => update({ showExplore: v })} />
-                <Label htmlFor='poll-explore' className=' text-base font-bold font-heading'>เพิ่มลงหน้า explore</Label>
-            </div>
-            <div className="flex gap-1 items-center">
-                <Switch id='poll-sender' checked={!isPublic && identifySender} onCheckedChange={(v) => update({ identifySender: v })} disabled={isPublic} />
-                <Label htmlFor='poll-sender' className=' text-base font-bold font-heading'>ระบุคนส่ง</Label>
-            </div>
-            <span className='text-sm text-ink-500'>
-                {isPublic
-                    ? 'โพลสาธารณะไม่ระบุคนส่ง'
-                    : 'เปิดแล้วคุณจะเห็นรหัสของผู้ตอบคู่กับคำตอบ เช่น ใช้ทำแบบทดสอบ ผู้ตอบจะได้รับแจ้งก่อนเริ่มตอบ'}
-            </span>
+        <div className='flex flex-col gap-2 py-2'>
+            {rows.map((r) => (
+                <div key={r.key} className='flex flex-col'>
+                    <div className="flex gap-1 items-center">
+                        <Switch id={`poll-${r.key}`} checked={r.checked} disabled={r.disabled} onCheckedChange={(v) => update({ [r.key]: v })} />
+                        <Label htmlFor={`poll-${r.key}`} className=' text-base font-bold font-heading'>{r.label}</Label>
+                    </div>
+                    <span className='text-sm text-ink-500'>{r.hint}</span>
+                </div>
+            ))}
         </div>
     )
 }

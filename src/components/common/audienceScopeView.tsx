@@ -8,7 +8,7 @@ import { groupLabel, type AudienceScope } from '@/lib/audienceLabel'
 const COLLAPSE_AT = 3
 
 // ขอบเขตผู้ตอบในหน้า dashboard และหน้ากรอก
-// แบบ B: 1–2 คณะแสดงเต็มบรรทัดละคณะ · 3+ ย่อเป็น "คณะ X, คณะ Y และอีก n คณะ" + ปุ่มดูรายชื่อเปิด dialog จัดกลุ่มตามคณะ
+// restricted: 1–2 คณะแสดงเต็มบรรทัดละคณะ · 3+ ย่อเป็น "คณะ X, คณะ Y และอีก n คณะ" + ปุ่มดูรายชื่อเปิด dialog จัดกลุ่มตามคณะ
 // แบบอื่นใช้ป้ายบรรทัดเดียว (label)
 export function AudienceScopeView({ label, scope }: { label: string; scope: AudienceScope | null }) {
     const [open, setOpen] = useState(false)
@@ -42,19 +42,18 @@ export function AudienceScopeView({ label, scope }: { label: string; scope: Audi
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle className='font-heading text-xl font-bold'>ขอบเขตผู้ตอบ</DialogTitle>
-                        <DialogDescription className='text-base'>
-                            รวม {scope.facultyCount} คณะ · {scope.departmentCount} สาขา
-                        </DialogDescription>
+                        <DialogDescription className='text-base'>รวม {scope.facultyCount} คณะ · {scope.departmentCount} สาขา</DialogDescription>
                     </DialogHeader>
-                    {/* คณะเป็นหัวข้อ สาขาเป็นชิปข้างใต้ ชื่อคณะจะได้ไม่ซ้ำหลายรอบ */}
+                    {/* คณะเป็นหัวข้อ สาขา/ปีเข้าเป็นชิปข้างใต้ ชื่อคณะจะได้ไม่ซ้ำหลายรอบ */}
                     <ul className='flex flex-col gap-3'>
                         {scope.groups.map((g) => (
                             <li key={g.faculty} className='flex flex-col gap-1'>
                                 <span className='text-base font-bold'>{g.faculty}</span>
                                 <span className='flex flex-wrap gap-1'>
-                                    {g.whole
+                                    {g.departments.length === 0
                                         ? <Badge variant='outline'>ทั้งคณะ</Badge>
                                         : g.departments.map((d) => <Badge key={d} variant='outline'>{d}</Badge>)}
+                                    {g.years.map((y) => <Badge key={y} variant='secondary'>ปีเข้า {y}</Badge>)}
                                 </span>
                             </li>
                         ))}

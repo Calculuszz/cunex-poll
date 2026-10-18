@@ -3,12 +3,13 @@ import { Bookmark } from 'lucide-react'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { PresetCard } from './components/presetCard'
 import { AddPresetDialog } from './components/addPresetDialog'
-import { getPresets } from '@/lib/presets'
+import { getServerApi, loadOrNotFound } from '@/api/server'
 
-// หน้าจัดการ preset รหัสของผู้ใช้ปัจจุบัน เพิ่มได้จากปุ่มลอยมุมขวาล่าง
+// หน้าจัดการ preset รหัสของผู้ใช้ปัจจุบัน (GET /me/presets [เสนอเพิ่ม]) เพิ่มได้จากปุ่มลอยมุมขวาล่าง
 // pb-24 กันการ์ดแถวสุดท้ายถูกปุ่มลอยบัง
 export async function PresetsPage() {
-    const presets = await getPresets()
+    const api = await getServerApi()
+    const presets = await loadOrNotFound(() => api.presets.list(), '/presets')
 
     return (
         <div className='flex flex-col gap-4 pb-24'>

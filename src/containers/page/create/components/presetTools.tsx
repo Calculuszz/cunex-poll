@@ -21,15 +21,12 @@ import {
 } from '@/components/ui/select'
 import { useCreatePollStore, type CodeKind } from '@/store/createPollStore'
 import { useGuardedNavigate } from '@/hooks/useGuardedNavigate'
-import { CODE_KIND_LABEL, CODE_PATTERNS, parseCodes } from './buildPayload'
+import { api, errorMessage } from '@/api'
+import type { CodePreset } from '@/api/types'
+import { CODE_KIND_LABEL, CODE_PATTERNS, parseCodes } from '@/lib/codes'
 
-export type PresetSummary = { id: number; name: string; codeKind: CodeKind; codes: string[] }
-
-async function fetchPresets(): Promise<PresetSummary[]> {
-    const res = await fetch('/api/presets')
-    if (!res.ok) throw new Error('โหลด preset ไม่สำเร็จ')
-    return res.json()
-}
+// preset ของผู้ใช้ (GET /me/presets [เสนอเพิ่ม])
+const fetchPresets = () => api.presets.list()
 
 // เครื่องมือ preset ใต้ช่องรายการรหัส: เลือก preset ที่บันทึกไว้, บันทึกรหัสปัจจุบันเป็น preset, ไปหน้าจัดการ
 export function PresetTools() {
@@ -38,7 +35,7 @@ export function PresetTools() {
     const update = useCreatePollStore((s) => s.update)
     const guard = useGuardedNavigate()
 
-    const [presets, setPresets] = useState<PresetSummary[]>([])
+    const [presets, setPresets] = useState<CodePreset[]>([])
     const [loadError, setLoadError] = useState<string | null>(null)
     const [pickedId, setPickedId] = useState('')
     const [saveOpen, setSaveOpen] = useState(false)
@@ -144,20 +141,11 @@ function SavePresetDialog({ open, onOpenChange, codeKind, codes, onSaved }: {
         setPending(true)
         setError(null)
         try {
-            const res = await fetch('/api/presets', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name.trim(), codeKind, codes }),
-            })
-            if (!res.ok) {
-                const data = await res.json().catch(() => null)
-                setError(data?.error ?? 'บันทึก preset ไม่สำเร็จ')
-                return
-            }
+            await api.presets.create({ name: name.trim(), codeKind, codes })
             handleOpenChange(false)
             onSaved()
-        } catch {
-            setError('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง')
+        } catch (err) {
+            setError(errorMessage(err, 'บันทึก preset ไม่สำเร็จ'))
         } finally {
             setPending(false)
         }

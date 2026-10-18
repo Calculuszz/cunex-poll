@@ -1,35 +1,47 @@
 import React from 'react'
-import type { PollDetail } from '@/lib/polls'
+import type { Faculty, PollDetail } from '@/api/types'
 import { formatThaiDateTime, formatTimeLeftShort } from '@/lib/thaiDate'
 import { audienceLabel, audienceScope } from '@/lib/audienceLabel'
 import { AudienceScopeView } from '@/components/common/audienceScopeView'
 import { RealtimeSwitch } from './realtimeSwitch'
+import { ClosesAtEditor } from './closesAtEditor'
 
-// สถานะที่ยังเปลี่ยนสวิตช์เรียลไทม์ได้ ฉบับร่างแก้ที่หน้าสร้างโพลแทน
-const REALTIME_EDITABLE = ['PENDING', 'APPROVED']
-
-// รายละเอียดโพลแบบ label/value เรียงลงล่าง
-// view = 'admin' เห็นด้วยว่าใครกดปิดโพล (ข้อมูลภายใน ไม่แสดงในหน้าเจ้าของหรือหน้าสาธารณะ)
-export function PollMetaInfo({ poll, view = 'owner' }: { poll: PollDetail; view?: 'owner' | 'admin' }) {
-    // โพลที่ปิดก่อนกำหนดโชว์เวลาปิดจริงคู่กับกำหนดเดิม (System flow §7)
-    const closeValue = poll.closedEarly && poll.closedAt
-        ? `ปิดจริง ${formatThaiDateTime(poll.closedAt)} · กำหนดเดิม ${formatThaiDateTime(poll.closeTime)}`
-        : `${formatThaiDateTime(poll.closeTime)} (${formatTimeLeftShort(poll.closeTime)})`
+// รายละเอียดโพลแบบ label/value เรียงลงล่าง · ส่วนที่แก้ได้ (เวลาปิด/เรียลไทม์) โชว์ปุ่มเฉพาะเจ้าของ
+export function PollMetaInfo({ poll, faculties }: { poll: PollDetail; faculties: Faculty[] }) {
+    const owner = poll.isOwner
+    // โพลที่ปิดก่อนกำหนดโชว์เวลาปิดจริงคู่กับกำหนดเดิม
+    const closeText = !poll.closesAt
+        ? 'ยังไม่ตั้งเวลาปิด'
+        : poll.closedEarly && poll.closedAt
+            ? `ปิดจริง ${formatThaiDateTime(poll.closedAt)} · กำหนดเดิม ${formatThaiDateTime(poll.closesAt)}`
+            : `${formatThaiDateTime(poll.closesAt)} (${formatTimeLeftShort(poll.closesAt)})`
+    const canMoveClose = owner && ['pending_review', 'approved', 'open'].includes(poll.status)
 
     const rows: { label: string; value: React.ReactNode }[] = [
-        { label: 'ขอบเขตผู้ตอบ', value: <AudienceScopeView label={audienceLabel(poll)} scope={audienceScope(poll)} /> },
-        { label: 'เวลาปิดโหวต', value: closeValue },
+        { label: 'ขอบเขตผู้ตอบ', value: <AudienceScopeView label={audienceLabel(poll.audience, faculties)} scope={audienceScope(poll.audience, faculties)} /> },
+        {
+            label: 'เวลาปิดโหวต',
+            value: <span className='flex flex-col gap-1'>{closeText}{canMoveClose && <ClosesAtEditor pollId={poll.id} closesAt={poll.closesAt} />}</span>,
+        },
     ]
     if (poll.closedEarly && poll.closeReason) rows.push({ label: 'เหตุผลที่ปิดก่อนกำหนด', value: poll.closeReason })
-    if (view === 'admin' && poll.closedBy) rows.push({ label: 'ปิดโดย', value: poll.closedBy })
-    rows.push({ label: 'การลงคะแนนซ้ำ', value: poll.allowRepeat || poll.scope === 'C' ? 'ลงคะแนนซ้ำได้' : 'หนึ่งคนหนึ่งเสียง' })
+    // ใครกดปิด: ข้อมูลภายใน backend ส่งมาเฉพาะแอดมิน
+    if (poll.closedBy) rows.push({ label: 'ปิดโดย', value: poll.closedBy })
+    if (poll.takenDown) rows.push({ label: 'ถูกถอดโดยผู้ดูแลระบบ', value: poll.takedownReason ?? '-' })
+    rows.push({
+        label: 'การลงคะแนน',
+        value: poll.settings.allowRepeat
+            ? 'ลงคะแนนซ้ำได้ (นับทุกครั้ง)'
+            : poll.settings.allowAnswerEdit ? 'หนึ่งคนหนึ่งเสียง · แก้คำตอบได้จนกว่าจะปิดโหวต' : 'หนึ่งคนหนึ่งเสียง · ส่งแล้วแก้ไม่ได้',
+    })
     rows.push({
         label: 'แสดงผลแบบเรียลไทม์',
-        value: REALTIME_EDITABLE.includes(poll.type)
-            ? <RealtimeSwitch pollId={poll.id} realtime={poll.realtime} />
-            : poll.realtime ? 'เปิด' : 'ปิด',
+        value: owner && (poll.status === 'pending_review' || poll.status === 'approved')
+            ? <RealtimeSwitch pollId={poll.id} realtime={poll.settings.showResultsRealtime} />
+            : poll.settings.showResultsRealtime ? 'เปิด' : 'ปิด',
     })
-    if (poll.identifySender && poll.scope !== 'C') {
+    rows.push({ label: 'หน้ารวมโพล', value: poll.settings.listedPublicly ? 'แสดง' : 'ไม่แสดง (เข้าได้ทางลิงก์เท่านั้น)' })
+    if (poll.settings.identifySender) {
         rows.push({ label: 'ระบุคนส่ง', value: 'เปิด · เจ้าของโพลเห็นรหัสของผู้ตอบในคำตอบรายชุดและไฟล์ส่งออก' })
     }
 

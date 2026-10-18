@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React from 'react'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -13,8 +13,8 @@ export function PollDetail() {
     const desc = useCreatePollStore((s) => s.desc)
     const closeTime = useCreatePollStore((s) => s.closeTime)
     const update = useCreatePollStore((s) => s.update)
-    // รูปปกยังไม่มีที่เก็บใน backend จึงยังไม่ถูกบันทึกลง store
-    const [banner, setBanner] = useState<string>()
+    // publicUrl จาก POST /images/uploads เก็บใน store แล้วส่งไปเป็น coverImageUrl ตอนบันทึก
+    const coverImageUrl = useCreatePollStore((s) => s.coverImageUrl)
 
     return (
         <div className=' flex flex-col gap-1'>
@@ -37,7 +37,7 @@ export function PollDetail() {
                         />
                         <span className='text-sm text-ink-500'>ระบบจะปิดรับโหวตอัตโนมัติเมื่อถึงเวลานี้</span>
                     </div>
-                    <ImageInput label='รูปปกโพล' value={banner} onChange={setBanner} />
+                    <ImageInput label='รูปปกโพล' value={coverImageUrl ?? undefined} onChange={(url) => update({ coverImageUrl: url ?? null })} />
                 </CardContent>
             </Card>
         </div>

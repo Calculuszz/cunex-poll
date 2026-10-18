@@ -12,12 +12,15 @@ const subscribeNoop = () => () => {}
 const useOrigin = () => useSyncExternalStore(subscribeNoop, () => window.location.origin, () => '')
 
 // ลิงก์แชร์ชี้ไปหน้ากรอกโพล /(slug) ไม่ใช่หน้าดูผล (System flow §แชร์ link / QR)
-export function SharePollModal({ pollId, open, onOpenChange }: {
+// shareUrl จาก API (ของจริงเป็น UniversalLink ของ CUNEX) ไม่มีให้ใช้ลิงก์หน้ากรอกของเว็บนี้แทน
+export function SharePollModal({ pollId, shareUrl, open, onOpenChange }: {
     pollId: string
+    shareUrl: string | null
     open: boolean
     onOpenChange: (open: boolean) => void
 }) {
-    const url = `${useOrigin()}/${pollId}`
+    const origin = useOrigin()
+    const url = shareUrl ?? `${origin}/${pollId}`
 
     const copy = async () => {
         try {

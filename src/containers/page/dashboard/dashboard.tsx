@@ -1,5 +1,9 @@
 import React from 'react'
-import { notFound, redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
+import { getMe, getServerApi, loadOrNotFound } from '@/api/server'
+import type { PollDetail, PollResults } from '@/api/types'
+import { toResultsModel } from '@/lib/pollResultTypes'
+import { formatThaiDateTime } from '@/lib/thaiDate'
 import { ReviewFooter } from '@/containers/page/dashboard/components/reviewFooter'
 import { PollStatusTags } from '@/containers/page/dashboard/components/pollStatusTags'
 import { PollMetaInfo } from '@/containers/page/dashboard/components/pollMetaInfo'
@@ -7,69 +11,87 @@ import { PollActions } from '@/containers/page/dashboard/components/pollActions'
 import { ResultsSection } from '@/containers/page/dashboard/components/resultsSection'
 import { QuestionPreview } from '@/containers/page/dashboard/components/questionPreview'
 import { PublishAction } from '@/containers/page/dashboard/components/publishAction'
-import { isAdmin } from '@/lib/admins'
-import { CURRENT_USER } from '@/lib/currentUser'
-import { getPollDetail } from '@/lib/polls'
-import { getPollResults } from '@/lib/pollResults'
+import { TakedownAction } from '@/containers/page/dashboard/components/takedownAction'
 
-const NOT_OPENED_MESSAGE: Partial<Record<string, string>> = {
-    PENDING: 'โพลนี้รออนุมัติอยู่ จะเริ่มรับคำตอบหลังอนุมัติ',
-    REJECTED: 'โพลนี้ไม่ผ่านการอนุมัติ จึงไม่มีผลโหวต',
+const NOT_OPENED_MESSAGE: Partial<Record<PollDetail['status'], string>> = {
+    draft: 'โพลนี้ยังเป็นฉบับร่าง',
+    pending_review: 'โพลนี้รออนุมัติอยู่ จะเปิดโหวตได้หลังอนุมัติ',
+    rejected: 'โพลนี้ไม่ผ่านการอนุมัติ เจ้าของแก้แล้วส่งใหม่ได้',
 }
 
 // เลยเวลาปิดแล้วหรือยัง ณ ตอนที่ server render (หน้านี้ดึงข้อมูลใหม่ทุก request)
-const isPastClose = (close: Date) => new Date(close).getTime() <= Date.now()
+const isPastClose = (closesAt: string | null) => !closesAt || new Date(closesAt).getTime() <= Date.now()
 
-// หน้ารายละเอียดโพล (มุมมองเจ้าของ/แอดมิน) slug = id ของโพล
-// ผลโหวตแสดงเฉพาะโพลที่เปิดโหวตแล้ว (กำลังโหวต/ปิดโหวตแล้ว) สถานะอื่นแสดงคำถามแบบอ่านอย่างเดียวแทน
-// แอดมินที่เปิดโพลที่รออนุมัติจะเห็น footer ยืนยัน/ปฏิเสธ
-// view = 'admin' คือหน้า /admin/(slug): เหมือนหน้าเจ้าของแต่เห็นรหัสผู้ตอบในคำตอบรายชุดและไฟล์ส่งออก
-// หน้าเจ้าของเห็นรหัสผู้ตอบด้วยเมื่อโพลเปิด "ระบุคนส่ง" (เช่นใช้ทำแบบทดสอบ)
+// หน้ารายละเอียดโพล slug = id ของโพล
+// view = 'owner' (/dashboard) สำหรับเจ้าของ · 'admin' (/admin/(slug)) เพิ่มปุ่มอนุมัติ/ปฏิเสธ/ถอดโพล
+// ผลโหวตแสดงเฉพาะโพลที่เปิดโหวตแล้ว (open/closed) สถานะอื่นแสดงคำถามแบบอ่านอย่างเดียวแทน
 export async function PollDashboardPage({ slug, view = 'owner' }: { slug: string; view?: 'owner' | 'admin' }) {
-    const [poll, admin, results] = await Promise.all([
-        getPollDetail(slug),
-        isAdmin(CURRENT_USER.studentId),
-        getPollResults(slug),
-    ])
-    if (!poll) notFound()
+    const base = view === 'admin' ? '/admin' : '/dashboard'
+    const me = await getMe()
+    if (!me) redirect(`/login?returnTo=${encodeURIComponent(`${base}/${slug}`)}`)
+    const admin = me.role === 'admin'
     // ยังไม่มี proxy กันหน้าแอดมิน จึงตรวจที่นี่ด้วย คนที่ไม่ใช่แอดมินไปหน้าเจ้าของแทน
     if (view === 'admin' && !admin) redirect(`/dashboard/${slug}`)
 
-    const opened = poll.type === 'VOTING' || poll.type === 'DONE'
+    const api = await getServerApi()
+    const [poll, faculties] = await loadOrNotFound(() => Promise.all([api.polls.get(slug), api.faculties()]), `${base}/${slug}`)
+    // ผู้ตอบทั่วไปเปิดลิงก์ dashboard ได้เพราะโพลเปิดอยู่ ให้ไปหน้ากรอกแทน · แอดมินที่ไม่ใช่เจ้าของใช้หน้าแอดมิน
+    if (view === 'owner' && !poll.isOwner) redirect(admin ? `/admin/${slug}` : `/${slug}`)
+    // ฉบับร่าง/ถูกปฏิเสธของตัวเองแก้ในหน้าสร้างโพล
+    if (view === 'owner' && (poll.status === 'draft' || poll.status === 'rejected')) redirect(`/create/${slug}`)
+
+    const opened = poll.status === 'open' || poll.status === 'closed'
     // เห็นรหัสผู้ตอบ: หน้าแอดมินเสมอ หรือเจ้าของโพลที่เปิด "ระบุคนส่ง" (API ตัดสินซ้ำ)
-    const withIdentity = view === 'admin' || (poll.identifySender && poll.scope !== 'C')
+    const withIdentity = view === 'admin' || poll.settings.identifySender
+    const results: PollResults | null = opened ? await api.polls.results(slug) : null
 
     return (
         <div className='mx-auto flex min-h-[60vh] w-full max-w-2xl flex-col gap-6 pb-8'>
             <header className='flex flex-col gap-3'>
-                <PollStatusTags status={poll.type} scope={poll.scope} realtime={poll.realtime} />
-                <h1 className='font-heading text-3xl font-bold break-words'>{poll.title}</h1>
-                {view === 'admin' && <p className='text-sm text-ink-500'>มุมมองผู้ดูแลระบบ · เห็นรหัสผู้ตอบในคำตอบรายชุดและไฟล์ส่งออก</p>}
+                <PollStatusTags status={poll.status} audience={poll.audience.type} realtime={poll.settings.showResultsRealtime} />
+                <h1 className='font-heading text-3xl font-bold break-words'>{poll.title || 'ยังไม่ได้ตั้งชื่อโพล'}</h1>
+                {view === 'admin' && <p className='text-sm text-ink-500'>มุมมองผู้ดูแลระบบ · เห็นรหัสผู้ตอบในคำตอบรายชุดและไฟล์ส่งออก{poll.isOwner ? ' · โพลของคุณเอง' : ''}</p>}
             </header>
 
-            <PollMetaInfo poll={poll} view={view} />
+            <PollMetaInfo poll={poll} faculties={faculties} />
+
+            {poll.reviews && poll.reviews.length > 0 && (
+                <section aria-label='ประวัติการพิจารณา' className='flex flex-col gap-2 rounded-2xl border p-4'>
+                    <h2 className='font-heading text-lg font-bold'>ประวัติการพิจารณา</h2>
+                    <ul className='flex flex-col gap-2'>
+                        {poll.reviews.map((r) => (
+                            <li key={r.createdAt} className='flex flex-col'>
+                                <span className='font-bold'>{r.decision === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ'} · <span className='font-normal text-ink-500'>{formatThaiDateTime(r.createdAt)}</span></span>
+                                {r.comment && <span className='break-words text-ink-500'>{r.comment}</span>}
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
 
             {opened && results ? (
                 <>
-                    <PollActions pollId={poll.id} voting={poll.type === 'VOTING'} />
-                    <ResultsSection results={results} withIdentity={withIdentity} />
+                    <div className='flex flex-col gap-2'>
+                        <PollActions pollId={poll.id} shareUrl={poll.shareUrl} voting={poll.status === 'open'} owner={poll.isOwner} />
+                        {view === 'admin' && <div className='flex justify-end'><TakedownAction pollId={poll.id} /></div>}
+                    </div>
+                    <ResultsSection results={toResultsModel(poll, results)} elements={poll.elements} withIdentity={withIdentity} />
                 </>
             ) : (
                 <>
-                    {/* อนุมัติแล้ว = เจ้าของ/แอดมินกด Publish เปิดโหวตเองได้ */}
-                    {poll.type === 'APPROVED' ? (
-                        <PublishAction pollId={poll.id} expired={isPastClose(poll.closeTime)} />
+                    {poll.status === 'approved' ? (
+                        <PublishAction pollId={poll.id} expired={isPastClose(poll.closesAt)} owner={poll.isOwner} />
                     ) : (
                         <p className='rounded-2xl bg-inner-bg px-4 py-6 text-center text-ink-500'>
-                            {NOT_OPENED_MESSAGE[poll.type] ?? 'โพลนี้ยังไม่เปิดโหวต จึงยังไม่มีผลให้ดู'}
+                            {NOT_OPENED_MESSAGE[poll.status] ?? 'โพลนี้ยังไม่เปิดโหวต จึงยังไม่มีผลให้ดู'}
                         </p>
                     )}
                     {/* ยังไม่มีผลโหวต แต่ดูได้ว่าโพลถามอะไร */}
-                    <QuestionPreview items={poll.items} />
+                    <QuestionPreview elements={poll.elements} />
                 </>
             )}
 
-            {admin && poll.type === 'PENDING' && <ReviewFooter pollId={poll.id} />}
+            {view === 'admin' && poll.status === 'pending_review' && <ReviewFooter pollId={poll.id} />}
         </div>
     )
 }

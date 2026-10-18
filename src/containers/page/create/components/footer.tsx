@@ -1,17 +1,16 @@
 'use client'
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Send, Eye, Download, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
+import { Send, Eye, Download, ArrowLeft, ArrowRight, Loader2, Trash2 } from 'lucide-react'
+import { api, errorMessage } from '@/api'
 import type { CreateStep } from '@/store/createStepStore'
-import { useCreatePollStore } from '@/store/createPollStore'
-import { useElementStore } from '@/store/elementStore'
-import { useCreateDraftStore } from '@/store/createDraftStore'
 import { SubmitDialog } from './submitDialog'
-import { buildPollPayload } from './buildPayload'
-import { saveDraft } from './saveDraft'
+import { DeleteDraftDialog } from './deleteDraftDialog'
+import { resetCreateForm, saveDraft, submitDraft } from '../draftActions'
 
-// ถ้ากำลังแก้ฉบับร่าง (draftId ไม่เป็น null) การส่งขออนุมัติจะเขียนทับฉบับร่างเดิม ไม่สร้างโพลซ้ำ
+// draftId = กำลังแก้ฉบับร่างที่บันทึกไว้แล้ว (ลบได้) · บันทึก/ส่งจะเขียนทับฉบับร่างเดิม ไม่สร้างโพลซ้ำ
 export function CreateFooter({ step, onStepChange, draftId }: {
     step: CreateStep
     onStepChange: (next: CreateStep) => void
@@ -20,41 +19,25 @@ export function CreateFooter({ step, onStepChange, draftId }: {
     const router = useRouter()
     const [submitOpen, setSubmitOpen] = useState(false)
     const [pending, setPending] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState<{ message: string; problems?: string[] } | null>(null)
     const [draftSaving, setDraftSaving] = useState(false)
     const [draftError, setDraftError] = useState<string | null>(null)
+    const [deleteOpen, setDeleteOpen] = useState(false)
 
     const handleSubmit = async () => {
-        const built = buildPollPayload(useCreatePollStore.getState(), useElementStore.getState().items)
-        if (!built.ok) {
-            setError(built.error)
-            return
-        }
-
         setPending(true)
         setError(null)
-        try {
-            const res = await fetch(draftId ? `/api/polls/${draftId}` : '/api/polls', {
-                method: draftId ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(built.payload),
-            })
-            if (!res.ok) {
-                const data = await res.json().catch(() => null)
-                setError(data?.error ?? 'ส่งโพลไม่สำเร็จ ลองใหม่อีกครั้ง')
-                return
-            }
-            // ส่งสำเร็จแล้วร่างเดิมไม่มีประโยชน์ จึงล้างทั้งข้อมูลโพลและคำถาม
-            useCreatePollStore.getState().reset()
-            useElementStore.getState().removeAll()
-            useCreateDraftStore.getState().setHydratedId(null)
-            setSubmitOpen(false)
-            router.push('/')
-        } catch {
-            setError('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่')
-        } finally {
-            setPending(false)
+        const result = await submitDraft()
+        setPending(false)
+        if (!result.ok) {
+            setError({ message: result.error, problems: result.problems })
+            return
         }
+        // ส่งสำเร็จแล้วร่างในเครื่องไม่มีประโยชน์ จึงล้างทั้งข้อมูลโพลและคำถาม
+        resetCreateForm()
+        setSubmitOpen(false)
+        toast.success('ส่งขออนุมัติแล้ว')
+        router.push(`/dashboard/${result.poll.id}`)
     }
 
     // หน้าดูตัวอย่างอ่านจากร่างใน store โดยตรง ไม่ต้องบันทึกก่อน
@@ -63,29 +46,57 @@ export function CreateFooter({ step, onStepChange, draftId }: {
     const handleSaveDraft = async () => {
         setDraftSaving(true)
         setDraftError(null)
-        const result = await saveDraft(draftId)
+        const result = await saveDraft()
         if (!result.ok) {
             setDraftSaving(false)
-            setDraftError(result.error)
+            setDraftError([result.error, ...(result.problems ?? [])].join('\n'))
             return
         }
+        resetCreateForm()
+        toast.success('บันทึกฉบับร่างแล้ว')
         router.push('/')
+    }
+
+    const handleDelete = async () => {
+        if (!draftId) return
+        try {
+            await api.polls.remove(draftId)
+            resetCreateForm()
+            setDeleteOpen(false)
+            toast.success('ลบฉบับร่างแล้ว')
+            router.push('/')
+        } catch (err) {
+            toast.error(errorMessage(err, 'ลบฉบับร่างไม่สำเร็จ'))
+        }
     }
 
     return (
         <div className='flex flex-col gap-2 py-4 pb-8 items-start relative'>
-            <div className=' absolute top-0 -left-4 w-screen h-full bg-ink-400/5 -z-1'/>
-            <button
-                type='button'
-                onClick={handleSaveDraft}
-                disabled={draftSaving}
-                aria-busy={draftSaving}
-                className='text-ink-500 font-heading font-bold flex gap-1 items-center cursor-pointer underline disabled:opacity-50'
-            >
-                {draftSaving ? <Loader2 className='size-4 animate-spin'/> : <Download className='size-4'/>}
-                <span>บันทึกฉบับร่าง</span>
-            </button>
-            {draftError && <p role='alert' className='text-base text-destructive'>{draftError}</p>}
+            {/* ยืดพื้นออกไปชนขอบจอเท่ากับ padding ของหน้า (px-4) ไม่ใช้ w-screen เพราะรวมความกว้าง scrollbar แล้วล้นจอ */}
+            <div className='absolute inset-y-0 -inset-x-4 bg-ink-400/5 -z-1'/>
+            <div className='flex w-full items-center justify-between gap-2'>
+                <button
+                    type='button'
+                    onClick={handleSaveDraft}
+                    disabled={draftSaving}
+                    aria-busy={draftSaving}
+                    className='text-ink-500 font-heading font-bold flex gap-1 items-center cursor-pointer underline disabled:opacity-50'
+                >
+                    {draftSaving ? <Loader2 className='size-4 animate-spin'/> : <Download className='size-4'/>}
+                    <span>บันทึกฉบับร่าง</span>
+                </button>
+                {draftId && (
+                    <button
+                        type='button'
+                        onClick={() => setDeleteOpen(true)}
+                        className='text-destructive font-heading font-bold flex gap-1 items-center cursor-pointer underline'
+                    >
+                        <Trash2 className='size-4'/>
+                        <span>ลบฉบับร่าง</span>
+                    </button>
+                )}
+            </div>
+            {draftError && <p role='alert' className='text-base text-destructive whitespace-pre-line'>{draftError}</p>}
             {step === 1 ? (
                 <Button type='button' className={`w-full`} onClick={() => onStepChange(2)}>
                     <span className='font-heading text-lg font-bold'>ถัดไป</span>
@@ -112,6 +123,7 @@ export function CreateFooter({ step, onStepChange, draftId }: {
                     />
                 </div>
             )}
+            <DeleteDraftDialog open={deleteOpen} onOpenChange={setDeleteOpen} onConfirm={handleDelete} />
         </div>
     )
 }

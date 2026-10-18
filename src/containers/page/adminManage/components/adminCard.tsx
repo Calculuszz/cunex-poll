@@ -5,11 +5,14 @@ import { Loader2, UserMinus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { CURRENT_USER } from '@/lib/currentUser'
+import { formatThaiDateTime } from '@/lib/thaiDate'
+import { api, errorMessage } from '@/api'
+import type { AdminUser } from '@/api/types'
 
 // การ์ดแอดมิน: ผู้ใช้ปัจจุบันแสดงเป็นการ์ดแรกและถอนสิทธิ์ตัวเองไม่ได้
 // การถอนสิทธิ์ต้องยืนยันใน dialog ก่อนเรียก API เสมอ
-export function AdminCard({ studentId, isCurrentUser }: { studentId: string; isCurrentUser: boolean }) {
+export function AdminCard({ admin, isCurrentUser }: { admin: AdminUser; isCurrentUser: boolean }) {
+    const studentId = admin.studentId ?? '-'
     const router = useRouter()
     const [confirmOpen, setConfirmOpen] = useState(false)
     const [busy, setBusy] = useState(false)
@@ -25,16 +28,11 @@ export function AdminCard({ studentId, isCurrentUser }: { studentId: string; isC
         setBusy(true)
         setError(null)
         try {
-            const res = await fetch(`/api/admins/${studentId}`, { method: 'DELETE' })
-            if (!res.ok) {
-                const data = await res.json().catch(() => null)
-                setError(data?.error ?? 'ถอนสิทธิ์ไม่สำเร็จ')
-                return
-            }
+            await api.admin.removeAdmin(admin.id)
             setConfirmOpen(false)
             router.refresh()
-        } catch {
-            setError('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง')
+        } catch (err) {
+            setError(errorMessage(err, 'ถอนสิทธิ์ไม่สำเร็จ'))
         } finally {
             setBusy(false)
         }
@@ -44,11 +42,9 @@ export function AdminCard({ studentId, isCurrentUser }: { studentId: string; isC
         <Card size='sm'>
             <CardContent className='flex items-center justify-between gap-2'>
                 <div className='flex min-w-0 flex-col'>
-                    <span className='truncate font-heading text-lg font-bold'>
-                        {isCurrentUser ? CURRENT_USER.name : `รหัส ${studentId}`}
-                    </span>
+                    <span className='truncate font-heading text-lg font-bold'>รหัส {studentId}</span>
                     <span className='text-base text-ink-500'>
-                        {isCurrentUser ? `รหัส ${studentId}` : 'ผู้ดูแลระบบ'}
+                        {admin.lastLoginAt ? `เข้าระบบล่าสุด ${formatThaiDateTime(admin.lastLoginAt)}` : 'ยังไม่เคยเข้าระบบ'}
                     </span>
                 </div>
                 {isCurrentUser ? (
