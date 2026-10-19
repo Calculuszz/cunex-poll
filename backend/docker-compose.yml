@@ -1,0 +1,42 @@
+# Local development dependencies. Production uses managed Postgres/Redis.
+# Fixed project name: same containers and volumes whatever the folder is called.
+name: pollcunex_backend
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: pollcunex
+      POSTGRES_PASSWORD: pollcunex
+      POSTGRES_DB: pollcunex
+    ports:
+      - "${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pollcunex"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  # S3-compatible storage for images (prod uses real S3 / GCS / on-prem S3).
+  # Credentials: docker/seaweedfs-s3.json (dev only).
+  s3:
+    image: chrislusf/seaweedfs:4.48
+    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    ports:
+      - "8333:8333"
+    volumes:
+      - s3data:/data
+      - ./docker/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+
+volumes:
+  pgdata:
+  s3data:
