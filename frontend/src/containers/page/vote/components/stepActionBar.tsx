@@ -1,0 +1,40 @@
+import React from 'react'
+import { ArrowLeft, ArrowRight, Loader2, Send } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
+// แถบปุ่มติดล่างจอ: หน้าแรกมีแค่ถัดไป · หน้ากลางมีย้อนกลับ+ถัดไป · หน้าสุดท้ายมีย้อนกลับ+ส่งคำตอบ
+// preview = หน้าดูตัวอย่างของผู้สร้าง ปุ่มส่งกดไม่ได้และมีป้ายบอกว่าเป็นตัวอย่าง
+export function StepActionBar({ isFirst, isLast, canNext, busy, onBack, onNext, onSubmit, preview }: {
+    isFirst: boolean
+    isLast: boolean
+    canNext: boolean
+    busy: boolean
+    onBack: () => void
+    onNext: () => void
+    onSubmit: () => void
+    preview?: boolean
+}) {
+    const pill = 'h-11 rounded-full font-heading text-base font-bold'
+    return (
+        <div className='sticky bottom-0 z-20 -mx-4 mt-8 flex gap-2 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]'>
+            {!isFirst && (
+                <Button variant='outline' className={cn(pill, 'border-primary text-primary', isLast ? 'px-5' : 'flex-1')} disabled={busy} onClick={onBack}>
+                    <ArrowLeft />
+                    ย้อนกลับ
+                </Button>
+            )}
+            {isLast ? (
+                <Button className={cn(pill, 'flex-1')} disabled={busy || preview} aria-busy={busy} onClick={onSubmit}>
+                    {busy ? <Loader2 className='animate-spin' /> : <Send />}
+                    {preview ? 'ส่งคำตอบ (ตัวอย่าง)' : 'ส่งคำตอบ'}
+                </Button>
+            ) : (
+                <Button className={cn(pill, isFirst ? 'ml-auto px-8' : 'flex-1')} disabled={!canNext || busy} aria-busy={busy} onClick={onNext}>
+                    ถัดไป
+                    {busy ? <Loader2 className='animate-spin' /> : <ArrowRight />}
+                </Button>
+            )}
+        </div>
+    )
+}

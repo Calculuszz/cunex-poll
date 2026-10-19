@@ -1,0 +1,124 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - button "ย้อนกลับ" [ref=e5] [cursor=pointer]
+      - img "nano" [ref=e6] [cursor=pointer]: na
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: ประเภทโพล
+        - combobox [ref=e11] [cursor=pointer]:
+          - generic [ref=e12]: เลือกประเภทโพล
+          - img: ▼
+        - textbox [ref=e13]
+      - generic [ref=e14]:
+        - generic [ref=e15]: ข้อมูลโพล
+        - generic [ref=e17]:
+          - generic [ref=e18]:
+            - generic [ref=e19]: ชื่อโพล
+            - textbox "ชื่อโพล..." [ref=e20]
+          - generic [ref=e21]:
+            - generic [ref=e22]: คำอธิบาย
+            - textbox "คำอธิบายโพล..." [ref=e23]
+          - generic [ref=e24]:
+            - generic [ref=e25]: เวลาปิดโพล
+            - generic [ref=e26]:
+              - generic [ref=e27]:
+                - button "วันที่เลือก 2 กันยายน 2569" [expanded] [ref=e43] [cursor=pointer]:
+                  - generic [ref=e29]: 2 กันยายน 2569
+                - dialog [ref=e47]:
+                  - generic [ref=e49]:
+                    - navigation "Navigation bar" [ref=e50]:
+                      - button "เดือนก่อนหน้า" [active] [ref=e51] [cursor=pointer]
+                      - button "เดือนถัดไป" [ref=e52] [cursor=pointer]
+                    - generic [ref=e53]:
+                      - status [ref=e55]: กันยายน 2569
+                      - grid "กันยายน 2026" [ref=e56]:
+                        - rowgroup [ref=e57]:
+                          - row [ref=e58]:
+                            - columnheader [ref=e59]: อา.
+                            - columnheader [ref=e60]: จ.
+                            - columnheader [ref=e61]: อ.
+                            - columnheader [ref=e62]: พ.
+                            - columnheader [ref=e63]: พฤ.
+                            - columnheader [ref=e64]: ศ.
+                            - columnheader [ref=e65]: ส.
+                        - rowgroup [ref=e66]:
+                          - row [ref=e67]:
+                            - gridcell [ref=e68]:
+                              - button "อาทิตย์ที่ 30 สิงหาคม 2569" [ref=e69] [cursor=pointer]: "30"
+                            - gridcell [ref=e70]:
+                              - button "จันทร์ที่ 31 สิงหาคม 2569" [ref=e71] [cursor=pointer]: "31"
+                            - gridcell [ref=e72]:
+                              - button "อังคารที่ 1 กันยายน 2569" [ref=e73] [cursor=pointer]: "1"
+                            - gridcell [selected] [ref=e74]:
+                              - button "พุธที่ 2 กันยายน 2569" [ref=e75] [cursor=pointer]: "2"
+                            - gridcell [ref=e76]:
+                              - button "พฤหัสบดีที่ 3 กันยายน 2569" [ref=e77] [cursor=pointer]: "3"
+                            - gridcell [ref=e78]:
+                              - button "ศุกร์ที่ 4 กันยายน 2569" [ref=e79] [cursor=pointer]: "4"
+                            - gridcell [ref=e80]:
+                              - button "เสาร์ที่ 5 กันยายน 2569" [ref=e81] [cursor=pointer]: "5"
+                          - row [ref=e82]:
+                            - gridcell [ref=e83]:
+                              - button "อาทิตย์ที่ 6 กันยายน 2569" [ref=e84] [cursor=pointer]: "6"
+                            - gridcell [ref=e85]:
+                              - button "จันทร์ที่ 7 กันยายน 2569" [ref=e86] [cursor=pointer]: "7"
+                            - gridcell [ref=e87]:
+                              - button "อังคารที่ 8 กันยายน 2569" [ref=e88] [cursor=pointer]: "8"
+                            - gridcell [ref=e89]:
+                              - button "พุธที่ 9 กันยายน 2569" [ref=e90] [cursor=pointer]: "9"
+                            - gridcell [ref=e91]:
+                              - button "พฤหัสบดีที่ 10 กันยายน 2569" [ref=e92] [cursor=pointer]: "10"
+                            - gridcell [ref=e93]:
+                              - button "ศุกร์ที่ 11 กันยายน 2569" [ref=e94] [cursor=pointer]: "11"
+                            - gridcell [ref=e95]:
+                              - button "เสาร์ที่ 12 กันยายน 2569" [ref=e96] [cursor=pointer]: "12"
+                          - row [ref=e97]:
+                            - gridcell [ref=e98]:
+                              - button "อาทิตย์ที่ 13 กันยายน 2569" [ref=e99] [cursor=pointer]: "13"
+                            - gridcell [ref=e100]:
+                              - button "จันทร์ที่ 14 กันยายน 2569" [ref=e101] [cursor=pointer]: "14"
+                            - gridcell [ref=e102]:
+                              - button "อังคารที่ 15 กันยายน 2569" [ref=e103] [cursor=pointer]: "15"
+                            - gridcell [ref=e104]:
+                              - button "พุธที่ 16 กันยายน 2569" [ref=e105] [cursor=pointer]: "16"
+                            - gridcell [ref=e106]:
+                              - button "พฤหัสบดีที่ 17 กันยายน 2569" [ref=e107] [cursor=pointer]: "17"
+                            - gridcell [ref=e108]:
+                              - button "ศุกร์ที่ 18 กันยายน 2569" [ref=e109] [cursor=pointer]: "18"
+                            - gridcell [ref=e110]:
+                              - button "เสาร์ที่ 19 กันยายน 2569" [ref=e111] [cursor=pointer]: "19"
+                          - row [ref=e112]:
+                            - gridcell [ref=e113]:
+                              - button "อาทิตย์ที่ 20 กันยายน 2569" [ref=e114] [cursor=pointer]: "20"
+                            - gridcell [ref=e115]:
+                              - button "จันทร์ที่ 21 กันยายน 2569" [ref=e116] [cursor=pointer]: "21"
+                            - gridcell [ref=e117]:
+                              - button "อังคารที่ 22 กันยายน 2569" [ref=e118] [cursor=pointer]: "22"
+                            - gridcell [ref=e119]:
+                              - button "พุธที่ 23 กันยายน 2569" [ref=e120] [cursor=pointer]: "23"
+                            - gridcell [ref=e121]:
+                              - button "พฤหัสบดีที่ 24 กันยายน 2569" [ref=e122] [cursor=pointer]: "24"
+                            - gridcell [ref=e123]:
+                              - button "ศุกร์ที่ 25 กันยายน 2569" [ref=e124] [cursor=pointer]: "25"
+                            - gridcell [ref=e125]:
+                              - button "เสาร์ที่ 26 กันยายน 2569" [ref=e126] [cursor=pointer]: "26"
+                          - row [ref=e127]:
+                            - gridcell [ref=e128]:
+                              - button "อาทิตย์ที่ 27 กันยายน 2569" [ref=e129] [cursor=pointer]: "27"
+                            - gridcell [ref=e130]:
+                              - button "จันทร์ที่ 28 กันยายน 2569" [ref=e131] [cursor=pointer]: "28"
+                            - gridcell [ref=e132]:
+                              - button "อังคารที่ 29 กันยายน 2569" [ref=e133] [cursor=pointer]: "29"
+                            - gridcell [ref=e134]:
+                              - button "พุธที่ 30 กันยายน 2569" [ref=e135] [cursor=pointer]: "30"
+                            - gridcell [ref=e136]:
+                              - button "พฤหัสบดีที่ 1 ตุลาคม 2569" [ref=e137] [cursor=pointer]: "1"
+                            - gridcell [ref=e138]:
+                              - button "ศุกร์ที่ 2 ตุลาคม 2569" [ref=e139] [cursor=pointer]: "2"
+                            - gridcell [ref=e140]:
+                              - button "เสาร์ที่ 3 ตุลาคม 2569" [ref=e141] [cursor=pointer]: "3"
+              - textbox "เวลา" [ref=e144]: 23:59
+            - generic [ref=e32]: ระบบจะปิดรับโหวตอัตโนมัติเมื่อถึงเวลานี้
+  - button "Open Next.js Dev Tools" [ref=e38] [cursor=pointer]
+  - alert [ref=e145]

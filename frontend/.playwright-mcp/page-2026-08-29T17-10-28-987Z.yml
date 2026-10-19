@@ -1,0 +1,28 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - button "ย้อนกลับ" [ref=e5] [cursor=pointer]
+      - img "nano" [ref=e6] [cursor=pointer]: na
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: ประเภทโพล
+        - combobox [ref=e11] [cursor=pointer]:
+          - generic [ref=e12]: เลือกประเภทโพล
+          - img: ▼
+        - textbox [ref=e13]
+      - generic [ref=e14]:
+        - generic [ref=e15]: ข้อมูลโพล
+        - generic [ref=e17]:
+          - generic [ref=e18]:
+            - generic [ref=e19]: ชื่อโพล
+            - textbox "ชื่อโพล..." [ref=e20]
+          - generic [ref=e21]:
+            - generic [ref=e22]: คำอธิบาย
+            - textbox "คำอธิบายโพล..." [ref=e23]
+          - generic [ref=e24]:
+            - generic [ref=e25]: เวลาปิดโพล
+            - generic [ref=e26]:
+              - button "เลือกวันที่" [ref=e28] [cursor=pointer]
+              - textbox "เวลา" [disabled]
+            - generic [ref=e32]: ระบบจะปิดรับโหวตอัตโนมัติเมื่อถึงเวลานี้
+  - button "Open Next.js Dev Tools" [ref=e38] [cursor=pointer]
