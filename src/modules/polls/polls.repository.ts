@@ -156,8 +156,15 @@ export class PollsRepository {
     set: Partial<
       Pick<
         PollRow,
-        'status' | 'submittedAt' | 'closedAt' | 'closesAt' | 'deletedAt'
-      >
+        | 'status'
+        | 'submittedAt'
+        | 'openedAt'
+        | 'closedAt'
+        | 'closesAt'
+        | 'closeReason'
+        | 'deletedAt'
+        | 'showResultsRealtime'
+      > & { resultDisplay: string }
     >,
     actorId: string,
     action: string,
@@ -260,6 +267,24 @@ export class PollsRepository {
     return new Set(rows.map((r) => r.pollId));
   }
 
+  /** Number of questions (not content elements) per poll, for list cards. */
+  async questionCounts(pollIds: string[]): Promise<Map<string, number>> {
+    if (pollIds.length === 0) return new Map();
+    const rows = await this.db
+      .selectFrom('pollElements')
+      .select(['pollId', (eb) => eb.fn.countAll<string>().as('n')])
+      .where('pollId', 'in', pollIds)
+      .where('type', 'in', [
+        'text_question',
+        'single_choice',
+        'multi_choice',
+        'dropdown',
+      ])
+      .groupBy('pollId')
+      .execute();
+    return new Map(rows.map((r) => [r.pollId, Number(r.n)]));
+  }
+
   async unknownFaculties(codes: string[]): Promise<string[]> {
     if (codes.length === 0) return [];
     const known = await this.db
@@ -286,6 +311,7 @@ export function eligibleFor(eb: ExpressionBuilder<DB, 'polls'>, user: User) {
   if (!user.isChulaVerified) return publicPoll;
   return eb.or([
     publicPoll,
+    eb('polls.audience', '=', 'chula'),
     eb.exists(
       eb
         .selectFrom('pollAudienceRules as r')
@@ -365,6 +391,7 @@ async function writeContent(
             label: o.label,
             description: o.description ?? null,
             imageUrl: o.imageUrl ?? null,
+            imageAlt: o.imageAlt ?? null,
             popup: o.popup ? JSON.stringify(o.popup) : null,
           })),
         )

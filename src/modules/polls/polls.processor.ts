@@ -44,7 +44,12 @@ export class PollsProcessor extends WorkerHost {
     return this.db.transaction().execute(async (tx) => {
       const res = await tx
         .updateTable('polls')
-        .set({ status: 'closed', closedAt: new Date(), updatedAt: new Date() })
+        // Never before closes_at, so it isn't mistaken for an early close.
+        .set({
+          status: 'closed',
+          closedAt: sql<Date>`greatest(now(), closes_at)`,
+          updatedAt: new Date(),
+        })
         .where('id', '=', pollId)
         .where('status', '=', 'open')
         .where('closesAt', '<=', sql<Date>`now() + interval '5 seconds'`)

@@ -15,6 +15,43 @@ describe('pollDraftSchema', () => {
     });
   });
 
+  it('treats null in optional fields as "not set"', () => {
+    const draft = pollDraftSchema.parse({
+      elements: [
+        { type: 'text_question', title: null, config: { placeholder: null } },
+        {
+          type: 'description',
+          config: {
+            showHeading: false,
+            sections: [{ heading: null, body: 'b' }],
+          },
+        },
+        {
+          type: 'info_popup',
+          config: { buttonText: null, title: 't', body: 'b', imageUrl: null },
+        },
+        {
+          type: 'single_choice',
+          isRequired: null,
+          options: [
+            { label: 'a', popup: { buttonText: null, title: 't', body: 'b' } },
+          ],
+        },
+      ],
+    });
+    expect(draft.elements[0]).toEqual({
+      type: 'text_question',
+      title: '',
+      isRequired: false,
+      config: { placeholder: undefined, maxLength: 1000 },
+    });
+    expect(JSON.parse(JSON.stringify(draft.elements[2]))).toEqual({
+      type: 'info_popup',
+      title: '',
+      config: { title: 't', body: 'b' },
+    });
+  });
+
   it('accepts every element type from the design', () => {
     const result = pollDraftSchema.safeParse({
       title: 'ธีมงาน',

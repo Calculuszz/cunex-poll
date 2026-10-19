@@ -55,7 +55,7 @@ const completeDraft = () => ({
   ],
 });
 
-/** Admin approval isn't built yet; open the poll directly. */
+/** Skips review and publishing: opens the poll directly in the DB. */
 const openInDb = (id: string) =>
   db.query(
     "UPDATE polls SET status = 'open', opened_at = now() WHERE id = $1",
@@ -291,5 +291,88 @@ describe('faculties', () => {
       '23',
       '30',
     ]);
+  });
+});
+
+describe('audience "chula"', () => {
+  let id: string;
+
+  beforeAll(async () => {
+    const res = await eng
+      .post('/polls')
+      .send({ ...completeDraft(), audience: { type: 'chula' } });
+    expect(res.body.audience).toEqual({ type: 'chula' });
+    id = res.body.id;
+    await openInDb(id);
+  });
+
+  it('any CUNEX-verified user may answer', async () => {
+    expect((await arts.get(`/polls/${id}`)).status).toBe(200);
+    const card = (await med.get('/polls')).body.items.find(
+      (p: { id: string }) => p.id === id,
+    );
+    // list cards carry the number of questions (page breaks don't count)
+    expect(card).toMatchObject({ audience: 'chula', questionCount: 2 });
+  });
+
+  it('a Google-only user may not', async () => {
+    // The guard re-reads the user on every request: turn arts into a
+    // Google-style account (not CUNEX-verified, no faculty/year).
+    const me = await arts.get('/me');
+    await db.query(
+      'UPDATE users SET is_chula_verified = false, faculty_code = NULL, student_year = NULL WHERE id = $1',
+      [me.body.id],
+    );
+    try {
+      expect((await arts.get(`/polls/${id}`)).status).toBe(404);
+      expect(
+        (await arts.get('/polls')).body.items.map((p: { id: string }) => p.id),
+      ).not.toContain(id);
+    } finally {
+      await loginAs(app, 'arts-2565'); // a CUNEX login re-verifies it
+    }
+  });
+});
+
+describe('content fields from the web app', () => {
+  it('keeps imageAlt and popups without a button label', async () => {
+    const res = await eng.post('/polls').send({
+      title: 'ฟิลด์ใหม่',
+      elements: [
+        {
+          type: 'single_choice',
+          title: 'เลือก',
+          options: [
+            {
+              label: 'a',
+              imageAlt: 'คำอธิบายรูป',
+              popup: { title: 'เพิ่มเติม', body: 'รายละเอียด' },
+            },
+            { label: 'b' },
+          ],
+        },
+        {
+          type: 'info_popup',
+          config: { title: 'ก่อนตอบ', body: 'อ่านตรงนี้' },
+        },
+      ],
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.elements[0].options[0]).toMatchObject({
+      imageAlt: 'คำอธิบายรูป',
+      popup: { title: 'เพิ่มเติม', body: 'รายละเอียด' },
+    });
+    expect(res.body.elements[1].config).toEqual({
+      title: 'ก่อนตอบ',
+      body: 'อ่านตรงนี้',
+    });
+  });
+});
+
+describe('page size', () => {
+  it('a limit above the maximum is clamped, not rejected', async () => {
+    const res = await eng.get('/me/polls?limit=1000');
+    expect(res.status).toBe(200);
+    expect(res.body.items.length).toBeLessThanOrEqual(50);
   });
 });

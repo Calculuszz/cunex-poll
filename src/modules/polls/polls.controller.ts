@@ -13,14 +13,16 @@ import {
   Query,
 } from '@nestjs/common';
 import { z } from 'zod';
+import { pageLimit } from '../../common/pagination.js';
 import { AppError } from '../../common/errors.js';
 import { CurrentUser } from '../auth/auth.decorators.js';
 import type { User } from '../users/users.repository.js';
 import { type PollDraftInput, pollDraftSchema } from './poll-draft.schema.js';
 import { PollsService } from './polls.service.js';
+import { type ResultDisplay, resultDisplaySchema } from './result-display.js';
 
 const pollId = z.uuid();
-const limit = z.coerce.number().int().min(1).max(50).default(20);
+const limit = pageLimit(50);
 
 const feedQuery = z.object({
   status: z.enum(['open', 'closed']).default('open'),
@@ -30,13 +32,18 @@ const feedQuery = z.object({
 
 const mineQuery = z.object({
   status: z
-    .enum(['draft', 'pending_review', 'rejected', 'open', 'closed'])
+    .enum(['draft', 'pending_review', 'approved', 'rejected', 'open', 'closed'])
     .optional(),
   cursor: z.string().max(200).optional(),
   limit,
 });
 
 const closesAtBody = z.object({ closesAt: z.iso.datetime({ offset: true }) });
+const realtimeBody = z.object({ showResultsRealtime: z.boolean() });
+// The body is optional: a close without a reason may send nothing.
+const closeBody = z
+  .object({ reason: z.string().trim().max(500).optional() })
+  .default({});
 
 @Controller()
 export class PollsController {
@@ -114,13 +121,41 @@ export class PollsController {
     return this.polls.setClosesAt(user, id, new Date(body.closesAt));
   }
 
+  @Post('polls/:id/publish')
+  @HttpCode(HttpStatus.OK)
+  publish(
+    @CurrentUser() user: User,
+    @Param('id', { schema: pollId }) id: string,
+  ) {
+    return this.polls.publish(user, id);
+  }
+
+  @Patch('polls/:id/realtime')
+  setRealtime(
+    @CurrentUser() user: User,
+    @Param('id', { schema: pollId }) id: string,
+    @Body({ schema: realtimeBody }) body: z.infer<typeof realtimeBody>,
+  ) {
+    return this.polls.setRealtime(user, id, body.showResultsRealtime);
+  }
+
+  @Put('polls/:id/result-display')
+  setResultDisplay(
+    @CurrentUser() user: User,
+    @Param('id', { schema: pollId }) id: string,
+    @Body({ schema: resultDisplaySchema }) body: ResultDisplay,
+  ) {
+    return this.polls.setResultDisplay(user, id, body);
+  }
+
   @Post('polls/:id/close')
   @HttpCode(HttpStatus.OK)
   close(
     @CurrentUser() user: User,
     @Param('id', { schema: pollId }) id: string,
+    @Body({ schema: closeBody }) body: z.infer<typeof closeBody>,
   ) {
-    return this.polls.close(user, id);
+    return this.polls.close(user, id, body.reason);
   }
 }
 

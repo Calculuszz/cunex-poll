@@ -32,7 +32,7 @@ interface Poll {
   text: { id: string };
 }
 
-/** Engineering + anyone who entered in 2566; approved through the admin API. */
+/** Engineering + anyone who entered in 2566; approved, then published by the owner. */
 async function openPoll(settings: { allowAnswerEdit: boolean }): Promise<Poll> {
   const { body } = await owner.post('/polls').send({
     title: 'ธีมงาน',
@@ -59,9 +59,12 @@ async function openPoll(settings: { allowAnswerEdit: boolean }): Promise<Poll> {
     ],
   });
   expect((await owner.post(`/polls/${body.id}/submit`)).status).toBe(200);
-  const approved = await admin.post(`/admin/polls/${body.id}/approve`);
-  expect(approved.status).toBe(200);
-  const [single, multi, text] = approved.body.elements;
+  expect((await admin.post(`/admin/polls/${body.id}/approve`)).status).toBe(
+    200,
+  );
+  const opened = await owner.post(`/polls/${body.id}/publish`);
+  expect(opened.status).toBe(200);
+  const [single, multi, text] = opened.body.elements;
   return { id: body.id, single, multi, text };
 }
 

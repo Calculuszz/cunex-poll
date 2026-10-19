@@ -10,3 +10,11 @@ export const pollLocked = (status: PollStatus) =>
   new AppError('POLL_LOCKED', HttpStatus.CONFLICT, `Poll is ${status}`, {
     pollStatus: status,
   });
+
+/** Opening a poll whose own deadline already went by helps nobody. */
+export const closesAtPassed = () =>
+  new AppError(
+    'CLOSES_AT_PASSED',
+    HttpStatus.UNPROCESSABLE_ENTITY,
+    'The poll closing time has already passed; move closesAt first',
+  );

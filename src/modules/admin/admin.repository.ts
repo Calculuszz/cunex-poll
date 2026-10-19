@@ -74,8 +74,9 @@ export class AdminRepository {
       const res = await tx
         .updateTable('polls')
         .set(
+          // Approved polls wait for the owner to publish them.
           decision === 'approved'
-            ? { status: 'open', openedAt: now, updatedAt: now }
+            ? { status: 'approved', updatedAt: now }
             : { status: 'rejected', updatedAt: now },
         )
         .where('id', '=', pollId)
@@ -111,6 +112,8 @@ export class AdminRepository {
           status: 'closed',
           closedAt: sql`coalesce(closed_at, now())`,
           listedPublicly: false,
+          takenDownAt: new Date(),
+          takedownReason: reason,
           updatedAt: new Date(),
         })
         .where('id', '=', pollId)
@@ -143,6 +146,7 @@ export class AdminRepository {
       )
       .select([
         'users.id',
+        'users.studentId',
         'userIdentities.providerSubject as cunexUserId',
         'users.facultyCode',
         'users.lastLoginAt',
@@ -152,12 +156,14 @@ export class AdminRepository {
       .execute();
   }
 
-  findUserIdByCunexId(cunexUserId: string) {
+  /** The account that last logged in with this student id. */
+  findUserIdByStudentId(studentId: string) {
     return this.db
-      .selectFrom('userIdentities')
-      .select('userId')
-      .where('provider', '=', 'cunex')
-      .where('providerSubject', '=', cunexUserId)
+      .selectFrom('users')
+      .select('id as userId')
+      .where('studentId', '=', studentId)
+      .orderBy(sql`last_login_at DESC NULLS LAST`)
+      .limit(1)
       .executeTakeFirst();
   }
 

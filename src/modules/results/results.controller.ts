@@ -1,6 +1,7 @@
 import { Controller, Get, Headers, Param, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { z } from 'zod';
+import { pageLimit } from '../../common/pagination.js';
 import { CurrentUser } from '../auth/auth.decorators.js';
 import type { User } from '../users/users.repository.js';
 import { ResultsService } from './results.service.js';
@@ -12,7 +13,7 @@ const resultsQuery = z.object({
 const textQuery = z.object({
   elementId: z.uuid(),
   cursor: z.string().max(200).optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(50),
+  limit: pageLimit(100, 50),
 });
 
 @Controller('polls/:id/results')

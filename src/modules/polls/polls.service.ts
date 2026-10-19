@@ -10,11 +10,13 @@ import { findProblems } from './completeness.js';
 import { imageRefs } from './poll-images.js';
 import { canSeePoll, canViewResults, isAcceptingVotes } from './poll-access.js';
 import {
+  closesAtPassed,
   pollLocked as locked,
   pollNotFound as notFound,
 } from './poll-errors.js';
 import { PollJobs } from './poll-jobs.js';
 import type { PollDraftInput } from './poll-draft.schema.js';
+import type { ResultDisplay } from './result-display.js';
 import {
   EDITABLE,
   type PollAggregate,
@@ -79,7 +81,7 @@ export class PollsService {
       isOwner,
       canSeeReviews: isOwner || user.role === 'admin',
       myBallot: myBallot!,
-      canViewResults: canViewResults(poll, user),
+      canViewResults: canViewResults(poll, user, myBallot!.submitted),
     });
   }
 
@@ -141,14 +143,60 @@ export class PollsService {
       );
     }
     // Drafts change closesAt through PUT; this endpoint is for after submit.
-    const allowed: PollStatus[] = ['pending_review', 'open'];
+    const allowed: PollStatus[] = ['pending_review', 'approved', 'open'];
     if (!allowed.includes(poll.status)) throw locked(poll.status);
     await this.move(user, id, allowed, { closesAt }, 'poll.closes_at');
     if (poll.status === 'open') await this.jobs.rescheduleClose(id, closesAt);
     return this.get(user, id);
   }
 
-  async close(user: User, id: string) {
+  /** "Publish": the owner opens an approved poll for voting. */
+  async publish(user: User, id: string) {
+    const { poll } = await this.owned(user, id);
+    if (poll.status !== 'approved') throw locked(poll.status);
+    if (!poll.closesAt || poll.closesAt <= new Date()) throw closesAtPassed();
+    await this.move(
+      user,
+      id,
+      ['approved'],
+      { status: 'open', openedAt: new Date() },
+      'poll.publish',
+    );
+    await this.jobs.opened(id, poll.closesAt);
+    return this.get(user, id);
+  }
+
+  /** The realtime switch stays editable until the poll opens. */
+  async setRealtime(user: User, id: string, showResultsRealtime: boolean) {
+    const { poll } = await this.owned(user, id);
+    const allowed: PollStatus[] = ['pending_review', 'approved'];
+    if (!allowed.includes(poll.status)) throw locked(poll.status);
+    await this.move(
+      user,
+      id,
+      allowed,
+      { showResultsRealtime },
+      'poll.realtime',
+    );
+    return this.get(user, id);
+  }
+
+  /** "เผยแพร่ผล": what voters see of the results, once the poll has opened. */
+  async setResultDisplay(user: User, id: string, display: ResultDisplay) {
+    const { poll } = await this.owned(user, id);
+    const allowed: PollStatus[] = ['open', 'closed'];
+    if (!allowed.includes(poll.status)) throw locked(poll.status);
+    await this.move(
+      user,
+      id,
+      allowed,
+      { resultDisplay: JSON.stringify(display) },
+      'poll.result_display',
+    );
+    return this.get(user, id);
+  }
+
+  async close(user: User, id: string, reason: string | undefined) {
     const { poll } = await this.owned(user, id);
     if (poll.status !== 'open') throw locked(poll.status);
     await this.move(
@@ -158,6 +206,7 @@ export class PollsService {
       {
         status: 'closed',
         closedAt: new Date(),
+        closeReason: reason || null,
       },
       'poll.close',
     );
@@ -184,9 +233,14 @@ export class PollsService {
     limit: number,
   ) {
     const page = await this.repo.listFeed(user, status, cursor, limit);
-    const ballots = await this.myBallots(user, page.items);
+    const [ballots, counts] = await Promise.all([
+      this.myBallots(user, page.items),
+      this.repo.questionCounts(page.items.map((p) => p.id)),
+    ]);
     return {
-      items: page.items.map((p, i) => toSummary(p, ballots[i])),
+      items: page.items.map((p, i) =>
+        toSummary(p, counts.get(p.id) ?? 0, ballots[i]),
+      ),
       nextCursor: page.nextCursor,
     };
   }
@@ -198,8 +252,9 @@ export class PollsService {
     limit: number,
   ) {
     const page = await this.repo.listMine(user.id, status, cursor, limit);
+    const counts = await this.repo.questionCounts(page.items.map((p) => p.id));
     return {
-      items: page.items.map((p) => toSummary(p)),
+      items: page.items.map((p) => toSummary(p, counts.get(p.id) ?? 0)),
       nextCursor: page.nextCursor,
     };
   }

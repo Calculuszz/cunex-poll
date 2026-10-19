@@ -49,6 +49,7 @@ describe('CUNEX login (mock)', () => {
     expect(me.status).toBe(200);
     expect(me.body).toMatchObject({
       role: 'user',
+      studentId: '6630000230',
       isChulaVerified: true,
       faculty: { code: '30', nameEn: 'Faculty of Medicine' },
       studentYear: 2566,

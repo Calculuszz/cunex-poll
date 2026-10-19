@@ -41,10 +41,10 @@ export type JsonPrimitive = boolean | number | string | null;
 
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
-export type PollAudience = 'public' | 'restricted';
+export type PollAudience = 'chula' | 'public' | 'restricted';
 
 export type PollStatus =
-  'closed' | 'draft' | 'open' | 'pending_review' | 'rejected';
+  'approved' | 'closed' | 'draft' | 'open' | 'pending_review' | 'rejected';
 
 export type ReviewDecision = 'approved' | 'rejected';
 
@@ -89,6 +89,7 @@ export interface ElementOptions {
   description: string | null;
   elementId: string;
   id: Generated<string>;
+  imageAlt: string | null;
   imageUrl: string | null;
   label: string;
   popup: Json | null;
@@ -143,6 +144,7 @@ export interface Polls {
   allowAnswerEdit: Generated<boolean>;
   audience: Generated<PollAudience>;
   closedAt: Timestamp | null;
+  closeReason: string | null;
   closesAt: Timestamp | null;
   coverImageUrl: string | null;
   createdAt: Generated<Timestamp>;
@@ -152,10 +154,13 @@ export interface Polls {
   listedPublicly: Generated<boolean>;
   openedAt: Timestamp | null;
   ownerId: string;
+  resultDisplay: Json | null;
   shareUrl: string | null;
   showResultsRealtime: Generated<boolean>;
   status: Generated<PollStatus>;
   submittedAt: Timestamp | null;
+  takedownReason: string | null;
+  takenDownAt: Timestamp | null;
   title: Generated<string>;
   updatedAt: Generated<Timestamp>;
   version: Generated<number>;
@@ -177,6 +182,7 @@ export interface Users {
   isChulaVerified: Generated<boolean>;
   lastLoginAt: Timestamp | null;
   role: Generated<UserRole>;
+  studentId: string | null;
   studentYear: number | null;
 }
 

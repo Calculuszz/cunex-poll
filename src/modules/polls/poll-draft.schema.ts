@@ -5,25 +5,37 @@ import { z } from 'zod';
 
 const text = (max: number) => z.string().trim().max(max);
 
-const popupSchema = z.object({
-  buttonText: text(50).min(1),
-  title: text(200).min(1),
-  body: text(5000).min(1),
-});
+// Optional fields accept null as well as a missing key (the web app sends
+// null for empty inputs); both are stored as "not set".
+const optional = <T extends z.ZodType>(schema: T) =>
+  schema.nullish().transform((v) => v ?? undefined);
 
 // A publicUrl from POST /images/uploads; the API checks it points into our bucket.
 const imageUrl = z.url().max(500);
+
+// buttonText left out → the web app shows its default label.
+const popupSchema = z.object({
+  buttonText: optional(text(50)),
+  title: text(200).min(1),
+  body: text(5000).min(1),
+});
 
 const optionSchema = z.object({
   label: text(300).min(1),
   description: text(1000).nullish(),
   imageUrl: imageUrl.nullish(),
+  imageAlt: text(300).nullish(),
   popup: popupSchema.nullish(),
 });
 
 const layout = z.enum(['list', 'grid']).default('list');
-const title = text(500).default('');
-const isRequired = z.boolean().default(false);
+const title = text(500)
+  .nullish()
+  .transform((v) => v ?? '');
+const isRequired = z
+  .boolean()
+  .nullish()
+  .transform((v) => v ?? false);
 
 const textQuestion = z.object({
   type: z.literal('text_question'),
@@ -31,10 +43,15 @@ const textQuestion = z.object({
   isRequired,
   config: z
     .object({
-      placeholder: text(200).optional(),
-      maxLength: z.int().min(1).max(5000).default(1000),
+      placeholder: optional(text(200)),
+      maxLength: z
+        .int()
+        .min(1)
+        .max(5000)
+        .nullish()
+        .transform((v) => v ?? 1000),
     })
-    .default({ maxLength: 1000 }),
+    .prefault({}),
 });
 
 const singleChoice = z.object({
@@ -53,10 +70,10 @@ const multiChoice = z
     config: z
       .object({
         layout,
-        minSelect: z.int().min(1).optional(),
-        maxSelect: z.int().min(1).optional(),
+        minSelect: optional(z.int().min(1)),
+        maxSelect: optional(z.int().min(1)),
       })
-      .default({ layout: 'list' }),
+      .prefault({}),
     options: z.array(optionSchema).max(50).default([]),
   })
   .refine(
@@ -84,7 +101,7 @@ const description = z.object({
   config: z.object({
     showHeading: z.boolean().default(true),
     sections: z
-      .array(z.object({ heading: text(200).optional(), body: text(5000) }))
+      .array(z.object({ heading: optional(text(200)), body: text(5000) }))
       .min(1)
       .max(20),
   }),
@@ -93,13 +110,17 @@ const description = z.object({
 const image = z.object({
   type: z.literal('image'),
   title,
-  config: z.object({ url: imageUrl, caption: text(300).optional() }),
+  config: z.object({
+    url: imageUrl,
+    alt: optional(text(300)),
+    caption: optional(text(300)),
+  }),
 });
 
 const infoPopup = z.object({
   type: z.literal('info_popup'),
   title,
-  config: popupSchema,
+  config: popupSchema.extend({ imageUrl: optional(imageUrl) }),
 });
 
 const accordion = z.object({
@@ -135,8 +156,11 @@ export const QUESTION_TYPES = new Set<ElementType>([
   'dropdown',
 ]);
 
+// public = anyone logged in (Google too) · chula = any CUNEX-verified user
+// restricted = CUNEX-verified users matching a faculty/entry-year rule
 const audienceSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('public') }),
+  z.object({ type: z.literal('chula') }),
   z.object({
     type: z.literal('restricted'),
     rules: z

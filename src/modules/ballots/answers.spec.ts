@@ -8,6 +8,7 @@ const opt = (id: string, elementId: string) => ({
   label: id,
   description: null,
   imageUrl: null,
+  imageAlt: null,
   popup: null,
 });
 

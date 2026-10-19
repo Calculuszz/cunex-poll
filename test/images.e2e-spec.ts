@@ -47,11 +47,21 @@ const draftWith = (url: string) => ({
   title: 'มีรูป',
   closesAt: new Date(Date.now() + 86400_000).toISOString(),
   elements: [
-    { type: 'image', config: { url, caption: 'ภาพประกอบ' } },
+    {
+      type: 'image',
+      config: { url, alt: 'โปสเตอร์งาน', caption: 'ภาพประกอบ' },
+    },
     {
       type: 'single_choice',
       title: 'เลือก',
-      options: [{ label: 'a', imageUrl: url }, { label: 'b' }],
+      options: [
+        { label: 'a', imageUrl: url, imageAlt: 'รูปตัวเลือก a' },
+        { label: 'b' },
+      ],
+    },
+    {
+      type: 'info_popup',
+      config: { title: 'รายละเอียด', body: 'อ่านก่อนตอบ', imageUrl: url },
     },
   ],
 });
@@ -93,8 +103,15 @@ describe('images in a poll', () => {
     const s = await slot('image/png', PNG.length);
     await put(s, PNG);
     const { body } = await me.post('/polls').send(draftWith(s.publicUrl));
-    expect(body.elements[0].config.url).toBe(s.publicUrl);
-    expect(body.elements[1].options[0].imageUrl).toBe(s.publicUrl);
+    expect(body.elements[0].config).toMatchObject({
+      url: s.publicUrl,
+      alt: 'โปสเตอร์งาน',
+    });
+    expect(body.elements[1].options[0]).toMatchObject({
+      imageUrl: s.publicUrl,
+      imageAlt: 'รูปตัวเลือก a',
+    });
+    expect(body.elements[2].config.imageUrl).toBe(s.publicUrl);
 
     const submit = await me.post(`/polls/${body.id}/submit`);
     expect(submit.status).toBe(200);
@@ -121,6 +138,7 @@ describe('images in a poll', () => {
         'coverImageUrl',
         'elements.0.config.url',
         'elements.1.options.0.imageUrl',
+        'elements.2.config.imageUrl',
       ].sort(),
     );
   });

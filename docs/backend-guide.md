@@ -99,17 +99,19 @@ flowchart TB
 | PUT | `/polls/:id` | บันทึกร่าง**ทั้งก้อนทีเดียว** (ตั้งค่า + ขอบเขต + element ทุกตัวตามลำดับ) |
 | DELETE | `/polls/:id` | ลบร่าง |
 | POST | `/polls/:id/submit` | ส่งขออนุมัติ |
-| PATCH | `/polls/:id/closes-at` | เลื่อนเวลาปิด (สิ่งเดียวที่แก้ได้หลังอนุมัติ) |
-| POST | `/polls/:id/close` | ปิดก่อนกำหนด |
+| PATCH | `/polls/:id/closes-at` | เลื่อนเวลาปิด |
+| PATCH | `/polls/:id/realtime` | เปิด/ปิดผลเรียลไทม์ (ได้จนกว่าจะเปิดโหวต) |
+| POST | `/polls/:id/publish` | เปิดโหวต (Publish) หลัง admin อนุมัติ |
+| PUT | `/polls/:id/result-display` | ตั้งค่าเผยแพร่ผลให้ผู้ตอบ |
+| POST | `/polls/:id/close` | ปิดก่อนกำหนด (ใส่เหตุผลได้) |
+
+สถานะโพล: `draft → pending_review → approved → open → closed` (ตีกลับ = `rejected` แก้แล้วส่งใหม่ได้)
 
 ### รูปภาพ
 
 | Method | Path | ทำอะไร |
 | --- | --- | --- |
-| POST | `/images/uploads` | ขอ presigned URL แล้ว client อัปโหลดตรงไป storage |
-| POST | `/images/:id/complete` | บอกว่าอัปโหลดเสร็จ ให้ server ตรวจไฟล์ |
-| POST | `/images/import` | ใส่ URL รูปภายนอก แล้ว worker ดึงมาเก็บเอง |
-| GET | `/images/:id` | เช็กสถานะ import |
+| POST | `/images/uploads` | ขอ presigned URL แล้ว client อัปโหลดตรงไป storage เอง ได้ `publicUrl` ไปใส่ในโพล |
 
 ### ตอบโพล
 
@@ -132,7 +134,7 @@ Error ที่ต้องรองรับตอนตอบโพล:
 
 | Method | Path | ใครเรียก | ทำอะไร |
 | --- | --- | --- | --- |
-| GET | `/polls/:id/results?breakdown=` | เจ้าของ, admin, ผู้ตอบ (ตามกติกา) | นับผล แยกตามคณะหรือปีได้ cache 3 วินาที |
+| GET | `/polls/:id/results?breakdown=` | เจ้าของ, admin, ผู้ตอบ (ตามที่เจ้าของเผยแพร่) | นับผล เจ้าของ/admin แยกตามคณะหรือปีได้ cache 3 วินาที |
 | GET | `/polls/:id/results/text` | เจ้าของ, admin | คำตอบแบบข้อความ |
 
 ### Admin
@@ -140,10 +142,10 @@ Error ที่ต้องรองรับตอนตอบโพล:
 | Method | Path | ทำอะไร |
 | --- | --- | --- |
 | GET | `/admin/polls?status=pending_review` | คิวรออนุมัติ |
-| POST | `/admin/polls/:id/approve` | อนุมัติ → โพลเปิด แล้ว worker ส่ง notification + สร้างลิงก์ |
-| POST | `/admin/polls/:id/reject` | ตีกลับ (ต้องใส่เหตุผล) |
+| POST | `/admin/polls/:id/approve` | อนุมัติ → `approved` รอเจ้าของกด Publish (ตอนนั้น worker ค่อยส่ง notification + สร้างลิงก์) |
+| POST | `/admin/polls/:id/reject` | ตีกลับ (เหตุผลใส่หรือไม่ใส่ก็ได้) |
 | POST | `/admin/polls/:id/takedown` | บังคับปิดโพลที่มีปัญหา |
-| GET / POST / DELETE | `/admin/admins` | ดู / เพิ่ม / ถอด admin |
+| GET / POST / DELETE | `/admin/admins` | ดู / เพิ่ม (ด้วยรหัสนิสิต) / ถอด admin |
 | GET | `/admin/audit-logs` | ดูประวัติการกระทำของ admin |
 
 ## 5. DB schema
@@ -153,15 +155,12 @@ erDiagram
     users ||--o{ user_identities : "user_id"
     faculties ||--o{ users : "faculty_code"
     users ||--o{ polls : "owner_id"
-    users ||--o{ images : "owner_id"
-    images ||--o{ polls : "cover_image_id"
     polls ||--o{ poll_audience_rules : "poll_id"
     faculties ||--o{ poll_audience_rules : "faculty_code"
     polls ||--o{ poll_reviews : "poll_id"
     users ||--o{ poll_reviews : "reviewer_id"
     polls ||--o{ poll_elements : "poll_id"
     poll_elements ||--o{ element_options : "element_id"
-    images ||--o{ element_options : "image_id"
     polls ||--o{ ballots : "poll_id"
     faculties ||--o{ ballots : "faculty_code"
     ballots ||--o{ ballot_choices : "ballot_id"
@@ -174,6 +173,7 @@ erDiagram
     users {
         uuid id PK
         enum role
+        text student_id
         bool is_chula_verified
         char faculty_code FK
         int2 student_year
@@ -201,15 +201,18 @@ erDiagram
         enum audience
         text title
         text description
-        uuid cover_image_id FK
+        text cover_image_url
         timestamp closes_at
         bool show_results_realtime
         bool allow_answer_edit
         bool listed_publicly
+        jsonb result_display
         text share_url
+        int version
         timestamp submitted_at
         timestamp opened_at
         timestamp closed_at
+        text close_reason
         timestamp created_at
         timestamp updated_at
         timestamp deleted_at
@@ -243,20 +246,9 @@ erDiagram
         int position
         text label
         text description
-        uuid image_id FK
+        text image_url
+        text image_alt
         jsonb popup
-    }
-    images {
-        uuid id PK
-        uuid owner_id FK
-        enum status
-        text storage_key
-        text source_url
-        text mime_type
-        int byte_size
-        int width
-        int height
-        timestamp created_at
     }
     ballots {
         uuid id PK
@@ -299,5 +291,5 @@ erDiagram
     }
 ```
 
-ไฟล์จริง: [db/migrations/0001_init.sql](../db/migrations/0001_init.sql)
+ไฟล์จริง: [db/migrations/](../db/migrations/) (เริ่มที่ `0001_init.sql` แล้วไล่ตามเลข)
 

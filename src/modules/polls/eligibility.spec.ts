@@ -17,6 +17,17 @@ describe('isEligible', () => {
     ).toBe(true);
   });
 
+  it('lets only CUNEX-verified users answer a chula poll', () => {
+    expect(isEligible('chula', [], eng2567)).toBe(true);
+    expect(
+      isEligible('chula', [], {
+        isChulaVerified: false,
+        facultyCode: null,
+        studentYear: null,
+      }),
+    ).toBe(false);
+  });
+
   it('matches faculty-only, year-only and faculty+year rules', () => {
     expect(
       isEligible(

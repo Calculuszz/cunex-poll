@@ -79,11 +79,7 @@ describe('review queue', () => {
     expect(ids.indexOf(first)).toBeLessThan(ids.indexOf(second));
   });
 
-  it('reject needs a reason, sends the poll back to the owner', async () => {
-    expect(
-      (await admin.post(`/admin/polls/${second}/reject`).send({})).status,
-    ).toBe(422);
-
+  it('reject sends the poll back to the owner, with or without a comment', async () => {
     const res = await admin
       .post(`/admin/polls/${second}/reject`)
       .send({ comment: 'ตัวเลือกไม่ชัดเจน' });
@@ -115,13 +111,37 @@ describe('review queue', () => {
       });
     expect(put.status).toBe(200);
     expect((await owner.post(`/polls/${second}/submit`)).status).toBe(200);
+
+    // no comment at all is fine too
+    const bare = await admin.post(`/admin/polls/${second}/reject`);
+    expect(bare.status).toBe(200);
+    expect(bare.body.reviews[0]).toMatchObject({
+      decision: 'rejected',
+      comment: null,
+    });
   });
 
-  it('approve opens the poll and queues its jobs', async () => {
+  it('approve waits for the owner; publish opens the poll and queues its jobs', async () => {
     const res = await admin.post(`/admin/polls/${first}/approve`);
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe('open');
-    expect(res.body.openedAt).toBeTruthy();
+    expect(res.body.status).toBe('approved');
+    expect(res.body.openedAt).toBeNull();
+    expect(await queue.getJob(`opened-${first}`)).toBeFalsy();
+    // not visible to voters until it opens
+    expect((await voter.get(`/polls/${first}`)).status).toBe(404);
+    expect(
+      (await admin.get('/admin/polls?status=approved')).body.items.map(
+        (p: { id: string }) => p.id,
+      ),
+    ).toContain(first);
+
+    // only the owner publishes
+    expect((await admin.post(`/polls/${first}/publish`)).status).toBe(404);
+    const opened = await owner.post(`/polls/${first}/publish`);
+    expect(opened.status).toBe(200);
+    expect(opened.body.status).toBe('open');
+    expect(opened.body.openedAt).toBeTruthy();
+    expect((await owner.post(`/polls/${first}/publish`)).status).toBe(409);
 
     expect(await queue.getJob(`opened-${first}`)).toBeTruthy();
     const close = await queue.getJob(`close-${first}`);
@@ -144,7 +164,45 @@ describe('review queue', () => {
     expect(close!.opts.delay).toBeLessThan(1.01 * 24 * 3600 * 1000);
   });
 
-  it('refuses to open a poll whose closing time already passed', async () => {
+  it('realtime can change until the poll is published', async () => {
+    const id = await submittedPoll('realtime');
+    const pending = await owner
+      .patch(`/polls/${id}/realtime`)
+      .send({ showResultsRealtime: true });
+    expect(pending.status).toBe(200);
+    expect(pending.body.settings.showResultsRealtime).toBe(true);
+
+    await admin.post(`/admin/polls/${id}/approve`);
+    const approved = await owner
+      .patch(`/polls/${id}/realtime`)
+      .send({ showResultsRealtime: false });
+    expect(approved.body.settings.showResultsRealtime).toBe(false);
+
+    await owner.post(`/polls/${id}/publish`);
+    const open = await owner
+      .patch(`/polls/${id}/realtime`)
+      .send({ showResultsRealtime: true });
+    expect(open.status).toBe(409);
+    expect(open.body.code).toBe('POLL_LOCKED');
+  });
+
+  it('publish refuses a poll whose closing time already passed', async () => {
+    const id = await submittedPoll('approved-then-expired');
+    await admin.post(`/admin/polls/${id}/approve`);
+    await db.query(
+      "UPDATE polls SET closes_at = now() - interval '1 minute' WHERE id = $1",
+      [id],
+    );
+    const res = await owner.post(`/polls/${id}/publish`);
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe('CLOSES_AT_PASSED');
+
+    // moving closesAt is allowed while approved, then publish works
+    await owner.patch(`/polls/${id}/closes-at`).send({ closesAt: days(2) });
+    expect((await owner.post(`/polls/${id}/publish`)).status).toBe(200);
+  });
+
+  it('refuses to approve a poll whose closing time already passed', async () => {
     const id = await submittedPoll('expired');
     await db.query(
       "UPDATE polls SET closes_at = now() - interval '1 minute' WHERE id = $1",
@@ -166,6 +224,12 @@ describe('review queue', () => {
     });
     expect(await queue.getJob(`close-${first}`)).toBeFalsy();
 
+    // the owner sees that, and why
+    expect((await owner.get(`/polls/${first}`)).body).toMatchObject({
+      takenDown: true,
+      takedownReason: 'เนื้อหาไม่เหมาะสม',
+    });
+
     const feed = await voter.get('/polls?status=closed');
     expect(feed.body.items.map((p: { id: string }) => p.id)).not.toContain(
       first,
@@ -177,6 +241,7 @@ describe('review queue', () => {
     expect(res.body.items.map((l: { action: string }) => l.action)).toEqual([
       'poll.takedown',
       'poll.closes_at',
+      'poll.publish',
       'poll.approve',
       'poll.submit',
     ]);
@@ -185,16 +250,19 @@ describe('review queue', () => {
 });
 
 describe('managing admins', () => {
-  it('grants admin by CUNEX id; takes effect on the next request', async () => {
+  it('grants admin by student id; takes effect on the next request', async () => {
     expect((await voter.get('/admin/polls')).status).toBe(403);
 
     const res = await admin
       .post('/admin/admins')
-      .send({ cunexUserId: '100000000000000002' });
+      .send({ studentId: '6630000230' });
     expect(res.status).toBe(201);
-    expect(
-      res.body.map((a: { cunexUserId: string }) => a.cunexUserId),
-    ).toContain('100000000000000002');
+    expect(res.body).toContainEqual(
+      expect.objectContaining({
+        studentId: '6630000230',
+        cunexUserId: '100000000000000002',
+      }),
+    );
 
     expect((await voter.get('/admin/polls')).status).toBe(200);
   });
@@ -214,8 +282,13 @@ describe('managing admins', () => {
   it('cannot grant someone who never logged in', async () => {
     const res = await admin
       .post('/admin/admins')
-      .send({ cunexUserId: '199999999999999999' });
+      .send({ studentId: '6999999999' });
     expect(res.status).toBe(404);
     expect(res.body.code).toBe('USER_NOT_FOUND');
+
+    const malformed = await admin
+      .post('/admin/admins')
+      .send({ studentId: '12345' });
+    expect(malformed.status).toBe(422);
   });
 });

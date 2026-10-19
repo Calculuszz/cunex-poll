@@ -1,5 +1,7 @@
+import { wasClosedEarly } from './poll-access.js';
 import { type PollDraftInput, pollDraftSchema } from './poll-draft.schema.js';
 import type { PollAggregate, PollRow } from './polls.repository.js';
+import { resultDisplayOf } from './result-display.js';
 
 export interface MyBallot {
   submitted: boolean;
@@ -16,11 +18,18 @@ export interface PollSummary {
   closesAt: Date | null;
   openedAt: Date | null;
   closedAt: Date | null;
+  closedEarly: boolean;
+  showResultsRealtime: boolean;
+  questionCount: number;
   createdAt: Date;
   myBallot?: MyBallot;
 }
 
-export function toSummary(p: PollRow, myBallot?: MyBallot): PollSummary {
+export function toSummary(
+  p: PollRow,
+  questionCount: number,
+  myBallot?: MyBallot,
+): PollSummary {
   return {
     id: p.id,
     status: p.status,
@@ -31,6 +40,9 @@ export function toSummary(p: PollRow, myBallot?: MyBallot): PollSummary {
     closesAt: p.closesAt,
     openedAt: p.openedAt,
     closedAt: p.closedAt,
+    closedEarly: wasClosedEarly(p),
+    showResultsRealtime: p.showResultsRealtime,
+    questionCount,
     createdAt: p.createdAt,
     ...(myBallot ? { myBallot } : {}),
   };
@@ -57,17 +69,17 @@ export function toDetail(
     submittedAt: poll.submittedAt,
     openedAt: poll.openedAt,
     closedAt: poll.closedAt,
+    closedEarly: wasClosedEarly(poll),
+    closeReason: poll.closeReason,
     createdAt: poll.createdAt,
     updatedAt: poll.updatedAt,
-    audience:
-      poll.audience === 'public'
-        ? { type: 'public' as const }
-        : { type: 'restricted' as const, rules: agg.rules },
+    audience: audienceOf(agg),
     settings: {
       showResultsRealtime: poll.showResultsRealtime,
       allowAnswerEdit: poll.allowAnswerEdit,
       listedPublicly: poll.listedPublicly,
     },
+    resultDisplay: resultDisplayOf(poll),
     shareUrl: poll.shareUrl,
     elements: agg.elements.map((e) => ({
       id: e.id,
@@ -82,6 +94,7 @@ export function toDetail(
               label: o.label,
               description: o.description,
               imageUrl: o.imageUrl,
+              imageAlt: o.imageAlt,
               popup: o.popup,
             })),
           }
@@ -90,7 +103,11 @@ export function toDetail(
     isOwner: ctx.isOwner,
     myBallot: ctx.myBallot,
     canViewResults: ctx.canViewResults,
-    ...(ctx.canSeeReviews ? { reviews: agg.reviews } : {}),
+    takenDown: poll.takenDownAt !== null,
+    // Owner and admins only, like the review history.
+    ...(ctx.canSeeReviews
+      ? { reviews: agg.reviews, takedownReason: poll.takedownReason }
+      : {}),
   };
 }
 
@@ -102,10 +119,7 @@ export function toDraftInput(agg: PollAggregate): PollDraftInput {
     description: poll.description,
     coverImageUrl: poll.coverImageUrl,
     closesAt: poll.closesAt?.toISOString() ?? null,
-    audience:
-      poll.audience === 'public'
-        ? { type: 'public' }
-        : { type: 'restricted', rules: agg.rules },
+    audience: audienceOf(agg),
     settings: {
       showResultsRealtime: poll.showResultsRealtime,
       allowAnswerEdit: poll.allowAnswerEdit,
@@ -122,12 +136,19 @@ export function toDraftInput(agg: PollAggregate): PollDraftInput {
               label: o.label,
               description: o.description,
               imageUrl: o.imageUrl,
+              imageAlt: o.imageAlt,
               popup: o.popup,
             })),
           }
         : {}),
     })),
   });
+}
+
+function audienceOf({ poll, rules }: PollAggregate) {
+  return poll.audience === 'restricted'
+    ? { type: 'restricted' as const, rules }
+    : { type: poll.audience };
 }
 
 function hasOptions(type: string) {

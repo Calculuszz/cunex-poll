@@ -64,6 +64,7 @@ async function approvedPoll(audience: object, closesInMs: number) {
   expect((await admin.post(`/admin/polls/${body.id}/approve`)).status).toBe(
     200,
   );
+  expect((await owner.post(`/polls/${body.id}/publish`)).status).toBe(200);
   return body.id as string;
 }
 

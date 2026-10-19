@@ -1,7 +1,11 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppError } from '../../common/errors.js';
 import type { PollStatus } from '../../infra/database/db.js';
-import { pollLocked as locked, pollNotFound } from '../polls/poll-errors.js';
+import {
+  closesAtPassed,
+  pollLocked as locked,
+  pollNotFound,
+} from '../polls/poll-errors.js';
 import { PollJobs } from '../polls/poll-jobs.js';
 import { PollsRepository } from '../polls/polls.repository.js';
 import { PollsService } from '../polls/polls.service.js';
@@ -24,8 +28,9 @@ export class AdminService {
     limit: number,
   ) {
     const page = await this.repo.listPolls(status, cursor, limit);
+    const counts = await this.polls.questionCounts(page.items.map((p) => p.id));
     return {
-      items: page.items.map((p) => toSummary(p)),
+      items: page.items.map((p) => toSummary(p, counts.get(p.id) ?? 0)),
       nextCursor: page.nextCursor,
     };
   }
@@ -34,23 +39,17 @@ export class AdminService {
     const { poll } = await this.pollOr404(pollId);
     if (poll.status !== 'pending_review') throw locked(poll.status);
     // It may have sat in the queue past its own deadline. The owner must move
-    // closesAt first; opening an already-expired poll helps nobody.
-    if (!poll.closesAt || poll.closesAt <= new Date()) {
-      throw new AppError(
-        'CLOSES_AT_PASSED',
-        HttpStatus.UNPROCESSABLE_ENTITY,
-        'The poll closing time has already passed; ask the owner to move it',
-      );
-    }
+    // closesAt first; approving an already-expired poll helps nobody.
+    if (!poll.closesAt || poll.closesAt <= new Date()) throw closesAtPassed();
 
+    // → approved. Voting starts when the owner publishes it.
     if (!(await this.repo.decide(pollId, admin.id, 'approved', null))) {
       throw locked((await this.pollOr404(pollId)).poll.status);
     }
-    await this.jobs.opened(pollId, poll.closesAt);
     return this.pollsService.get(admin, pollId);
   }
 
-  async reject(admin: User, pollId: string, comment: string) {
+  async reject(admin: User, pollId: string, comment: string | null) {
     const { poll } = await this.pollOr404(pollId);
     if (poll.status !== 'pending_review') throw locked(poll.status);
     if (!(await this.repo.decide(pollId, admin.id, 'rejected', comment))) {
@@ -72,13 +71,13 @@ export class AdminService {
     return this.repo.listAdmins();
   }
 
-  async grantAdmin(admin: User, cunexUserId: string) {
-    const found = await this.repo.findUserIdByCunexId(cunexUserId);
+  async grantAdmin(admin: User, studentId: string) {
+    const found = await this.repo.findUserIdByStudentId(studentId);
     if (!found) {
       throw new AppError(
         'USER_NOT_FOUND',
         HttpStatus.NOT_FOUND,
-        'No user with that CUNEX id has logged in yet',
+        'No user with that student id has logged in yet',
       );
     }
     await this.repo.setRole(found.userId, 'admin', admin.id);

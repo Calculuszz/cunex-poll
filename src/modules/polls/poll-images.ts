@@ -6,7 +6,7 @@ export interface ImageRef {
   url: string;
 }
 
-/** Every image URL a draft uses: cover, image elements, option images. */
+/** Every image URL a draft uses: cover, image elements, popups, option images. */
 export function imageRefs(draft: PollDraftInput): ImageRef[] {
   const refs: ImageRef[] = [];
   if (draft.coverImageUrl) {
@@ -15,6 +15,12 @@ export function imageRefs(draft: PollDraftInput): ImageRef[] {
   draft.elements.forEach((el, i) => {
     if (el.type === 'image') {
       refs.push({ path: `elements.${i}.config.url`, url: el.config.url });
+    }
+    if (el.type === 'info_popup' && el.config.imageUrl) {
+      refs.push({
+        path: `elements.${i}.config.imageUrl`,
+        url: el.config.imageUrl,
+      });
     }
     if ('options' in el) {
       el.options.forEach((o, j) => {

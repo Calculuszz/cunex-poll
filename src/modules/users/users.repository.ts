@@ -9,6 +9,7 @@ export type User = Selectable<Users>;
 export interface Me {
   id: string;
   role: User['role'];
+  studentId: string | null;
   isChulaVerified: boolean;
   faculty: { code: string; nameTh: string; nameEn: string } | null;
   studentYear: number | null;
@@ -131,6 +132,10 @@ export class UsersRepository {
 
       const fields = {
         isChulaVerified: true,
+        // Only a well-formed id is kept; an unexpected format must not break login.
+        studentId: /^\d{10}$/.test(profile.studentId)
+          ? profile.studentId
+          : null,
         facultyCode: profile.facultyCode,
         studentYear: profile.studentYear,
         lastLoginAt: new Date(),
@@ -169,6 +174,7 @@ export class UsersRepository {
       .select([
         'users.id',
         'users.role',
+        'users.studentId',
         'users.isChulaVerified',
         'users.studentYear',
         'faculties.code as facultyCode',
@@ -189,6 +195,7 @@ export class UsersRepository {
     return {
       id: row.id,
       role: row.role,
+      studentId: row.studentId,
       isChulaVerified: row.isChulaVerified,
       faculty: row.facultyCode
         ? {
