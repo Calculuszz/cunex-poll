@@ -1,11 +1,11 @@
-# CUNEX Poll — workspace
+# CUNEX Poll
 
-โฟลเดอร์รวม frontend + backend สำหรับพัฒนาในเครื่อง แต่ละโฟลเดอร์ยังเป็น git repo ของตัวเอง (push แยกกัน)
+ระบบโพลสำหรับนิสิตจุฬาฯ บน CUNEX · repo นี้รวม backend และ frontend ไว้ด้วยกัน
 
-| โฟลเดอร์ | repo | คืออะไร |
-|---|---|---|
-| `backend/` | [cunex-club/voting-backend](https://github.com/cunex-club/voting-backend) | NestJS API + worker · Postgres, Redis, S3 (docker compose) |
-| `frontend/` | [cunex-club/voting-frontend](https://github.com/cunex-club/voting-frontend) | Next.js เว็บ · เรียก API ผ่าน `/api/v1` ซึ่ง rewrite ไป backend |
+| โฟลเดอร์ | คืออะไร |
+|---|---|
+| `backend/` | NestJS API + worker · Postgres, Redis, S3 (docker compose) |
+| `frontend/` | Next.js เว็บ · เรียก API ผ่าน `/api/v1` ซึ่ง rewrite ไป backend |
 
 ```
 browser ──► Next.js :3000 ──/api/v1/*──► NestJS :4000 ──► Postgres :55432 · Redis :6379 · S3 :8333
