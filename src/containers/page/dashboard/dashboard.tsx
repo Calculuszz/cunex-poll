@@ -41,8 +41,6 @@ export async function PollDashboardPage({ slug, view = 'owner' }: { slug: string
     if (view === 'owner' && (poll.status === 'draft' || poll.status === 'rejected')) redirect(`/create/${slug}`)
 
     const opened = poll.status === 'open' || poll.status === 'closed'
-    // เห็นรหัสผู้ตอบ: หน้าแอดมินเสมอ หรือเจ้าของโพลที่เปิด "ระบุคนส่ง" (API ตัดสินซ้ำ)
-    const withIdentity = view === 'admin' || poll.settings.identifySender
     const results: PollResults | null = opened ? await api.polls.results(slug) : null
 
     return (
@@ -50,7 +48,7 @@ export async function PollDashboardPage({ slug, view = 'owner' }: { slug: string
             <header className='flex flex-col gap-3'>
                 <PollStatusTags status={poll.status} audience={poll.audience.type} realtime={poll.settings.showResultsRealtime} />
                 <h1 className='font-heading text-3xl font-bold break-words'>{poll.title || 'ยังไม่ได้ตั้งชื่อโพล'}</h1>
-                {view === 'admin' && <p className='text-sm text-ink-500'>มุมมองผู้ดูแลระบบ · เห็นรหัสผู้ตอบในคำตอบรายชุดและไฟล์ส่งออก{poll.isOwner ? ' · โพลของคุณเอง' : ''}</p>}
+                {view === 'admin' && <p className='text-sm text-ink-500'>มุมมองผู้ดูแลระบบ{poll.isOwner ? ' · โพลของคุณเอง' : ''}</p>}
             </header>
 
             <PollMetaInfo poll={poll} faculties={faculties} />
@@ -75,7 +73,7 @@ export async function PollDashboardPage({ slug, view = 'owner' }: { slug: string
                         <PollActions pollId={poll.id} shareUrl={poll.shareUrl} voting={poll.status === 'open'} owner={poll.isOwner} />
                         {view === 'admin' && <div className='flex justify-end'><TakedownAction pollId={poll.id} /></div>}
                     </div>
-                    <ResultsSection results={toResultsModel(poll, results)} elements={poll.elements} withIdentity={withIdentity} />
+                    <ResultsSection results={toResultsModel(poll, results)} />
                 </>
             ) : (
                 <>

@@ -1,9 +1,10 @@
 'use client'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { api, errorMessage, isApiError } from '@/api'
-import { firstMissingRequired, paginate, questionsOf, toApiAnswers, type Answers, type VoterPoll } from '@/lib/voteForm'
+import { firstMissingRequired, fromBallot, paginate, questionsOf, toApiAnswers, type VoterPoll } from '@/lib/voteForm'
+import { clearDraft, readDraft } from '@/lib/voteDraft'
 import { saveVoteDraft, useSaveDraft } from '@/hooks/useVoteFlow'
 import { isVoteDirty, useVoteFlowStore } from '@/store/voteFlowStore'
 import { ElementView } from './components/elementView'
@@ -12,13 +13,9 @@ import { QuestionProgress } from './components/questionProgress'
 import { StepActionBar } from './components/stepActionBar'
 import { ConfirmSubmitModal } from './components/confirmSubmitModal'
 
-// หน้าคำถามหนึ่งหน้า (ตัดหน้าด้วย page_break) เปลี่ยนหน้า = บันทึกฉบับร่างที่ server ก่อนเสมอ
-export function VoteStep({ poll, pageIndex, initialAnswers, lastSavedAt }: {
-    poll: VoterPoll
-    pageIndex: number
-    initialAnswers: Answers
-    lastSavedAt: string | null
-}) {
+// หน้าคำถามหนึ่งหน้า (ตัดหน้าด้วย page_break) เปลี่ยนหน้า = บันทึกฉบับร่างในเบราว์เซอร์ก่อนเสมอ
+// เข้าได้เฉพาะตอนมีฉบับร่าง (กดเริ่มโหวต/แก้คำตอบที่หน้าแรกแล้ว) ไม่งั้นพากลับหน้าแรกของโพล
+export function VoteStep({ poll, pageIndex }: { poll: VoterPoll; pageIndex: number }) {
     const router = useRouter()
     const pages = paginate(poll.items)
     const page = pages[pageIndex]
@@ -32,17 +29,19 @@ export function VoteStep({ poll, pageIndex, initialAnswers, lastSavedAt }: {
     const { saving, save } = useSaveDraft(poll.id)
     const [confirmOpen, setConfirmOpen] = useState(false)
     const [submitting, setSubmitting] = useState(false)
-    // token เดียวต่อหนึ่งความตั้งใจส่ง (โพลที่ลงคะแนนซ้ำได้) กดซ้ำหรือยิงใหม่หลังเน็ตหลุดจะไม่นับคะแนนสองครั้ง
-    const clientToken = useRef<string | null>(null)
-
-    // ระหว่างเปลี่ยนหน้าในโพลเดิม คำตอบในหน่วยความจำคือของล่าสุด ใช้ค่าจาก server เฉพาะตอนเพิ่งเข้าโพลนี้
+    // ระหว่างเปลี่ยนหน้าในโพลเดิม คำตอบในหน่วยความจำคือของล่าสุด อ่านฉบับร่างเฉพาะตอนเพิ่งเข้าโพลนี้
     const ready = storePollId === poll.id
     useEffect(() => {
-        if (useVoteFlowStore.getState().pollId !== poll.id) {
-            const textKeys = questionsOf(poll.items).filter((q) => q.type === 'text').map((q) => q.key)
-            useVoteFlowStore.getState().init(poll.id, initialAnswers, lastSavedAt, textKeys)
+        if (useVoteFlowStore.getState().pollId === poll.id) return
+        const draft = readDraft(poll.id)
+        if (!draft) {
+            router.replace(`/${poll.id}`)
+            return
         }
-    }, [poll.id, poll.items, initialAnswers, lastSavedAt])
+        const questions = questionsOf(poll.items)
+        const textKeys = questions.filter((q) => q.type === 'text').map((q) => q.key)
+        useVoteFlowStore.getState().init(poll.id, fromBallot(questions, draft), draft.savedAt, textKeys)
+    }, [poll.id, poll.items, router])
 
     // ปิดแท็บ/รีเฟรชตอนยังไม่ได้บันทึกให้เบราว์เซอร์ถามก่อน
     // ออกจากหน้าด้วยปุ่มย้อนกลับของเบราว์เซอร์ให้บันทึกเงียบๆ แทนการถาม (ไม่ต้องดักประวัติการท่องเว็บ)
@@ -51,7 +50,7 @@ export function VoteStep({ poll, pageIndex, initialAnswers, lastSavedAt }: {
             if (isVoteDirty()) e.preventDefault()
         }
         const onPopState = () => {
-            if (isVoteDirty()) void saveVoteDraft(poll.id, { keepalive: true })
+            if (isVoteDirty()) void saveVoteDraft(poll.id)
         }
         window.addEventListener('beforeunload', onBeforeUnload)
         window.addEventListener('popstate', onPopState)
@@ -61,7 +60,7 @@ export function VoteStep({ poll, pageIndex, initialAnswers, lastSavedAt }: {
         }
     }, [poll.id])
 
-    const current = ready ? answers : initialAnswers
+    const current = ready ? answers : {}
     const pageQuestions = questions.filter((q) => page.some((item) => item.key === q.key))
     const pageMissing = firstMissingRequired(pageQuestions, current)
 
@@ -86,7 +85,6 @@ export function VoteStep({ poll, pageIndex, initialAnswers, lastSavedAt }: {
             if (index !== pageIndex) void goTo(index)
             return
         }
-        clientToken.current ??= crypto.randomUUID()
         setConfirmOpen(true)
     }
 
@@ -94,9 +92,9 @@ export function VoteStep({ poll, pageIndex, initialAnswers, lastSavedAt }: {
         setSubmitting(true)
         try {
             const body = toApiAnswers(questions, current)
-            // ลงคะแนนซ้ำได้ = ballot ใหม่ทุกครั้ง (POST /ballots [เสนอเพิ่ม]) · นอกนั้น upsert ballot เดียวของตัวเอง (PUT /ballot)
-            if (poll.allowRepeat) await api.ballot.post(poll.id, body, clientToken.current!)
-            else await api.ballot.put(poll.id, { answers: body })
+            // upsert คำตอบเดียวของตัวเอง ส่งซ้ำ = แทนที่ของเดิม (ถ้าโพลให้แก้คำตอบ)
+            await api.ballot.put(poll.id, { answers: body })
+            clearDraft(poll.id)
             useVoteFlowStore.getState().reset()
             // replace ไม่ให้ปุ่มย้อนกลับพากลับมาหน้าคำถามที่ส่งไปแล้ว
             // โพลเปิด realtime และเผยแพร่ผล ไปหน้าผลทันที ไม่งั้นขึ้นหน้าขอบคุณ
@@ -118,10 +116,13 @@ export function VoteStep({ poll, pageIndex, initialAnswers, lastSavedAt }: {
         }
     }
 
+    // ยังไม่ได้อ่านฉบับร่าง (หรือกำลังพากลับหน้าแรก)
+    if (!ready) return null
+
     return (
         <div className='flex flex-1 flex-col'>
             <QuestionProgress page={pageIndex + 1} total={pages.length} />
-            {poll.submitted && !poll.allowRepeat && (
+            {poll.submitted && (
                 <p role='status' className='mt-4 rounded-xl bg-inner-bg px-4 py-3 text-sm text-ink-500'>
                     กำลังแก้คำตอบที่ส่งไปแล้ว ส่งใหม่แล้วคำตอบเดิมจะถูกแทนที่
                 </p>
@@ -152,8 +153,7 @@ export function VoteStep({ poll, pageIndex, initialAnswers, lastSavedAt }: {
                 open={confirmOpen}
                 onOpenChange={setConfirmOpen}
                 pollTitle={poll.title}
-                editing={poll.submitted && !poll.allowRepeat}
-                identified={poll.identifySender}
+                editing={poll.submitted}
                 pending={submitting}
                 onConfirm={submit}
             />

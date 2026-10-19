@@ -1,8 +1,7 @@
 import 'server-only'
 import { redirect } from 'next/navigation'
 import { getMe, getServerApi, loadOrNotFound } from '@/api/server'
-import { isApiError } from '@/api'
-import { fromBallot, questionsOf, toVoterPoll, type VoterPoll } from '@/lib/voteForm'
+import { toVoterPoll } from '@/lib/voteForm'
 
 // ข้อมูลที่ทุกหน้าของผู้ตอบใช้: โพล (แปลงเป็นโมเดลหน้ากรอก) + ผู้ใช้ปัจจุบัน
 // โพลที่ไม่มีหรือผู้ใช้ไม่มีสิทธิ์เห็น API ตอบ 404 → หน้า not found ของกลุ่มหน้านี้
@@ -12,16 +11,4 @@ export async function loadVoterPoll(slug: string, returnTo: string) {
     const api = await getServerApi()
     const [detail, faculties] = await loadOrNotFound(() => Promise.all([api.polls.get(slug), api.faculties()]), returnTo)
     return { me, detail, poll: toVoterPoll(detail, faculties), api }
-}
-
-// ฉบับร่างคำตอบที่ server [เสนอเพิ่ม] แปลงเป็นคำตอบในหน้าจอ · ไม่มีร่าง = null
-export async function loadVoteDraft(api: Awaited<ReturnType<typeof loadVoterPoll>>['api'], poll: VoterPoll) {
-    if (!poll.hasDraft) return null
-    try {
-        const draft = await api.ballot.getDraft(poll.id)
-        return { answers: fromBallot(questionsOf(poll.items), draft), savedAt: draft.savedAt }
-    } catch (err) {
-        if (isApiError(err, 'NO_DRAFT')) return null
-        throw err
-    }
 }

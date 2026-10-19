@@ -1,6 +1,6 @@
 // รูปข้อมูลตามสัญญา backend `api-endpoints.md` (v1) — ไฟล์นี้คือแหล่งความจริงเดียวของรูป request/response ฝั่งเว็บ
 // ถ้า backend เปลี่ยนสัญญา แก้ที่นี่ก่อน แล้ว TypeScript จะชี้ทุกจุดที่ต้องตามแก้
-// [เสนอเพิ่ม] = ฟีเจอร์ที่หน้าเว็บมีแต่สัญญายังไม่มี (backend ชั่วคราวทำให้แล้ว) รายละเอียดในโน้ต "Frontend ↔ API v1"
+// backend จริง: repo voting-backend · เอกสาร docs/api-endpoints.md และ docs/frontend-migration.md
 
 // ── ทั่วไป ──
 
@@ -30,7 +30,7 @@ export type Role = 'user' | 'admin'
 
 export type Department = { code: string; nameTh: string; nameEn: string }
 
-// departments = [เสนอเพิ่ม] สาขาของคณะ ใช้เลือกขอบเขตระดับสาขา
+// departments: ยังไม่มีข้อมูลสาขา (CUNEX ไม่ส่งมา) backend จึงไม่ส่งช่องนี้ หน้าเลือกสาขาจะซ่อนเอง
 export type Faculty = { code: string; nameTh: string; nameEn: string; departments?: Department[] }
 
 export type Me = {
@@ -40,7 +40,7 @@ export type Me = {
     isChulaVerified: boolean
     faculty: Faculty | null
     studentYear: number | null
-    // [เสนอเพิ่ม] สาขาของผู้ใช้ (ตรวจขอบเขตระดับสาขา)
+    // สาขาของผู้ใช้: ยังไม่มีข้อมูล (ดู departments)
     departmentCode?: string | null
     providers: ('cunex' | 'google')[]
 }
@@ -49,17 +49,13 @@ export type Me = {
 
 export type PollStatus = 'draft' | 'pending_review' | 'approved' | 'rejected' | 'open' | 'closed'
 
-// departmentCode = [เสนอเพิ่ม] จำกัดถึงระดับสาขา (null/ไม่ส่ง = ทั้งคณะ)
+// departmentCode: ยังไม่ใช้ (backend ไม่เก็บ) · facultyCode/studentYear null = ไม่จำกัดเรื่องนั้น
 export type AudienceRule = { facultyCode: string; departmentCode?: string | null; studentYear: number | null }
-
-export type CodeKind = 'STUDENT' | 'STAFF'
 
 export type Audience =
     | { type: 'public' }
     | { type: 'chula' }
     | { type: 'restricted'; rules: AudienceRule[] }
-    // [เสนอเพิ่ม] เฉพาะรหัสนิสิต/บุคลากรที่กำหนด · ผู้ตอบทั่วไปได้ codes ว่าง (เห็นแค่ codeCount) เจ้าของ/แอดมินได้รายชื่อเต็ม
-    | { type: 'codes'; codeKind: CodeKind; codes: string[]; codeCount?: number }
 
 export type AudienceType = Audience['type']
 
@@ -67,10 +63,6 @@ export type PollSettings = {
     showResultsRealtime: boolean
     allowAnswerEdit: boolean
     listedPublicly: boolean
-    // [เสนอเพิ่ม] ลงคะแนนซ้ำได้: ส่งได้หลายครั้ง นับทุกครั้ง (ใช้ POST /ballots แทน PUT /ballot) · โพลสาธารณะเปิดเสมอ
-    allowRepeat: boolean
-    // [เสนอเพิ่ม] ระบุคนส่ง: เจ้าของโพลเห็นรหัสผู้ตอบในคำตอบรายชุด/ไฟล์ส่งออก (ใช้ทำแบบทดสอบ) · โพลสาธารณะใช้ไม่ได้
-    identifySender: boolean
 }
 
 export type ResultView = 'list' | 'pie' | 'bar'
@@ -123,8 +115,7 @@ export const isChoice = (e: Element): e is ChoiceElement => 'options' in e
 
 export type Review = { decision: 'approved' | 'rejected'; comment: string | null; createdAt: IsoDateTime }
 
-// hasDraft = [เสนอเพิ่ม] มีฉบับร่างคำตอบค้างที่ server
-export type MyBallotState = { submitted: boolean; canEdit: boolean; hasDraft?: boolean }
+export type MyBallotState = { submitted: boolean; canEdit: boolean }
 
 export type PollDetail = {
     id: Uuid
@@ -149,9 +140,8 @@ export type PollDetail = {
     isOwner: boolean
     // เฉพาะเจ้าของ/แอดมิน
     reviews?: Review[]
-    // [เสนอเพิ่ม] ใครกดปิด (เฉพาะแอดมิน) และสถานะถูกถอดโดยแอดมิน
-    closedBy?: string | null
-    takenDown?: boolean
+    // ถูกแอดมิน takedown · เหตุผลเห็นเฉพาะเจ้าของ/แอดมิน
+    takenDown: boolean
     takedownReason?: string | null
 }
 
@@ -167,8 +157,6 @@ export type PollSummary = {
     closedAt: IsoDateTime | null
     closedEarly: boolean
     showResultsRealtime: boolean
-    // [เสนอเพิ่ม] ปุ่มในหน้ารวมโพล ("โหวตอีกครั้ง") ต้องรู้ว่าลงคะแนนซ้ำได้ไหม
-    allowRepeat?: boolean
     questionCount: number
     createdAt: IsoDateTime
     // เฉพาะหน้ารวมโพล (GET /polls)
@@ -216,22 +204,11 @@ export type PollResults = {
     breakdown?: Breakdown
 }
 
-// createdAt = [เสนอเพิ่ม] เวลาที่ส่ง (สัญญาตั้งใจไม่ส่ง เพื่อไม่ให้โยงกับคำตอบข้ออื่น — ต้องเคาะ)
-export type TextAnswerPage = Page<{ text: string; createdAt?: IsoDateTime }>
+// ไม่มีเวลาส่งหรือ id กำกับ ตั้งใจไม่ให้โยงกับคำตอบข้ออื่นของคนเดียวกันได้
+export type TextAnswerPage = Page<{ text: string }>
 
-// ── [เสนอเพิ่ม] ฉบับร่างคำตอบที่ server ──
-
+// ฉบับร่างคำตอบที่ยังไม่ส่ง เก็บในเบราว์เซอร์เท่านั้น (src/lib/voteDraft.ts)
 export type BallotDraft = { answers: Answer[]; savedAt: IsoDateTime }
-
-// ── [เสนอเพิ่ม] คำตอบรายชุด ──
-
-// respondent = รหัสผู้ตอบ เฉพาะแอดมิน หรือเจ้าของโพลที่เปิดระบุคนส่ง (นอกนั้น null)
-export type ResponseRow = { no: number; submittedAt: IsoDateTime; respondent: string | null; answers: Answer[] }
-export type ResponsePage = Page<ResponseRow> & { total: number; identityVisible: boolean }
-
-// ── [เสนอเพิ่ม] preset รายชื่อรหัส ──
-
-export type CodePreset = { id: Uuid; name: string; codeKind: CodeKind; codes: string[]; createdAt: IsoDateTime }
 
 // ── รูป ──
 
@@ -255,7 +232,7 @@ export type AdminUser = {
 }
 
 export type AuditLog = {
-    id: Uuid
+    id: string
     actorId: Uuid | null
     action: string
     entityType: string

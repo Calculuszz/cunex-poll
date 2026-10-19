@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import gsap from 'gsap'
-import { Bookmark, Compass, Plus } from 'lucide-react'
+import { Compass, Plus } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -97,10 +97,6 @@ export function CreateMenu() {
                 <Link href='/create' className={itemClass} onClick={close}>
                     <Plus className='size-5' />
                     สร้างโพล
-                </Link>
-                <Link href='/presets' className={itemClass} onClick={close}>
-                    <Bookmark className='size-5' />
-                    จัดการ preset
                 </Link>
                 <Link href='/explore' className={itemClass} onClick={close}>
                     <Compass className='size-5' />

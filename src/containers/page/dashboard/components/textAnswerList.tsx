@@ -4,19 +4,16 @@ import { Loader2 } from 'lucide-react'
 import { api, errorMessage } from '@/api'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { formatThaiDateTime } from '@/lib/thaiDate'
 
 const PREVIEW_LIMIT = 3
 const PAGE_SIZE = 20
 
-type TextItem = { text: string; createdAt?: string }
+type TextItem = { text: string }
 
-// createdAt [เสนอเพิ่ม] โชว์เมื่อ backend ส่งมา
 function AnswerBubble({ item }: { item: TextItem }) {
     return (
         <li className='flex flex-col gap-1 rounded-xl bg-inner-bg px-3 py-2'>
             <p className='break-words whitespace-pre-line'>{item.text}</p>
-            {item.createdAt && <time dateTime={item.createdAt} className='text-xs text-ink-500'>{formatThaiDateTime(item.createdAt)}</time>}
         </li>
     )
 }

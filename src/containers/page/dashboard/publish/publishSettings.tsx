@@ -66,9 +66,9 @@ export function PublishSettings({ pollId, realtime, elements, initialSettings, i
         }
         setSaving(true)
         try {
-            const data = await api.polls.setResultDisplay(pollId, settings)
-            setSaved(data)
-            setSettings(data)
+            const { resultDisplay } = await api.polls.setResultDisplay(pollId, settings)
+            setSaved(resultDisplay)
+            setSettings(resultDisplay)
             toast.success('บันทึกการตั้งค่าแล้ว')
         } catch (err) {
             toast.error(errorMessage(err, 'บันทึกไม่สำเร็จ'))

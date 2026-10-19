@@ -5,6 +5,7 @@ import { LoginPage } from '@/containers/page/auth/login'
 const ERRORS: Record<string, string> = {
     token_expired: 'เซสชันจาก CUNEX หมดอายุ กรุณาเข้าสู่ระบบใหม่',
     cunex_unavailable: 'เชื่อมต่อ CUNEX ไม่ได้ในขณะนี้ ลองใหม่อีกครั้ง',
+    cunex_login_unavailable: 'ตอนนี้เข้าสู่ระบบได้จากเมนู CU Poll ในแอป CUNEX เท่านั้น',
     google_unavailable: 'ยังไม่เปิดให้เข้าสู่ระบบด้วย Google',
     google_failed: 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง',
 }

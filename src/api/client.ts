@@ -22,9 +22,33 @@ export class ApiError extends Error {
 export const isApiError = (err: unknown, code?: string): err is ApiError =>
     err instanceof ApiError && (code === undefined || err.code === code)
 
-// ข้อความที่แสดงกับผู้ใช้ได้ตรงๆ
+// ข้อความไทยตาม code ของ backend (detail ของ backend เป็นภาษาอังกฤษไว้ debug ไม่แสดงผู้ใช้)
+const CODE_MESSAGES: Record<string, string> = {
+    UNAUTHENTICATED: 'กรุณาเข้าสู่ระบบใหม่อีกครั้ง',
+    FORBIDDEN: 'คุณไม่มีสิทธิ์ทำรายการนี้',
+    NOT_ELIGIBLE: 'คุณไม่อยู่ในกลุ่มผู้ตอบของโพลนี้',
+    RESULTS_HIDDEN: 'ยังดูผลโหวตของโพลนี้ไม่ได้',
+    POLL_NOT_FOUND: 'ไม่พบโพล',
+    NOT_FOUND: 'ไม่พบข้อมูล',
+    NO_BALLOT: 'คุณยังไม่ได้ตอบโพลนี้',
+    USER_NOT_FOUND: 'ยังไม่พบผู้ใช้นี้ ให้เข้าสู่ระบบด้วย CUNEX ก่อน',
+    POLL_LOCKED: 'สถานะโพลเปลี่ยนไปแล้ว กรุณาโหลดหน้าใหม่',
+    POLL_CLOSED: 'โพลนี้ปิดรับคำตอบแล้ว',
+    ALREADY_VOTED: 'คุณส่งคำตอบโพลนี้ไปแล้ว',
+    CANNOT_REVOKE_SELF: 'ถอดสิทธิ์ผู้ดูแลของตัวเองไม่ได้',
+    VERSION_CONFLICT: 'ฉบับร่างถูกแก้จากที่อื่น กรุณาโหลดใหม่ก่อนบันทึก',
+    UNPROCESSABLE: 'ข้อมูลไม่ถูกต้อง',
+    INVALID_IMAGE_URL: 'ต้องอัปโหลดรูปผ่านระบบ',
+    UNKNOWN_FACULTY: 'ไม่พบคณะที่เลือก',
+    CLOSES_AT_PASSED: 'เลยเวลาปิดโหวตแล้ว กรุณาเลื่อนเวลาปิดก่อน',
+    INVALID_CLOSES_AT: 'เวลาปิดต้องอยู่ในอนาคต',
+    IMAGE_TOO_LARGE: 'รูปใหญ่เกิน 5 MB',
+    RATE_LIMITED: 'ทำรายการถี่เกินไป รอสักครู่แล้วลองใหม่',
+}
+
+// ข้อความที่แสดงกับผู้ใช้ได้ตรงๆ: ปัญหาข้อแรก (backend ส่งเป็นภาษาไทย) > ข้อความตาม code > fallback
 export function errorMessage(err: unknown, fallback = 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง') {
-    if (err instanceof ApiError) return err.message || fallback
+    if (err instanceof ApiError) return err.problem.problems?.[0]?.message ?? CODE_MESSAGES[err.code] ?? fallback
     if (err instanceof TypeError) return 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง'
     return fallback
 }

@@ -27,18 +27,12 @@ export type VoterPoll = {
     audienceScope: AudienceScope | null
     realtime: boolean
     allowAnswerEdit: boolean
-    // ลงคะแนนซ้ำได้: ส่งได้หลายครั้ง นับทุกครั้ง (POST /ballots)
-    allowRepeat: boolean
-    // เจ้าของโพลเห็นรหัสผู้ตอบ ต้องบอกผู้ตอบก่อนเริ่ม
-    identifySender: boolean
     items: VoteItem[]
     questionCount: number
     resultsPublished: boolean
     canViewResults: boolean
     submitted: boolean
     canEdit: boolean
-    // มีฉบับร่างคำตอบค้างที่ server
-    hasDraft: boolean
     isOwner: boolean
 }
 
@@ -61,15 +55,12 @@ export function toVoterPoll(poll: PollDetail, faculties: Faculty[]): VoterPoll {
         audienceScope: audienceScope(poll.audience, faculties),
         realtime: poll.settings.showResultsRealtime,
         allowAnswerEdit: poll.settings.allowAnswerEdit,
-        allowRepeat: poll.settings.allowRepeat,
-        identifySender: poll.settings.identifySender,
         items,
         questionCount: items.filter((i) => i.kind === 'input').length,
         resultsPublished: poll.resultDisplay.published,
         canViewResults: poll.canViewResults,
         submitted: poll.myBallot?.submitted ?? false,
         canEdit: poll.myBallot?.canEdit ?? false,
-        hasDraft: poll.myBallot?.hasDraft ?? false,
         isOwner: poll.isOwner,
     }
 }
@@ -77,15 +68,14 @@ export function toVoterPoll(poll: PollDetail, faculties: Faculty[]): VoterPoll {
 // สถานะที่ทำให้ตอบไม่ได้ (คิดฝั่งหน้าเว็บเพื่อเลือกข้อความ/ปุ่ม · backend ตรวจซ้ำตอน PUT ballot)
 export type IneligibleReason = 'NOT_OPEN' | 'CLOSED' | 'NOT_ELIGIBLE' | 'ALREADY_VOTED'
 
-// กติกาเดียวกับ backend: public = ใครที่ล็อกอินก็ได้ · chula = ยืนยันผ่าน CUNEX · restricted = ตรงกฎคณะ/สาขา/ปีเข้า
-// codes: ผู้ตอบทั่วไปไม่ได้รายชื่อ (เห็นโพลได้แปลว่าอยู่ในรายชื่อแล้ว) เจ้าของ/แอดมินได้รายชื่อเต็มจึงตรวจได้
+// กติกาเดียวกับ backend: public = ใครที่ล็อกอินก็ได้ · chula = ยืนยันผ่าน CUNEX · restricted = ตรงกฎคณะ/ปีเข้า
+// ในกฎเดียวกัน ช่องที่ว่าง (null) = ไม่จำกัดเรื่องนั้น
 export function isEligible(me: Me, audience: Audience) {
     if (audience.type === 'public') return true
     if (!me.isChulaVerified) return false
     if (audience.type === 'chula') return true
-    if (audience.type === 'codes') return audience.codes.length === 0 || (!!me.studentId && audience.codes.includes(me.studentId))
     return audience.rules.some((r) =>
-        r.facultyCode === me.faculty?.code
+        (!r.facultyCode || r.facultyCode === me.faculty?.code)
         && (!r.departmentCode || r.departmentCode === me.departmentCode)
         && (r.studentYear === null || r.studentYear === me.studentYear))
 }
@@ -99,7 +89,7 @@ export function ineligibleReason(poll: VoterPoll, me: Me): IneligibleReason | nu
     if (poll.status !== 'open') return 'NOT_OPEN'
     // เจ้าของ/แอดมินเห็นโพลได้แม้อยู่นอกกลุ่มผู้ตอบ แต่ตอบไม่ได้
     if (!isEligible(me, poll.audience)) return 'NOT_ELIGIBLE'
-    if (poll.submitted && !poll.canEdit && !poll.allowRepeat) return 'ALREADY_VOTED'
+    if (poll.submitted && !poll.canEdit) return 'ALREADY_VOTED'
     return null
 }
 

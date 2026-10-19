@@ -1,12 +1,13 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Ban, CheckCircle2, List, Loader2, Timer } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, errorMessage } from '@/api'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { estimateMinutes, paginate, resumePageIndex, type Answers, type IneligibleReason, type VoterPoll } from '@/lib/voteForm'
+import { estimateMinutes, fromBallot, paginate, questionsOf, resumePageIndex, type Answers, type IneligibleReason, type VoterPoll } from '@/lib/voteForm'
+import { readDraft, writeDraft } from '@/lib/voteDraft'
 import { formatThaiDateTime, formatTimeLeftShort } from '@/lib/thaiDate'
 import { cn } from '@/lib/utils'
 import { AudienceScopeView } from '@/components/common/audienceScopeView'
@@ -28,25 +29,33 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 // การ์ดหน้าแรกของโพล ปุ่มด้านล่างเปลี่ยนตามสถานะคำตอบของผู้ใช้และสถานะโพล
-// draft = ฉบับร่างคำตอบที่ server (ถ้ามี) · onStart ส่งมาเมื่อเป็นหน้าดูตัวอย่าง: ไปหน้าคำถามในหน้าเดียวกัน ไม่สร้างร่าง
-export function PollIntroCard({ poll, reason, draft, onStart }: {
+// ฉบับร่างคำตอบอยู่ในเบราว์เซอร์ (src/lib/voteDraft.ts) จึงอ่านหลัง mount
+// onStart ส่งมาเมื่อเป็นหน้าดูตัวอย่าง: ไปหน้าคำถามในหน้าเดียวกัน ไม่สร้างร่าง
+export function PollIntroCard({ poll, reason, onStart }: {
     poll: VoterPoll
     reason: IneligibleReason | null
-    draft?: { answers: Answers; savedAt: string } | null
     onStart?: () => void
 }) {
     const router = useRouter()
     const [expanded, setExpanded] = useState(false)
     const [starting, setStarting] = useState(false)
+    const [draft, setDraft] = useState<{ answers: Answers; savedAt: string } | null>(null)
 
-    // เริ่มโหวต/โหวตอีกครั้ง = สร้างร่างว่างที่ server ก่อน · แก้คำตอบ = สร้างร่างจากคำตอบเดิม
+    useEffect(() => {
+        if (onStart) return
+        const saved = readDraft(poll.id)
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage อ่านได้หลัง mount เท่านั้น
+        if (saved) setDraft({ answers: fromBallot(questionsOf(poll.items), saved), savedAt: saved.savedAt })
+    }, [poll.id, poll.items, onStart])
+
+    // เริ่มโหวต = สร้างร่างว่าง · แก้คำตอบ = สร้างร่างจากคำตอบเดิม
     // หน้าคำถามเข้าได้เฉพาะตอนมีร่าง (เข้าตรงโดยไม่มีร่างจะถูกส่งกลับหน้านี้)
-    const start = async (fromBallot = false) => {
+    const start = async (fromServer = false) => {
         if (onStart) return onStart()
         setStarting(true)
         try {
-            const answers = fromBallot ? (await api.ballot.get(poll.id)).answers : []
-            await api.ballot.putDraft(poll.id, answers)
+            const answers = fromServer ? (await api.ballot.get(poll.id)).answers : []
+            writeDraft(poll.id, answers)
             router.push(`/${poll.id}/q/1`)
         } catch (err) {
             toast.error(errorMessage(err, 'เริ่มโหวตไม่สำเร็จ'))
@@ -59,8 +68,8 @@ export function PollIntroCard({ poll, reason, draft, onStart }: {
     const closedEarly = poll.closedEarly && poll.closedAt !== null
     const myAnswers = poll.submitted && <Link href={`/${poll.id}/my-answers`} className={outlinePill}>ดูคำตอบของคุณ</Link>
     const results = poll.canViewResults && <Link href={`/${poll.id}/results`} className={outlinePill}>ดูผลโหวต</Link>
-    const startButton = (label: string, fromBallot = false) => (
-        <Button className={pill} disabled={starting} aria-busy={starting} onClick={() => start(fromBallot)}>
+    const startButton = (label: string, fromServer = false) => (
+        <Button className={pill} disabled={starting} aria-busy={starting} onClick={() => start(fromServer)}>
             {starting && <Loader2 className='animate-spin' />}
             {label}
         </Button>
@@ -81,20 +90,20 @@ export function PollIntroCard({ poll, reason, draft, onStart }: {
         )
     } else if (reason === 'ALREADY_VOTED') {
         actions = <><Button disabled className={pill}>โหวตแล้ว</Button>{myAnswers}{results}</>
-    } else if (poll.hasDraft) {
+    } else if (draft && !onStart) {
         actions = (
             <>
                 <Link href={`/${poll.id}/q/${resumePage}`} className={cn(buttonVariants(), pill)}>
-                    {poll.submitted && !poll.allowRepeat ? 'แก้คำตอบต่อ' : 'โหวตต่อ'}
+                    {poll.submitted ? 'แก้คำตอบต่อ' : 'โหวตต่อ'}
                 </Link>
                 {myAnswers}{results}
             </>
         )
     } else if (poll.submitted) {
-        // ลงคะแนนซ้ำได้ = เริ่มรอบใหม่ (นับเพิ่ม) · แก้คำตอบได้ = แทนที่คำตอบเดิม
+        // แก้คำตอบได้ = แทนที่คำตอบเดิม (ส่งแล้วแก้ไม่ได้ ineligibleReason เป็น ALREADY_VOTED ไปก่อนแล้ว)
         actions = (
             <>
-                {poll.allowRepeat ? startButton('โหวตอีกครั้ง') : startButton('แก้คำตอบ', true)}
+                {startButton('แก้คำตอบ', true)}
                 <div className='grid grid-cols-2 gap-2'>
                     <Link href='/explore' className={outlinePill}>ไปที่หน้าโพลที่ตอบได้</Link>
                     {myAnswers}

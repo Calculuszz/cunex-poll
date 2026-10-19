@@ -81,11 +81,8 @@ export function elementToItem(e: Element, index: number): FormItem {
     }
 }
 
-export const parseCodes = (text: string) => text.split('\n').map((line) => line.trim()).filter(Boolean)
-
-export function audienceOfForm(form: Pick<CreatePollState, 'audienceType' | 'rules' | 'codeKind' | 'codesText'>): Audience {
+export function audienceOfForm(form: Pick<CreatePollState, 'audienceType' | 'rules'>): Audience {
     if (form.audienceType === 'restricted') return { type: 'restricted', rules: form.rules }
-    if (form.audienceType === 'codes') return { type: 'codes', codeKind: form.codeKind, codes: parseCodes(form.codesText) }
     return { type: form.audienceType }
 }
 
@@ -101,9 +98,6 @@ export function formToDraft(form: CreatePollState, items: FormItem[]): PollDraft
             showResultsRealtime: form.realtime,
             allowAnswerEdit: form.allowAnswerEdit,
             listedPublicly: form.listedPublicly,
-            // โพลสาธารณะล็อกสองสวิตช์ไว้ตามที่หน้าจอแสดง (backend บังคับซ้ำ)
-            allowRepeat: form.audienceType === 'public' ? true : form.allowRepeat,
-            identifySender: form.audienceType === 'public' ? false : form.identifySender,
         },
         elements: items.map(itemToElement),
     }
@@ -119,13 +113,9 @@ export function detailToForm(poll: PollDetail): { form: CreatePollState; items: 
             coverImageUrl: poll.coverImageUrl,
             audienceType: poll.audience.type,
             rules: poll.audience.type === 'restricted' ? poll.audience.rules : [],
-            codeKind: poll.audience.type === 'codes' ? poll.audience.codeKind : 'STUDENT',
-            codesText: poll.audience.type === 'codes' ? poll.audience.codes.join('\n') : '',
             realtime: poll.settings.showResultsRealtime,
             allowAnswerEdit: poll.settings.allowAnswerEdit,
-            allowRepeat: poll.settings.allowRepeat,
             listedPublicly: poll.settings.listedPublicly,
-            identifySender: poll.settings.identifySender,
         },
         items: poll.elements.map(elementToItem),
     }

@@ -7,11 +7,10 @@ import { cn } from '@/lib/utils'
 
 const btn = 'flex-1 px-4 py-5 font-heading text-base font-bold'
 
-// ปุ่มท้ายการ์ดในหน้ารวมโพล เปลี่ยนตามสถานะ ballot ของผู้ใช้ (myBallot) และฉบับร่างคำตอบที่ server
+// ปุ่มท้ายการ์ดในหน้ารวมโพล เปลี่ยนตามสถานะ ballot ของผู้ใช้ (myBallot)
+// ฉบับร่างคำตอบอยู่ในเบราว์เซอร์ หน้าแรกของโพลจะเสนอ "โหวตต่อ" ให้เอง
 // ปุ่มดูผลโผล่เมื่อมีโอกาสดูได้ (ปิดแล้ว หรือเรียลไทม์+ตอบแล้ว) ถ้าเจ้าของไม่เผยแพร่ หน้าผลจะพากลับหน้าแรกของโพล
 export function ExploreActions({ poll }: { poll: PollSummary }) {
-    const draft = poll.myBallot?.hasDraft ?? false
-    const repeat = poll.allowRepeat ?? false
     const submitted = poll.myBallot?.submitted ?? false
     const canEdit = poll.myBallot?.canEdit ?? false
     const closed = poll.status === 'closed'
@@ -23,8 +22,6 @@ export function ExploreActions({ poll }: { poll: PollSummary }) {
 
     let main: React.ReactNode = null
     if (closed) main = submitted ? outline(`/${poll.id}/my-answers`, 'ดูคำตอบของคุณ') : null
-    else if (draft) main = primary(`/${poll.id}`, submitted && !repeat ? 'แก้คำตอบต่อ' : 'โหวตต่อ')
-    else if (submitted && repeat) main = primary(`/${poll.id}`, 'โหวตอีกครั้ง')
     else if (submitted && canEdit) main = primary(`/${poll.id}`, 'แก้คำตอบ')
     else if (submitted) main = outline(`/${poll.id}/my-answers`, 'ดูคำตอบของคุณ')
     else main = primary(`/${poll.id}`, 'เริ่มทำโพล')

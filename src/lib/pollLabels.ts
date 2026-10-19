@@ -22,16 +22,14 @@ export const STATUS_BADGE_CLASS: Record<PollStatus, string> = {
 
 export const AUDIENCE_LABEL: Record<AudienceType, string> = {
     chula: 'ทั้งจุฬาฯ',
-    restricted: 'เฉพาะคณะ/สาขา',
+    restricted: 'เฉพาะคณะ/ปีเข้า',
     public: 'สาธารณะ',
-    codes: 'กำหนดจากรหัส',
 }
 
 export const AUDIENCE_DESCRIPTION: Record<AudienceType, string> = {
     chula: 'นิสิตและบุคลากรจุฬาฯ ที่ยืนยันตัวตนผ่าน CUNEX',
-    restricted: 'เฉพาะคณะ สาขา และปีเข้าที่เลือก ต้องยืนยันตัวตนผ่าน CUNEX',
-    public: 'ทุกคนที่เข้าสู่ระบบ รวมบัญชี Google · ลงคะแนนซ้ำได้เสมอ',
-    codes: 'เฉพาะรหัสนิสิต/บุคลากรที่กำหนด',
+    restricted: 'เฉพาะคณะและปีเข้าที่เลือก ต้องยืนยันตัวตนผ่าน CUNEX',
+    public: 'ทุกคนที่เข้าสู่ระบบ รวมบัญชี Google',
 }
 
 // ใช้ timeZone คงที่ เพื่อให้ server กับ client แสดงเวลาเหมือนกันตอน hydrate

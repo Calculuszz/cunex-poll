@@ -1,7 +1,7 @@
 import type { RequestOptions, Requester } from './client'
 import type {
-    AdminUser, Answer, AuditLog, Ballot, BallotDraft, CodeKind, CodePreset, Faculty, ImageMime, Me, Page, PollDetail, PollDraft,
-    PollResults, PollStatus, PollSummary, ResponsePage, ResultDisplay, TextAnswerPage, UploadTicket, Uuid,
+    AdminUser, AuditLog, Ballot, Faculty, ImageMime, Me, Page, PollDetail, PollDraft,
+    PollResults, PollStatus, PollSummary, ResultDisplay, TextAnswerPage, UploadTicket, Uuid,
 } from './types'
 
 // ทุก endpoint ในสัญญา api-endpoints v1 · หนึ่งฟังก์ชันต่อหนึ่ง endpoint ชื่อ/ลำดับหัวข้อตามเอกสาร
@@ -39,8 +39,9 @@ export function makeApi(req: Requester) {
             setRealtime: (id: Uuid, showResultsRealtime: boolean) =>
                 req<PollDetail>(`${poll(id)}/realtime`, { method: 'PATCH', body: { showResultsRealtime } }),
             publish: (id: Uuid) => req<PollDetail>(`${poll(id)}/publish`, { method: 'POST' }),
+            // ตอบกลับเป็น PollDetail ทั้งก้อน ค่าที่บันทึกอยู่ใน .resultDisplay
             setResultDisplay: (id: Uuid, display: ResultDisplay) =>
-                req<ResultDisplay>(`${poll(id)}/result-display`, { method: 'PUT', body: display }),
+                req<PollDetail>(`${poll(id)}/result-display`, { method: 'PUT', body: display }),
             close: (id: Uuid, reason?: string) => req<PollDetail>(`${poll(id)}/close`, { method: 'POST', body: reason ? { reason } : {} }),
 
             // §7 Results
@@ -48,10 +49,6 @@ export function makeApi(req: Requester) {
                 req<PollResults>(`${poll(id)}/results`, { query: { breakdown: breakdown === 'none' ? null : breakdown }, ...signal(s) }),
             textAnswers: (id: Uuid, elementId: Uuid, cursor?: string | null, limit = 20) =>
                 req<TextAnswerPage>(`${poll(id)}/results/text`, { query: { elementId, cursor, limit } }),
-
-            // [เสนอเพิ่ม] คำตอบรายชุด · withIdentity ขอรหัสผู้ตอบ (server ตัดสินว่าให้ไหม)
-            responses: (id: Uuid, q: { cursor?: string | null; limit?: number; withIdentity?: boolean } = {}) =>
-                req<ResponsePage>(`${poll(id)}/responses`, { query: { cursor: q.cursor, limit: q.limit, withIdentity: q.withIdentity ? 1 : null } }),
         },
 
         // §5 Images
@@ -64,21 +61,6 @@ export function makeApi(req: Requester) {
         ballot: {
             get: (id: Uuid) => req<Ballot>(`${poll(id)}/ballot`),
             put: (id: Uuid, ballot: Pick<Ballot, 'answers'>) => req<Ballot>(`${poll(id)}/ballot`, { method: 'PUT', body: ballot }),
-            // [เสนอเพิ่ม] ballot ใหม่ของโพลที่ลงคะแนนซ้ำได้ · clientToken เดิม = ครั้งเดิม ไม่นับซ้ำ
-            post: (id: Uuid, answers: Answer[], clientToken: string) =>
-                req<Ballot>(`${poll(id)}/ballots`, { method: 'POST', body: { answers, clientToken } }),
-            // [เสนอเพิ่ม] ฉบับร่างคำตอบที่ server
-            getDraft: (id: Uuid) => req<BallotDraft>(`${poll(id)}/ballot/draft`),
-            putDraft: (id: Uuid, answers: Answer[], opts: { keepalive?: boolean } = {}) =>
-                req<BallotDraft>(`${poll(id)}/ballot/draft`, { method: 'PUT', body: { answers }, keepalive: opts.keepalive }),
-        },
-
-        // [เสนอเพิ่ม] preset รายชื่อรหัสของผู้ใช้
-        presets: {
-            list: () => req<CodePreset[]>('/me/presets'),
-            create: (preset: { name: string; codeKind: CodeKind; codes: string[] }) => req<CodePreset>('/me/presets', { method: 'POST', body: preset }),
-            rename: (id: Uuid, name: string) => req<CodePreset>(`/me/presets/${encodeURIComponent(id)}`, { method: 'PATCH', body: { name } }),
-            remove: (id: Uuid) => req<void>(`/me/presets/${encodeURIComponent(id)}`, { method: 'DELETE' }),
         },
 
         // §8 Admin

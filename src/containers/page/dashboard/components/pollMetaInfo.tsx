@@ -25,14 +25,10 @@ export function PollMetaInfo({ poll, faculties }: { poll: PollDetail; faculties:
         },
     ]
     if (poll.closedEarly && poll.closeReason) rows.push({ label: 'เหตุผลที่ปิดก่อนกำหนด', value: poll.closeReason })
-    // ใครกดปิด: ข้อมูลภายใน backend ส่งมาเฉพาะแอดมิน
-    if (poll.closedBy) rows.push({ label: 'ปิดโดย', value: poll.closedBy })
     if (poll.takenDown) rows.push({ label: 'ถูกถอดโดยผู้ดูแลระบบ', value: poll.takedownReason ?? '-' })
     rows.push({
         label: 'การลงคะแนน',
-        value: poll.settings.allowRepeat
-            ? 'ลงคะแนนซ้ำได้ (นับทุกครั้ง)'
-            : poll.settings.allowAnswerEdit ? 'หนึ่งคนหนึ่งเสียง · แก้คำตอบได้จนกว่าจะปิดโหวต' : 'หนึ่งคนหนึ่งเสียง · ส่งแล้วแก้ไม่ได้',
+        value: poll.settings.allowAnswerEdit ? 'หนึ่งคนหนึ่งเสียง · แก้คำตอบได้จนกว่าจะปิดโหวต' : 'หนึ่งคนหนึ่งเสียง · ส่งแล้วแก้ไม่ได้',
     })
     rows.push({
         label: 'แสดงผลแบบเรียลไทม์',
@@ -41,9 +37,6 @@ export function PollMetaInfo({ poll, faculties }: { poll: PollDetail; faculties:
             : poll.settings.showResultsRealtime ? 'เปิด' : 'ปิด',
     })
     rows.push({ label: 'หน้ารวมโพล', value: poll.settings.listedPublicly ? 'แสดง' : 'ไม่แสดง (เข้าได้ทางลิงก์เท่านั้น)' })
-    if (poll.settings.identifySender) {
-        rows.push({ label: 'ระบุคนส่ง', value: 'เปิด · เจ้าของโพลเห็นรหัสของผู้ตอบในคำตอบรายชุดและไฟล์ส่งออก' })
-    }
 
     return (
         <dl className='flex flex-col gap-2'>

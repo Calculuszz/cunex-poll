@@ -7,11 +7,10 @@ import { makeApi } from './endpoints'
 import type { Me } from './types'
 
 // ใช้ใน server component: เรียก backend ด้วย cookie ของผู้ใช้ที่ส่งมากับ request นี้
-// - API_INTERNAL_URL: URL เต็มของ backend ที่ server ของเว็บเข้าถึงได้ (เช่น http://api:8080/api/v1)
-//   ไม่ตั้ง = backend ชั่วคราวในโปรเจกต์นี้ (origin เดียวกับเว็บ)
-// - ตอนใช้ backend จริง ให้ backend อยู่ origin เดียวกับเว็บ (rewrite /api/v1 → backend) cookie sid จึงมาถึงทั้งสองฝั่ง
+// - เรียก backend ตรงที่ BACKEND_URL (ตัวเดียวกับที่ next.config.ts rewrite /api/v1 ไป) ไม่ต้องวนผ่านเว็บ
+// - ไม่ตั้ง = วนผ่าน rewrite ของเว็บเอง (origin เดียวกับ request นี้)
 async function serverBase() {
-    if (process.env.API_INTERNAL_URL) return process.env.API_INTERNAL_URL
+    if (process.env.BACKEND_URL) return `${process.env.BACKEND_URL.replace(/\/$/, '')}/api/v1`
     const h = await headers()
     return `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}/api/v1`
 }
