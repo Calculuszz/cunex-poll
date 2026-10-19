@@ -10,19 +10,24 @@ import {
 
 export interface LiveCunexConfig {
   gatewayUrl: string;
-  loginUrl: string;
+  loginUrl: string | null;
   clientId: string;
   clientSecret: string;
 }
 
-// GET {GATEWAY}/profile response (see CUNEX LLE docs). Every field is a string.
+// GET {GATEWAY}/profile response. The live gateway differs from the LLE docs:
+// the student id comes as `refId` (docs: `studentId`), and it adds userType,
+// names, title and email, which we ignore. Anything odd in the optional
+// fields becomes null rather than failing the login.
+const loose = <T extends z.ZodType>(schema: T) => schema.nullish().catch(null);
 const profileSchema = z.object({
   userId: z.string().min(1),
-  studentId: z.string().min(1),
-  facultyCode: z.string().regex(/^\d{2}$/),
-  facultyNameTH: z.string(),
-  facultyNameEN: z.string(),
-  studentYear: z.string().regex(/^\d{4}$/),
+  refId: loose(z.string()),
+  studentId: loose(z.string()),
+  facultyCode: loose(z.string().regex(/^\d{2}$/)),
+  facultyNameTH: loose(z.string()),
+  facultyNameEN: loose(z.string()),
+  studentYear: loose(z.coerce.string().regex(/^\d{4}$/)),
 });
 
 // 417 + errorCode means the token itself is the problem, not CUNEX.
@@ -58,14 +63,15 @@ export class LiveCunexClient extends CunexClient {
 
     const body: unknown = await res.json().catch(() => null);
 
+    // An unknown or used-up token comes back as 204 with no body.
+    if (res.status === 204 || (res.ok && body === null)) {
+      throw tokenInvalid();
+    }
+
     if (res.status === 417) {
       const code = z.object({ errorCode: z.string() }).safeParse(body);
       if (code.success && TOKEN_ERRORS.has(code.data.errorCode)) {
-        throw new AppError(
-          'CUNEX_TOKEN_INVALID',
-          HttpStatus.UNAUTHORIZED,
-          'CUNEX token is invalid or expired',
-        );
+        throw tokenInvalid();
       }
     }
     if (!res.ok) {
@@ -79,17 +85,18 @@ export class LiveCunexClient extends CunexClient {
       throw unavailable();
     }
     const p = parsed.data;
+    const studentId = p.refId ?? p.studentId ?? null;
     return {
       userId: p.userId,
-      studentId: p.studentId,
-      facultyCode: p.facultyCode,
-      facultyNameTh: p.facultyNameTH,
-      facultyNameEn: p.facultyNameEN,
-      studentYear: Number(p.studentYear),
+      studentId: studentId && /^\d{10}$/.test(studentId) ? studentId : null,
+      facultyCode: p.facultyCode ?? null,
+      facultyNameTh: p.facultyNameTH ?? '',
+      facultyNameEn: p.facultyNameEN ?? '',
+      studentYear: p.studentYear ? Number(p.studentYear) : null,
     };
   }
 
-  loginUrl(): string {
+  loginUrl(): string | null {
     return this.cfg.loginUrl;
   }
 
@@ -143,6 +150,11 @@ export class LiveCunexClient extends CunexClient {
       },
     );
     const body: unknown = await res.json().catch(() => null);
+
+    // An unknown or used-up token comes back as 204 with no body.
+    if (res.status === 204 || (res.ok && body === null)) {
+      throw tokenInvalid();
+    }
     if (!res.ok) {
       throw new Error(
         `CUNEX ${path} returned ${res.status}: ${JSON.stringify(body)}`,
@@ -162,4 +174,12 @@ function unavailable() {
 
 function withTrailingSlash(url: string): string {
   return url.endsWith('/') ? url : `${url}/`;
+}
+
+function tokenInvalid() {
+  return new AppError(
+    'CUNEX_TOKEN_INVALID',
+    HttpStatus.UNAUTHORIZED,
+    'CUNEX token is invalid or expired',
+  );
 }

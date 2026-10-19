@@ -71,7 +71,15 @@ export class AuthController {
       path: '/',
       maxAge: 10 * 60 * 1000,
     });
-    res.redirect(302, this.cunex.loginUrl({ mockUser: query.mockUser }));
+    const loginUrl = this.cunex.loginUrl({ mockUser: query.mockUser });
+    if (!loginUrl) {
+      // Only the CUNEX app menu can start a login for now.
+      return res.redirect(
+        302,
+        `${this.appOrigin}/login?error=cunex_login_unavailable`,
+      );
+    }
+    res.redirect(302, loginUrl);
   }
 
   // CUNEX opens this URL with ?token= from its menu, notifications, shared

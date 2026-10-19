@@ -49,6 +49,56 @@ describe('LiveCunexClient.getProfile', () => {
     });
   });
 
+  it('reads the live gateway shape: refId, extra fields ignored', async () => {
+    respond(200, {
+      email: null,
+      facultyCode: '21',
+      facultyNameEN: 'FACULTY OF ENGINEERING',
+      facultyNameTH: 'คณะวิศวกรรมศาสตร์',
+      firstNameEN: 'Somchai',
+      firstNameTH: 'สมชาย',
+      lastNameEN: 'Jaidee',
+      lastNameTH: 'ใจดี',
+      refId: '6800000021',
+      studentYear: '2568',
+      titleNameEN: 'MISTER',
+      titleNameTH: 'นาย',
+      userId: '100000000000000042',
+      userType: 'STUDENT',
+    });
+    // names, title and email are not kept
+    await expect(client.getProfile('t')).resolves.toEqual({
+      userId: '100000000000000042',
+      studentId: '6800000021',
+      facultyCode: '21',
+      facultyNameTh: 'คณะวิศวกรรมศาสตร์',
+      facultyNameEn: 'FACULTY OF ENGINEERING',
+      studentYear: 2568,
+    });
+  });
+
+  it('accepts accounts without a student id, faculty or entry year', async () => {
+    respond(200, { userId: '9', refId: '12345678', userType: 'STAFF' });
+    await expect(client.getProfile('t')).resolves.toEqual({
+      userId: '9',
+      studentId: null,
+      facultyCode: null,
+      facultyNameTh: '',
+      facultyNameEn: '',
+      studentYear: null,
+    });
+  });
+
+  it('maps 204 (unknown or used token) to CUNEX_TOKEN_INVALID', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(null, { status: 204 })),
+    );
+    await expect(client.getProfile('t')).rejects.toMatchObject({
+      code: 'CUNEX_TOKEN_INVALID',
+    });
+  });
+
   it('maps E002 (token expired) to CUNEX_TOKEN_INVALID', async () => {
     respond(417, { errorCode: 'E002', message: 'token expired' });
     await expect(client.getProfile('t')).rejects.toMatchObject({
@@ -62,7 +112,7 @@ describe('LiveCunexClient.getProfile', () => {
       code: 'CUNEX_UNAVAILABLE',
     });
 
-    respond(200, { userId: 'x' });
+    respond(200, { facultyCode: '21' });
     await expect(client.getProfile('t')).rejects.toBeInstanceOf(AppError);
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNRESET')));

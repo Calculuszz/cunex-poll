@@ -16,7 +16,8 @@ import { MockCunexClient } from './mock-cunex.client.js';
           ? new LiveCunexClient({
               // env validation guarantees these are set in live mode
               gatewayUrl: config.get('CUNEX_GATEWAY_URL')!,
-              loginUrl: config.get('CUNEX_LOGIN_URL')!,
+              // Optional: without it only the CUNEX app menu can log people in.
+              loginUrl: config.get('CUNEX_LOGIN_URL') || null,
               clientId: config.get('CUNEX_CLIENT_ID'),
               clientSecret: config.get('CUNEX_CLIENT_SECRET'),
             })

@@ -107,21 +107,23 @@ export class UsersRepository {
     grantAdmin: boolean,
   ): Promise<User> {
     return this.db.transaction().execute(async (tx) => {
-      await tx
-        .insertInto('faculties')
-        .values({
-          code: profile.facultyCode,
-          nameTh: profile.facultyNameTh,
-          nameEn: profile.facultyNameEn,
-        })
-        .onConflict((oc) =>
-          oc.column('code').doUpdateSet({
+      if (profile.facultyCode) {
+        await tx
+          .insertInto('faculties')
+          .values({
+            code: profile.facultyCode,
             nameTh: profile.facultyNameTh,
             nameEn: profile.facultyNameEn,
-            updatedAt: new Date(),
-          }),
-        )
-        .execute();
+          })
+          .onConflict((oc) =>
+            oc.column('code').doUpdateSet({
+              nameTh: profile.facultyNameTh,
+              nameEn: profile.facultyNameEn,
+              updatedAt: new Date(),
+            }),
+          )
+          .execute();
+      }
 
       const identity = await tx
         .selectFrom('userIdentities')
@@ -132,10 +134,7 @@ export class UsersRepository {
 
       const fields = {
         isChulaVerified: true,
-        // Only a well-formed id is kept; an unexpected format must not break login.
-        studentId: /^\d{10}$/.test(profile.studentId)
-          ? profile.studentId
-          : null,
+        studentId: profile.studentId,
         facultyCode: profile.facultyCode,
         studentYear: profile.studentYear,
         lastLoginAt: new Date(),

@@ -69,6 +69,19 @@ flowchart TB
 | `POST /notification` | ตอนโพลเปิด แจ้งคนที่อยู่ในขอบเขตผู้ตอบ | Worker |
 | `POST /create_link` | ตอนโพลเปิด สร้างลิงก์แชร์ที่เปิดแอป CUNEX | Worker |
 
+Gateway ที่ใช้งานได้จริง: `https://culab-svc.azurewebsites.net/Service.svc` (header `ClientId`, `ClientSecret`)
+
+`/profile` ของจริงไม่ตรงกับ docs ของ LLE:
+
+| docs บอก | ของจริง | เราทำยังไง |
+| --- | --- | --- |
+| `studentId` | `refId` | เก็บเป็นรหัสนิสิต (เฉพาะแบบ 10 หลัก) |
+| ไม่มี | `userType`, ชื่อ-นามสกุล, คำนำหน้า, `email` | **ไม่เก็บ** เก็บเท่าที่จำเป็น |
+| token ผิด → 417 `E002` | token ผิด → `204` ไม่มี body | ถือว่า token หมดอายุ |
+| ClientId/Secret ผิด | `401` ไม่มี body | ถือว่า CUNEX ใช้ไม่ได้ |
+
+บุคลากรอาจไม่มีคณะหรือปีเข้า ระบบรับได้ (ค่าเป็น null) แต่จะตอบได้แค่โพลแบบ "ทั้งจุฬาฯ" และ "สาธารณะ"
+
 ## 4. API
 
 ### Auth

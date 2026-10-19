@@ -87,7 +87,6 @@ export const envSchema = z
     if (env.CUNEX_MODE === 'live') {
       for (const key of [
         'CUNEX_GATEWAY_URL',
-        'CUNEX_LOGIN_URL',
         'CUNEX_CLIENT_ID',
         'CUNEX_CLIENT_SECRET',
       ] as const) {
