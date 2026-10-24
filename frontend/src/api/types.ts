@@ -124,6 +124,8 @@ export type PollDetail = {
     title: string
     description: string
     coverImageUrl: string | null
+    // เวลาเปิดโหวตที่ตั้งล่วงหน้า null = เปิดทันทีที่กด Publish
+    opensAt: IsoDateTime | null
     closesAt: IsoDateTime | null
     submittedAt: IsoDateTime | null
     openedAt: IsoDateTime | null
@@ -152,6 +154,7 @@ export type PollSummary = {
     description: string
     coverImageUrl: string | null
     audience: AudienceType
+    opensAt: IsoDateTime | null
     closesAt: IsoDateTime | null
     openedAt: IsoDateTime | null
     closedAt: IsoDateTime | null
@@ -168,6 +171,7 @@ export type PollDraft = {
     title?: string
     description?: string
     coverImageUrl?: string | null
+    opensAt?: IsoDateTime | null
     closesAt?: IsoDateTime | null
     audience?: Audience
     settings?: Partial<PollSettings>

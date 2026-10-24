@@ -78,6 +78,8 @@ export function PollIntroCard({ poll, reason, onStart }: {
     let actions: React.ReactNode
     if (reason === 'NOT_OPEN') {
         actions = <Button disabled className={pill}>โพลนี้ยังไม่เปิดให้ตอบ</Button>
+    } else if (reason === 'NOT_STARTED') {
+        actions = <Button disabled className={pill}>เปิดโหวต {formatThaiDateTime(poll.opensAt!)}</Button>
     } else if (reason === 'CLOSED') {
         actions = <><Button disabled className={pill}>{closedEarly ? 'ถูกปิดก่อนกำหนด' : 'ปิดโหวตแล้ว'}</Button>{myAnswers}{results}</>
     } else if (reason === 'NOT_ELIGIBLE') {
@@ -139,6 +141,9 @@ export function PollIntroCard({ poll, reason, onStart }: {
 
             <dl className='flex flex-col gap-2'>
                 <MetaRow label='ขอบเขตผู้ตอบ'><AudienceScopeView label={poll.audienceLabel} scope={poll.audienceScope} /></MetaRow>
+                {poll.opensAt && (
+                    <MetaRow label='เวลาเปิดโหวต'>{formatThaiDateTime(poll.opensAt)}</MetaRow>
+                )}
                 <MetaRow label='เวลาปิดโหวต'>
                     {closedEarly && poll.closesAt
                         ? `ปิดจริง ${formatThaiDateTime(poll.closedAt!)} · กำหนดเดิม ${formatThaiDateTime(poll.closesAt)}`

@@ -2,6 +2,7 @@
 import React from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { TEXT_ANSWER_MAX, type AnswerValue, type VoteQuestion } from '@/lib/voteForm'
+import { effectiveMaxSelect } from '@/lib/pollMappers'
 import { ChoiceOptions } from './choiceOptions'
 
 const HINT: Record<VoteQuestion['type'], string> = {
@@ -9,6 +10,11 @@ const HINT: Record<VoteQuestion['type'], string> = {
     select: 'เลือกหนึ่งตัวเลือก',
     checkbox: 'เลือกได้หลายตัวเลือก',
     text: 'พิมพ์คำตอบ',
+}
+
+function hintOf(question: VoteQuestion) {
+    const max = question.type === 'checkbox' ? effectiveMaxSelect(question) : undefined
+    return max === undefined ? HINT[question.type] : `เลือกได้สูงสุด ${max} ตัวเลือก`
 }
 
 // หัวคำถาม (ข้อ n · ชื่อ · คำแนะนำ) + ช่องตอบ ใช้ทั้งหน้ากรอกและหน้าดูคำตอบแบบอ่านอย่างเดียว
@@ -29,7 +35,7 @@ export function QuestionBlock({ question, value, onChange, readOnly }: {
                     {question.label}
                     {question.required && <span className='text-destructive' aria-label='ต้องตอบ'> *</span>}
                 </h2>
-                <p className='text-sm text-ink-500'>{HINT[question.type]}</p>
+                <p className='text-sm text-ink-500'>{hintOf(question)}</p>
             </div>
 
             {question.type === 'text' ? (

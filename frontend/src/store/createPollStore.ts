@@ -5,11 +5,12 @@ import type { AudienceRule, AudienceType } from "@/api/types"
 type PollFormFields = {
     title: string
     desc: string
-    // เก็บเป็น ISO string เพราะ persist เป็น JSON ไม่รองรับ Date
+    // เก็บเป็น ISO string เพราะ persist เป็น JSON ไม่รองรับ Date · openTime null = เปิดทันทีที่กด Publish
+    openTime: string | null
     closeTime: string | null
     // publicUrl จาก POST /images/uploads
     coverImageUrl: string | null
-    // chula = ทั้งจุฬาฯ · restricted = เฉพาะคณะ/ปีเข้า · public = สาธารณะ (ทุกคนที่ล็อกอิน รวม Google)
+    // chula = ทั้งจุฬาฯ · restricted = เฉพาะคณะ/ปีเข้า · public = สาธารณะ (ทุกคนที่ล็อกอิน)
     audienceType: AudienceType
     // กฎของ restricted: studentYear null = ทุกปีเข้า
     rules: AudienceRule[]
@@ -28,6 +29,7 @@ type UseCreatePollStore = PollFormFields & {
 const INITIAL_FIELDS: PollFormFields = {
     title: "",
     desc: "",
+    openTime: null,
     closeTime: null,
     coverImageUrl: null,
     audienceType: "chula",

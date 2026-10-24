@@ -177,8 +177,8 @@ function OptionInfoDialog({
                     </DialogTitle>
                     <DialogDescription>
                         {layout === 'grid'
-                            ? 'ตัวเลือกชุดนี้แสดงเป็นตาราง รูปจะใหญ่และเด่นกว่าข้อความ'
-                            : 'ตัวเลือกชุดนี้แสดงเป็นรายการ รูปกับข้อความมีน้ำหนักเท่ากัน'}
+                            ? 'ตัวเลือกชุดนี้แสดงแบบ 2 คอลัมน์'
+                            : 'ตัวเลือกชุดนี้แสดงแบบ 1 คอลัมน์'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -213,10 +213,6 @@ function OptionInfoFields({
         option.info?.body ?? '',
         (next) => onCommit(option.id, { info: { body: next } }),
     )
-    const [infoTrigger, setInfoTrigger] = useDebouncedField(
-        option.info?.trigger ?? '',
-        (next) => onCommit(option.id, { info: { trigger: next } }),
-    )
 
     return (
         <div className='flex max-h-[60vh] flex-col gap-4 overflow-y-auto'>
@@ -225,6 +221,7 @@ function OptionInfoFields({
                     label='รูปของตัวเลือก'
                     value={option.imageUrl}
                     alt={imageAlt}
+                    square
                     onChange={(next) => onCommit(option.id, { imageUrl: next })}
                 />
 
@@ -236,9 +233,9 @@ function OptionInfoFields({
                     placeholder='คำอธิบายรูปสำหรับคนที่มองไม่เห็น'
                 />
                 <span className='text-sm text-ink-500'>
-                    {layout === 'grid'
-                        ? 'รูปคือสิ่งที่ผู้โหวตเห็นก่อน ข้อความจะเป็นคำบรรยายใต้รูป'
-                        : 'รูปจะแสดงข้างข้อความในขนาดพอๆ กัน'}
+                    รูปแสดงเป็นสี่เหลี่ยมจัตุรัส 1:1 ในหน้าตอบโพล ส่วนที่เกินจะถูกตัดออก (ตัวอย่างด้านบนคือที่ผู้โหวตเห็น)
+                    ผู้โหวตกดตัวเลือกเพื่อดูรูปเต็มได้
+                    {layout === 'grid' && ' · ข้อความจะเป็นคำบรรยายใต้รูป'}
                 </span>
             </div>
 
@@ -259,15 +256,8 @@ function OptionInfoFields({
                     aria-label='รายละเอียดข้อมูลเพิ่มเติม'
                     placeholder='รายละเอียดที่ผู้โหวตกดดูได้ก่อนตัดสินใจ'
                 />
-                <Input
-                    id={`${option.id}-info-trigger`}
-                    value={infoTrigger}
-                    onChange={(e) => setInfoTrigger(e.target.value)}
-                    aria-label='ข้อความบนปุ่มเปิดข้อมูล'
-                    placeholder='ข้อความบนปุ่ม เช่น ดูข้อมูล (ไม่ใส่ก็ได้)'
-                />
                 <span className='text-sm text-ink-500'>
-                    ถ้าเว้นว่างทั้งหมด ตัวเลือกนี้จะไม่มีปุ่มดูข้อมูลเพิ่มเติม
+                    ผู้โหวตเห็นข้อมูลนี้ตอนกดตัวเลือก แล้วค่อยกดยืนยันเลือก ถ้าเว้นว่าง (และไม่มีรูป) กดแล้วเลือกทันที
                 </span>
             </div>
         </div>

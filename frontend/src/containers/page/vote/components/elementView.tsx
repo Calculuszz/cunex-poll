@@ -36,7 +36,7 @@ export function ElementView({ item }: { item: ElementItem }) {
         case 'dialog':
             return (
                 <Dialog>
-                    <DialogTrigger render={<Button variant='outline' className='self-start rounded-full font-heading text-base font-bold' />}>
+                    <DialogTrigger render={<Button variant='outline' className='h-11 w-full rounded-full font-heading text-base font-bold' />}>
                         {item.trigger || 'ดูข้อมูลเพิ่มเติม'}
                     </DialogTrigger>
                     <DialogContent className='flex max-h-[85vh] flex-col gap-3 overflow-y-auto'>

@@ -18,7 +18,8 @@ function optionToApi(o: Option): ElementOption {
         imageUrl: o.imageUrl || null,
         imageAlt: nonEmpty(o.imageAlt),
         popup: o.info && (o.info.title || o.info.body)
-            ? { buttonText: nonEmpty(o.info.trigger), title: o.info.title ?? '', body: o.info.body ?? '' }
+            // ตัวเลือกไม่มีปุ่มเปิดข้อมูลแล้ว (กดตัวเลือก = เปิดรายละเอียด) จึงไม่ส่งข้อความบนปุ่ม
+            ? { buttonText: null, title: o.info.title ?? '', body: o.info.body ?? '' }
             : null,
     }
 }
@@ -33,12 +34,18 @@ function optionFromApi(o: ElementOption, fallbackId: string): Option {
     }
 }
 
+// เพดานที่ไม่น้อยกว่าจำนวนตัวเลือก = ไม่จำกัดอยู่แล้ว (เช่นลบตัวเลือกจนเหลือเท่าเพดาน) จึงไม่ส่ง
+// ไม่งั้น backend ตีกลับตอนส่งขออนุมัติว่าเพดานมากกว่าจำนวนตัวเลือก
+export function effectiveMaxSelect(item: { options: unknown[]; maxSelect?: number }) {
+    return item.maxSelect !== undefined && item.maxSelect < item.options.length ? item.maxSelect : undefined
+}
+
 export function itemToElement(item: FormItem): Element {
     if (item.kind === 'input') {
         const base = { title: item.label, isRequired: item.required }
         switch (item.type) {
             case 'radio': return { ...base, type: 'single_choice', config: { layout: item.optionLayout ?? 'list' }, options: item.options.map(optionToApi) }
-            case 'checkbox': return { ...base, type: 'multi_choice', config: { layout: item.optionLayout ?? 'list' }, options: item.options.map(optionToApi) }
+            case 'checkbox': return { ...base, type: 'multi_choice', config: { layout: item.optionLayout ?? 'list', maxSelect: effectiveMaxSelect(item) ?? null }, options: item.options.map(optionToApi) }
             case 'select': return { ...base, type: 'dropdown', config: {}, options: item.options.map(optionToApi) }
             case 'text': return { ...base, type: 'text_question', config: { placeholder: nonEmpty(item.placeholder) } }
         }
@@ -62,7 +69,7 @@ export function elementToItem(e: Element, index: number): FormItem {
 
     switch (e.type) {
         case 'single_choice': return input({ type: 'radio', options: options(e.options), optionLayout: e.config.layout })
-        case 'multi_choice': return input({ type: 'checkbox', options: options(e.options), optionLayout: e.config.layout })
+        case 'multi_choice': return input({ type: 'checkbox', options: options(e.options), optionLayout: e.config.layout, maxSelect: e.config.maxSelect ?? undefined })
         case 'dropdown': return input({ type: 'select', options: options(e.options) })
         case 'text_question': return input({ type: 'text', placeholder: e.config.placeholder ?? undefined })
         case 'description': {
@@ -92,6 +99,7 @@ export function formToDraft(form: CreatePollState, items: FormItem[]): PollDraft
         title: form.title.trim(),
         description: form.desc.trim(),
         coverImageUrl: form.coverImageUrl,
+        opensAt: form.openTime,
         closesAt: form.closeTime,
         audience: audienceOfForm(form),
         settings: {
@@ -109,6 +117,7 @@ export function detailToForm(poll: PollDetail): { form: CreatePollState; items: 
         form: {
             title: poll.title,
             desc: poll.description,
+            openTime: poll.opensAt,
             closeTime: poll.closesAt,
             coverImageUrl: poll.coverImageUrl,
             audienceType: poll.audience.type,

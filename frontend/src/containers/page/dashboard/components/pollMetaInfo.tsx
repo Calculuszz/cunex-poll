@@ -19,6 +19,7 @@ export function PollMetaInfo({ poll, faculties }: { poll: PollDetail; faculties:
 
     const rows: { label: string; value: React.ReactNode }[] = [
         { label: 'ขอบเขตผู้ตอบ', value: <AudienceScopeView label={audienceLabel(poll.audience, faculties)} scope={audienceScope(poll.audience, faculties)} /> },
+        ...(poll.opensAt ? [{ label: 'เวลาเปิดโหวต', value: formatThaiDateTime(poll.opensAt) }] : []),
         {
             label: 'เวลาปิดโหวต',
             value: <span className='flex flex-col gap-1'>{closeText}{canMoveClose && <ClosesAtEditor pollId={poll.id} closesAt={poll.closesAt} />}</span>,

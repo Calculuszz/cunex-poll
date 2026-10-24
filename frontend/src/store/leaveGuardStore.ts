@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
-// ปลายทางที่รอการยืนยันก่อนออกจากหน้า create: "back" คือย้อนกลับ ค่าอื่นคือ path ที่จะไป
-export type LeaveTarget = "back" | (string & {})
+// ปลายทางที่รอการยืนยันก่อนออกจากหน้า create (path ที่จะไป)
+export type LeaveTarget = string
 
 type UseLeaveGuardStore = {
     target: LeaveTarget | null

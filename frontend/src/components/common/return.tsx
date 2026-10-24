@@ -34,7 +34,8 @@ export function ReturnButton() {
                 type='button'
                 aria-label='ย้อนกลับ'
                 className='flex rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
-                onClick={() => requestLeave("back")}
+                // ไปหน้าโพลของฉันเสมอ ไม่ใช่ router.back() เพราะหน้าก่อนหน้าอาจเป็นหน้าดูตัวอย่าง
+                onClick={() => requestLeave("/")}
             >
                 <ChevronLeft className='size-7 text-primary'/>
             </button>

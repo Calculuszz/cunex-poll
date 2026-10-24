@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-// ล็อกอินได้สองทาง (สัญญา §1): CUNEX หรือ Google ทั้งคู่เป็นการเปลี่ยนหน้าไปที่ backend แล้วกลับมาที่ returnTo
+// ล็อกอินด้วย CUNEX ทางเดียว (ปิด Google แล้ว) เป็นการเปลี่ยนหน้าไปที่ backend แล้วกลับมาที่ returnTo
 // บัญชีทดสอบ (POST /auth/dev/login) โชว์เฉพาะตอนไม่ใช่ production
 const SHOW_DEV_LOGIN = process.env.NODE_ENV !== 'production'
 
@@ -28,8 +28,6 @@ export function CardLogin({ returnTo, error }: { returnTo: string; error: string
         }
     }
 
-    const outline = cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'py-6! font-heading text-base relative text-ink-700 border-border-light')
-
     return (
         <Card className='w-100 mx-6 flex items-center justify-center shadow-lg container'>
             <section className='w-full px-6'>
@@ -42,11 +40,6 @@ export function CardLogin({ returnTo, error }: { returnTo: string; error: string
                     <ShieldCheck className='size-5 absolute top-1/2 -translate-y-1/2 left-4'/>
                     เข้าสู่ระบบด้วย CUNEX
                 </a>
-                <a href={authUrls.google(returnTo)} className={outline}>
-                    <ShieldCheck className='size-5 absolute top-1/2 -translate-y-1/2 left-4 text-muted'/>
-                    เข้าสู่ระบบด้วย Google
-                </a>
-                <p className='text-center text-sm text-ink-500'>บัญชี Google ตอบได้เฉพาะโพลสาธารณะ</p>
                 {SHOW_DEV_LOGIN && (
                     <div className='flex flex-col gap-2 rounded-xl border border-dashed p-3'>
                         <span className='flex items-center gap-1 text-sm font-bold text-ink-500'><FlaskConical className='size-4' />บัญชีทดสอบ (ไม่มีใน production)</span>

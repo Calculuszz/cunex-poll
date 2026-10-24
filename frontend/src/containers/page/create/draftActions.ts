@@ -10,6 +10,7 @@ export type DraftResult = { ok: true; poll: PollDetail } | { ok: false; error: s
 // ชื่อช่องจาก path ใน problems ของ API (เช่น elements[2].options[0].label) → ข้อความที่ผู้ใช้อ่านเข้าใจ
 function describePath(path: string) {
     if (path === 'title') return 'ชื่อโพล'
+    if (path === 'opensAt') return 'เวลาเปิดโหวต'
     if (path === 'closesAt') return 'เวลาปิดโหวต'
     if (path === 'coverImageUrl') return 'รูปปก'
     if (path.startsWith('audience')) return 'ขอบเขตผู้ตอบ'
