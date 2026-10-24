@@ -338,6 +338,7 @@ function pollColumns(d: PollDraftInput) {
     title: d.title,
     description: d.description,
     coverImageUrl: d.coverImageUrl ?? null,
+    opensAt: d.opensAt ? new Date(d.opensAt) : null,
     closesAt: d.closesAt ? new Date(d.closesAt) : null,
     audience: d.audience.type,
     showResultsRealtime: d.settings.showResultsRealtime,

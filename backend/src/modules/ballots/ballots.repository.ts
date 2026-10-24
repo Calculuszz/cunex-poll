@@ -33,6 +33,12 @@ export class BallotsRepository {
         .where('id', '=', input.pollId)
         .where('status', '=', 'open')
         .where('closesAt', '>', sql<Date>`now()`)
+        .where((eb) =>
+          eb.or([
+            eb('opensAt', 'is', null),
+            eb('opensAt', '<=', sql<Date>`now()`),
+          ]),
+        )
         .forShare()
         .executeTakeFirst();
       if (!open) return { kind: 'closed' };

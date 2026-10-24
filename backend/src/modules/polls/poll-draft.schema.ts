@@ -186,6 +186,8 @@ export const pollDraftSchema = z.object({
   title: text(200).default(''),
   description: text(5000).default(''),
   coverImageUrl: imageUrl.nullish(),
+  // null = voting starts as soon as the owner publishes
+  opensAt: z.iso.datetime({ offset: true }).nullish(),
   closesAt: z.iso.datetime({ offset: true }).nullish(),
   audience: audienceSchema.default({ type: 'public' }),
   settings: z

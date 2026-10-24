@@ -22,12 +22,16 @@ export class PollJobs {
 
   constructor(@InjectQueue(POLLS_QUEUE) private readonly queue: Queue) {}
 
-  async opened(pollId: string, closesAt: Date) {
+  /** Share link + notifications at `opensAt` (now, or a scheduled opening). */
+  async opened(pollId: string, opensAt: Date, closesAt: Date) {
     await this.safely('poll-opened', pollId, async () => {
       await this.queue.add(
         'poll-opened',
         { pollId },
-        { jobId: openedId(pollId) },
+        {
+          jobId: openedId(pollId),
+          delay: Math.max(0, opensAt.getTime() - Date.now()),
+        },
       );
       await this.addClose(pollId, closesAt);
     });

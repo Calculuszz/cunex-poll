@@ -3,7 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { AppError } from '../../common/errors.js';
 import type { Env } from '../../config/env.js';
 import { isEligible } from '../polls/eligibility.js';
-import { canSeePoll, isAcceptingVotes } from '../polls/poll-access.js';
+import {
+  canSeePoll,
+  isAcceptingVotes,
+  isBeforeOpening,
+} from '../polls/poll-access.js';
 import { pollNotFound } from '../polls/poll-errors.js';
 import { PollsRepository } from '../polls/polls.repository.js';
 import type { User } from '../users/users.repository.js';
@@ -11,6 +15,12 @@ import { type BallotBody, checkAnswers } from './answers.js';
 import { BallotsRepository } from './ballots.repository.js';
 import { voterKey } from './voter-key.js';
 
+const pollNotStarted = () =>
+  new AppError(
+    'POLL_NOT_STARTED',
+    HttpStatus.CONFLICT,
+    'Voting has not started yet',
+  );
 const pollClosed = () =>
   new AppError('POLL_CLOSED', HttpStatus.CONFLICT, 'Voting has closed');
 
@@ -39,6 +49,7 @@ export class BallotsService {
         'You are not in this poll’s audience',
       );
     }
+    if (isBeforeOpening(poll)) throw pollNotStarted();
     if (!isAcceptingVotes(poll)) throw pollClosed();
 
     const { problems, ballot } = checkAnswers(agg.elements, body);

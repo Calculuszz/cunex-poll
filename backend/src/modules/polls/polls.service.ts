@@ -142,6 +142,13 @@ export class PollsService {
         'closesAt must be in the future',
       );
     }
+    if (poll.opensAt && closesAt <= poll.opensAt) {
+      throw new AppError(
+        'INVALID_CLOSES_AT',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'closesAt must be after opensAt',
+      );
+    }
     // Drafts change closesAt through PUT; this endpoint is for after submit.
     const allowed: PollStatus[] = ['pending_review', 'approved', 'open'];
     if (!allowed.includes(poll.status)) throw locked(poll.status);
@@ -155,14 +162,17 @@ export class PollsService {
     const { poll } = await this.owned(user, id);
     if (poll.status !== 'approved') throw locked(poll.status);
     if (!poll.closesAt || poll.closesAt <= new Date()) throw closesAtPassed();
+    // A scheduled opening still in the future: listed now, votes from opensAt.
+    const now = new Date();
+    const openedAt = poll.opensAt && poll.opensAt > now ? poll.opensAt : now;
     await this.move(
       user,
       id,
       ['approved'],
-      { status: 'open', openedAt: new Date() },
+      { status: 'open', openedAt },
       'poll.publish',
     );
-    await this.jobs.opened(id, poll.closesAt);
+    await this.jobs.opened(id, openedAt, poll.closesAt);
     return this.get(user, id);
   }
 
