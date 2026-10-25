@@ -44,6 +44,8 @@ const realtimeBody = z.object({ showResultsRealtime: z.boolean() });
 const closeBody = z
   .object({ reason: z.string().trim().max(500).optional() })
   .default({});
+// `now: true` opens voting right away even if a later `opensAt` was scheduled.
+const publishBody = z.object({ now: z.boolean().optional() }).default({});
 
 @Controller()
 export class PollsController {
@@ -126,8 +128,9 @@ export class PollsController {
   publish(
     @CurrentUser() user: User,
     @Param('id', { schema: pollId }) id: string,
+    @Body({ schema: publishBody }) body: z.infer<typeof publishBody>,
   ) {
-    return this.polls.publish(user, id);
+    return this.polls.publish(user, id, body.now ?? false);
   }
 
   @Patch('polls/:id/realtime')
