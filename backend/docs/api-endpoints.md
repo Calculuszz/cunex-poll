@@ -25,16 +25,13 @@ Roles: **anon** (no session) · **user** (any login) · **verified** (logged in 
 |---|---|---|---|
 | GET | `/auth/cunex/login?returnTo=` | anon | 302 to the CUNEX "login with CUNEX" page. |
 | GET | `/auth/cunex/callback?token=&returnTo=` | anon | Exchange CUNEX token via `/profile`, upsert user + faculty, create session, **302 to `returnTo` without the token**. Also the entry URL CUNEX opens from its menu, notifications and UniversalLinks. |
-| GET | `/auth/google/login?returnTo=` | anon | 302 to Google (OIDC code flow + PKCE; state, nonce and verifier kept 10 min in Redis). If Google isn't configured → 302 `<app>/login?error=google_unavailable`. |
-| GET | `/auth/google/callback` | anon | Verifies the id_token, creates/reuses the user by Google `sub`, session cookie, 302 to `returnTo`. Any failure (cancelled, replayed state, bad token) → 302 `<app>/login?error=google_failed`. |
 | POST | `/auth/logout` | user | Delete session → `204`. |
 | POST | `/auth/dev/login` | anon | `{ role: "user" \| "admin" }` → test accounts popup. **Only mounted when `APP_ENV != production`.** |
 | GET | `/me` | user | `Me` |
 
 `returnTo` must be a relative path (`/polls/…`); anything else falls back to `/`.
 
-Login is **CUNEX or Google only** (no email/OTP). Google users have no faculty/year
-(`isChulaVerified: false`), so they can answer public polls only. CUNEX callback errors
+Login is **CUNEX only** (no Google, no email/OTP). CUNEX callback errors
 redirect to `<app>/login?error=token_expired|cunex_unavailable`.
 
 ```jsonc
@@ -92,7 +89,7 @@ description, coverImageUrl, audience` (the type only: `"public" | "chula" | "res
 `opensAt, closesAt, openedAt, closedAt, closedEarly, showResultsRealtime, questionCount, createdAt`;
 the feed adds `myBallot`.
 
-Audiences: `public` = anyone logged in (Google too) · `chula` = any CUNEX-verified user ·
+Audiences: `public` = anyone logged in · `chula` = any CUNEX-verified user ·
 `restricted` = CUNEX-verified users matching a faculty / entry-year rule.
 
 ## 4. Polls — authoring (owner)
@@ -244,7 +241,7 @@ question (1 decimal); `weight` = count ÷ the top option's count, for sizing bar
 
 Groups with fewer than `RESULTS_MIN_GROUP_SIZE` (default 5) ballots are merged into `other`;
 if `other` is still below that, it is returned as `hidden` with no numbers. Ballots from
-Google/Email users have no faculty/year and fall in group `unknown`.
+accounts without a faculty/year (some staff) fall in group `unknown`.
 
 ## 8. Admin
 

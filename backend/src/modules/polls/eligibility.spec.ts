@@ -65,7 +65,7 @@ describe('isEligible', () => {
     ).toBe(true);
   });
 
-  it('never lets Google/Email users into restricted polls', () => {
+  it('never lets unverified accounts into restricted polls', () => {
     expect(
       isEligible('restricted', [{ facultyCode: null, studentYear: 2567 }], {
         ...eng2567,

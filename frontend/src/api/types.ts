@@ -42,7 +42,7 @@ export type Me = {
     studentYear: number | null
     // สาขาของผู้ใช้: ยังไม่มีข้อมูล (ดู departments)
     departmentCode?: string | null
-    providers: ('cunex' | 'google')[]
+    providers: 'cunex'[]
 }
 
 // ── โพล ──

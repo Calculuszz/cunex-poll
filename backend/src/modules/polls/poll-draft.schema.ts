@@ -156,7 +156,7 @@ export const QUESTION_TYPES = new Set<ElementType>([
   'dropdown',
 ]);
 
-// public = anyone logged in (Google too) · chula = any CUNEX-verified user
+// public = anyone logged in · chula = any CUNEX-verified user
 // restricted = CUNEX-verified users matching a faculty/entry-year rule
 const audienceSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('public') }),

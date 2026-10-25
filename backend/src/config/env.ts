@@ -63,11 +63,6 @@ export const envSchema = z
       .positive()
       .default(5 * 1024 * 1024),
 
-    // Login with Google (OIDC). Empty client id/secret = Google login disabled.
-    GOOGLE_CLIENT_ID: z.string().default(''),
-    GOOGLE_CLIENT_SECRET: z.string().default(''),
-    GOOGLE_ISSUER_URL: z.url().default('https://accounts.google.com'),
-
     // mock = fake CUNEX with fixture students (no credentials needed)
     // live = real CUNEX LLE gateway
     CUNEX_MODE: z.enum(['mock', 'live']).default('mock'),

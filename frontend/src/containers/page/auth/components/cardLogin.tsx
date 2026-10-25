@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-// ล็อกอินด้วย CUNEX ทางเดียว (ปิด Google แล้ว) เป็นการเปลี่ยนหน้าไปที่ backend แล้วกลับมาที่ returnTo
+// ล็อกอินด้วย CUNEX ทางเดียว เป็นการเปลี่ยนหน้าไปที่ backend แล้วกลับมาที่ returnTo
 // บัญชีทดสอบ (POST /auth/dev/login) โชว์เฉพาะตอนไม่ใช่ production
 const SHOW_DEV_LOGIN = process.env.NODE_ENV !== 'production'
 
