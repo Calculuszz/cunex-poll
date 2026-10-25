@@ -5,7 +5,18 @@
   "buildCommand": "pnpm build",
   "outputDirectory": "public",
   "functions": {
-    "api/index.js": { "includeFiles": "dist/**", "maxDuration": 60 }
+    "api/index.js": {
+      "includeFiles": "dist/**",
+      "maxDuration": 60
+    }
   },
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ],
+  "regions": [
+    "sin1"
+  ]
 }
