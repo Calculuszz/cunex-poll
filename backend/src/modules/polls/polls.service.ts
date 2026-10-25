@@ -158,19 +158,25 @@ export class PollsService {
   }
 
   /** "Publish": the owner opens an approved poll for voting. */
-  async publish(user: User, id: string) {
+  async publish(user: User, id: string, openNow = false) {
     const { poll } = await this.owned(user, id);
     if (poll.status !== 'approved') throw locked(poll.status);
     if (!poll.closesAt || poll.closesAt <= new Date()) throw closesAtPassed();
     // A scheduled opening still in the future: listed now, votes from opensAt.
+    // `openNow` skips the schedule by moving opensAt to now.
     const now = new Date();
-    const openedAt = poll.opensAt && poll.opensAt > now ? poll.opensAt : now;
+    const scheduled = !!poll.opensAt && poll.opensAt > now;
+    const openedAt = scheduled && !openNow ? poll.opensAt! : now;
     await this.move(
       user,
       id,
       ['approved'],
-      { status: 'open', openedAt },
-      'poll.publish',
+      {
+        status: 'open',
+        openedAt,
+        ...(scheduled && openNow ? { opensAt: now } : {}),
+      },
+      scheduled && openNow ? 'poll.publish_now' : 'poll.publish',
     );
     await this.jobs.opened(id, openedAt, poll.closesAt);
     return this.get(user, id);

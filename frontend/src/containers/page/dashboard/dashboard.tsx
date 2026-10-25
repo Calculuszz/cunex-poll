@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getMe, getServerApi, loadOrNotFound } from '@/api/server'
 import type { PollDetail, PollResults } from '@/api/types'
 import { toResultsModel } from '@/lib/pollResultTypes'
+import { isBeforeOpening } from '@/lib/voteForm'
 import { formatThaiDateTime } from '@/lib/thaiDate'
 import { ReviewFooter } from '@/containers/page/dashboard/components/reviewFooter'
 import { PollStatusTags } from '@/containers/page/dashboard/components/pollStatusTags'
@@ -73,12 +74,18 @@ export async function PollDashboardPage({ slug, view = 'owner' }: { slug: string
                         <PollActions pollId={poll.id} shareUrl={poll.shareUrl} voting={poll.status === 'open'} owner={poll.isOwner} />
                         {view === 'admin' && <div className='flex justify-end'><TakedownAction pollId={poll.id} /></div>}
                     </div>
+                    {/* กดเปิดแบบตั้งเวลาไว้: ขึ้นรายการแล้วแต่ยังไม่รับคำตอบ ไม่บอกไว้จะดูเหมือนเปิดแล้วไม่มีคนตอบ */}
+                    {isBeforeOpening(poll) && (
+                        <p className='rounded-2xl bg-inner-bg px-4 py-6 text-center text-ink-500'>
+                            ยังไม่เริ่มรับคำตอบ จะเปิดให้ตอบ {formatThaiDateTime(poll.opensAt!)}
+                        </p>
+                    )}
                     <ResultsSection results={toResultsModel(poll, results)} />
                 </>
             ) : (
                 <>
                     {poll.status === 'approved' ? (
-                        <PublishAction pollId={poll.id} expired={isPastClose(poll.closesAt)} owner={poll.isOwner} />
+                        <PublishAction pollId={poll.id} opensAt={poll.opensAt} expired={isPastClose(poll.closesAt)} owner={poll.isOwner} />
                     ) : (
                         <p className='rounded-2xl bg-inner-bg px-4 py-6 text-center text-ink-500'>
                             {NOT_OPENED_MESSAGE[poll.status] ?? 'โพลนี้ยังไม่เปิดโหวต จึงยังไม่มีผลให้ดู'}

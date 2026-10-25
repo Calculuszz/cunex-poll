@@ -102,7 +102,7 @@ Audiences: `public` = anyone logged in · `chula` = any CUNEX-verified user ·
 | POST | `/polls/:pollId/submit` | owner | Validate completeness → `pending_review`. `422 POLL_INCOMPLETE` with `problems: [{ path, message }]` listing every problem. |
 | PATCH | `/polls/:pollId/closes-at` | owner | `{ closesAt }` in `pending_review`, `approved` or `open`. Must be in the future and after `opensAt`. |
 | PATCH | `/polls/:pollId/realtime` | owner | `{ showResultsRealtime }`. Only before voting starts (`pending_review`, `approved`). |
-| POST | `/polls/:pollId/publish` | owner | "Publish": `approved` → `open`. Queues `poll-opened` (UniversalLink + notifications) and a delayed `close-poll` at `closesAt`. `422 CLOSES_AT_PASSED` if the deadline already went by (move it first). With a future `opensAt` the poll is `open` (listed) right away, but ballots are refused until then; `openedAt` = `opensAt` and `poll-opened` is delayed to it. |
+| POST | `/polls/:pollId/publish` | owner | "Publish": `approved` → `open`. Queues `poll-opened` (UniversalLink + notifications) and a delayed `close-poll` at `closesAt`. `422 CLOSES_AT_PASSED` if the deadline already went by (move it first). With a future `opensAt` the poll is `open` (listed) right away, but ballots are refused until then; `openedAt` = `opensAt` and `poll-opened` is delayed to it. Body optional: `{ now: true }` skips a future schedule — `opensAt` and `openedAt` become now. |
 | PUT | `/polls/:pollId/result-display` | owner | "เผยแพร่ผล": `ResultDisplay` (see §7). Only in `open` / `closed`. |
 | POST | `/polls/:pollId/close` | owner | Close early → `closed`. Only from `open`. Body optional: `{ reason? }` (≤ 500 chars), shown to voters as `closeReason`. |
 

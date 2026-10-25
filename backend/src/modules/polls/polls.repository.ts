@@ -159,6 +159,7 @@ export class PollsRepository {
         | 'status'
         | 'submittedAt'
         | 'openedAt'
+        | 'opensAt'
         | 'closedAt'
         | 'closesAt'
         | 'closeReason'
