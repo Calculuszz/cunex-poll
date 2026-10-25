@@ -1,6 +1,8 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { Queue } from 'bullmq';
+import type { Env } from '../../config/env.js';
 
 export const POLLS_QUEUE = 'polls';
 
@@ -20,7 +22,15 @@ const closeId = (pollId: string) => `close-${pollId}`;
 export class PollJobs {
   private readonly logger = new Logger(PollJobs.name);
 
-  constructor(@InjectQueue(POLLS_QUEUE) private readonly queue: Queue) {}
+  // JOBS_MODE=sweep: nothing is queued; the cron tick finds due polls itself.
+  private readonly enabled: boolean;
+
+  constructor(
+    @InjectQueue(POLLS_QUEUE) private readonly queue: Queue,
+    config: ConfigService<Env, true>,
+  ) {
+    this.enabled = config.get('JOBS_MODE') === 'queue';
+  }
 
   /** Share link + notifications at `opensAt` (now, or a scheduled opening). */
   async opened(pollId: string, opensAt: Date, closesAt: Date) {
@@ -66,6 +76,7 @@ export class PollJobs {
     pollId: string,
     fn: () => Promise<unknown>,
   ) {
+    if (!this.enabled) return;
     try {
       await fn();
     } catch (err) {

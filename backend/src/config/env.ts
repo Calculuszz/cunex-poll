@@ -45,6 +45,12 @@ export const envSchema = z
     // later admins are granted through the admin API.
     ADMIN_BOOTSTRAP_CUNEX_IDS: csv,
 
+    // queue = BullMQ jobs run by the worker process (default).
+    // sweep = no worker (serverless): GET /internal/tick, called every minute
+    //         by a cron with `Authorization: Bearer <CRON_SECRET>`, does the work.
+    JOBS_MODE: z.enum(['queue', 'sweep']).default('queue'),
+    CRON_SECRET: z.string().default(''),
+
     // S3-compatible storage for images. Local dev: SeaweedFS from docker-compose.
     S3_ENDPOINT: optionalUrl,
     S3_REGION: z.string().default('us-east-1'),
@@ -77,6 +83,13 @@ export const envSchema = z
         code: 'custom',
         path: ['CUNEX_MODE'],
         message: 'mock CUNEX is not allowed in production',
+      });
+    }
+    if (env.JOBS_MODE === 'sweep' && env.CRON_SECRET.length < 32) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['CRON_SECRET'],
+        message: 'at least 32 characters when JOBS_MODE=sweep',
       });
     }
     if (env.CUNEX_MODE === 'live') {
