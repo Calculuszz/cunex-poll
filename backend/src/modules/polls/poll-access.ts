@@ -33,16 +33,26 @@ export function canViewResults(
   return poll.status === 'open' && poll.showResultsRealtime && hasVoted;
 }
 
-/** Voting is open: status open and the deadline not yet reached. */
+/** Published with a scheduled opening that hasn't come yet. */
+export function isBeforeOpening(poll: PollRow, now = new Date()): boolean {
+  return poll.status === 'open' && !!poll.opensAt && poll.opensAt > now;
+}
+
+/** Voting is open: status open, past opensAt and the deadline not yet reached. */
 export function isAcceptingVotes(poll: PollRow, now = new Date()): boolean {
-  return poll.status === 'open' && !!poll.closesAt && poll.closesAt > now;
+  return (
+    poll.status === 'open' &&
+    !isBeforeOpening(poll, now) &&
+    !!poll.closesAt &&
+    poll.closesAt > now
+  );
 }
 
 /** Closed, or still `open` past its deadline before the worker caught up. */
 export function hasVotingEnded(poll: PollRow, now = new Date()): boolean {
   return (
     poll.status === 'closed' ||
-    (poll.status === 'open' && !isAcceptingVotes(poll, now))
+    (poll.status === 'open' && (!poll.closesAt || poll.closesAt <= now))
   );
 }
 

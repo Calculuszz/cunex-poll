@@ -315,9 +315,9 @@ describe('audience "chula"', () => {
     expect(card).toMatchObject({ audience: 'chula', questionCount: 2 });
   });
 
-  it('a Google-only user may not', async () => {
+  it('an account not verified by CUNEX may not', async () => {
     // The guard re-reads the user on every request: turn arts into a
-    // Google-style account (not CUNEX-verified, no faculty/year).
+    // account that is not CUNEX-verified (no faculty/year).
     const me = await arts.get('/me');
     await db.query(
       'UPDATE users SET is_chula_verified = false, faculty_code = NULL, student_year = NULL WHERE id = $1',

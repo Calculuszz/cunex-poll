@@ -11,6 +11,7 @@ import { useCreatePollStore } from '@/store/createPollStore'
 export function PollDetail() {
     const title = useCreatePollStore((s) => s.title)
     const desc = useCreatePollStore((s) => s.desc)
+    const openTime = useCreatePollStore((s) => s.openTime)
     const closeTime = useCreatePollStore((s) => s.closeTime)
     const update = useCreatePollStore((s) => s.update)
     // publicUrl จาก POST /images/uploads เก็บใน store แล้วส่งไปเป็น coverImageUrl ตอนบันทึก
@@ -28,6 +29,14 @@ export function PollDetail() {
                     <div>
                         <Label className=' font-bold text-lg'>คำอธิบาย</Label>
                         <Textarea placeholder='คำอธิบายโพล...' value={desc} onChange={(e) => update({ desc: e.target.value })}/>
+                    </div>
+                    <div className='flex flex-col gap-1'>
+                        <Label className=' font-bold text-lg'>เวลาเปิดโพล (ไม่บังคับ)</Label>
+                        <DateTimePicker
+                            value={openTime ? new Date(openTime) : undefined}
+                            onChange={(date) => update({ openTime: date ? date.toISOString() : null })}
+                        />
+                        <span className='text-sm text-ink-500'>ไม่ตั้ง = เปิดรับโหวตทันทีที่กดเผยแพร่หลังผู้ดูแลอนุมัติ</span>
                     </div>
                     <div className='flex flex-col gap-1'>
                         <Label className=' font-bold text-lg'>เวลาปิดโพล</Label>

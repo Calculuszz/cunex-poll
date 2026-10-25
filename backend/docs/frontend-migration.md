@@ -11,7 +11,7 @@
 
 1. **ลบ `app/api/*`, `db/`, `docker-compose.yml`, `src/lib/db.ts`** ไม่ต้องใช้ Postgres ของตัวเองแล้ว
 2. **ตั้ง rewrite** ให้ `/api/v1/*` ของเว็บวิ่งไป backend (ดู [ข้อ 1](#1-setup)) จะได้อยู่ origin เดียวกัน cookie ไปเอง ไม่ต้องยุ่ง CORS
-3. **Auth:** ลบ `CURRENT_USER` ใช้ `GET /api/v1/me` แทน, ปุ่ม login ชี้ไป `/api/v1/auth/cunex/login` กับ `/api/v1/auth/google/login`, **ลบปุ่ม Email**
+3. **Auth:** ลบ `CURRENT_USER` ใช้ `GET /api/v1/me` แทน, ปุ่ม login ชี้ไป `/api/v1/auth/cunex/login` (login ด้วย CUNEX อย่างเดียว ไม่มี Google และ Email)
 4. **แก้ทุกที่ที่อ่าน DB ตรง** (server component 18 ไฟล์ที่ import `@/lib/polls`, `@/lib/votes`, ฯลฯ) ให้เรียก API แทน
 5. **แปลงชื่อ** สถานะ / ประเภทคำถาม / field ตาม [ข้อ 3](#3-ตารางแปลงชื่อ)
 6. **ใช้ id จาก server** คำถามและตัวเลือกมี `id` (uuid) ที่ server สร้าง ตอนส่งคำตอบต้องใช้ id พวกนี้ ไม่ใช่ id ที่ frontend gen เอง
@@ -104,8 +104,7 @@ backend ตั้ง `CUNEX_MODE=mock` ไว้ มีบัญชีทดล�
 | ทำอะไร | เรียก |
 |---|---|
 | ปุ่ม "เข้าสู่ระบบด้วย CUNEX" | `window.location.href = '/api/v1/auth/cunex/login?returnTo=/explore'` |
-| ปุ่ม "เข้าสู่ระบบด้วย Google" | `window.location.href = '/api/v1/auth/google/login?returnTo=/explore'` |
-| ปุ่ม Email | **ลบออก** ระบบมีแค่ CUNEX กับ Google |
+| ปุ่ม Google / Email | **ไม่มี** login ด้วย CUNEX อย่างเดียว |
 | ใครกำลัง login | `GET /api/v1/me` → `401 UNAUTHENTICATED` ถ้ายังไม่ login |
 | ออกจากระบบ | `POST /api/v1/auth/logout` → `204` |
 
@@ -117,16 +116,14 @@ backend ตั้ง `CUNEX_MODE=mock` ไว้ มีบัญชีทดล�
 |---|---|
 | `token_expired` | ลิงก์เข้าสู่ระบบหมดอายุ กรุณาเปิดจาก CUNEX ใหม่อีกครั้ง |
 | `cunex_unavailable` | เชื่อมต่อ CUNEX ไม่ได้ ลองใหม่อีกครั้ง |
-| `google_unavailable` | ยังไม่เปิดให้เข้าสู่ระบบด้วย Google |
-| `google_failed` | เข้าสู่ระบบด้วย Google ไม่สำเร็จ |
 
 ```jsonc
 // GET /api/v1/me
 {
   "id": "9350db16-146f-4dc3-b627-c0464102cdc8",
   "role": "user",                 // "user" | "admin"
-  "studentId": "6630000230",      // null สำหรับคนที่ login ด้วย Google
-  "isChulaVerified": true,        // false = login ด้วย Google → ตอบได้เฉพาะโพลสาธารณะ
+  "studentId": "6630000230",      // null สำหรับบัญชีที่ไม่ใช่นิสิต (เช่นบุคลากร)
+  "isChulaVerified": true,        // login ด้วย CUNEX = true เสมอ
   "faculty": { "code": "30", "nameTh": "แพทยศาสตร์", "nameEn": "Faculty of Medicine" },
   "studentYear": 2566,            // ปีเข้า พ.ศ.
   "providers": ["cunex"]
@@ -158,7 +155,7 @@ backend ตั้ง `CUNEX_MODE=mock` ไว้ มีบัญชีทดล�
 |---|---|
 | A ทั้งจุฬาฯ | `{ "type": "chula" }` คนที่ login ด้วย CUNEX ทุกคน |
 | B เฉพาะคณะ | `{ "type": "restricted", "rules": [{ "facultyCode": "21" }, { "facultyCode": "21", "studentYear": 2567 }] }` |
-| C สาธารณะ | `{ "type": "public" }` ทุกคนที่ login รวม Google |
+| C สาธารณะ | `{ "type": "public" }` ทุกคนที่ login |
 | D กำหนดจากรหัส | **ยังไม่มี** ([ข้อ 7](#7-ยังไม่มีใน-backend)) |
 
 กฎของ `restricted`: แต่ละ rule เป็น "หรือ" กัน ใน rule เดียวกันต้องตรงทุกช่องที่ใส่

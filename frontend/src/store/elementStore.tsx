@@ -10,7 +10,8 @@ export type InputItem = {
     required: boolean;
 } & (
     | { type: 'radio';    options: Option[]; optionLayout?: 'list' | 'grid' }
-    | { type: 'checkbox'; options: Option[]; optionLayout?: 'list' | 'grid' }
+    // maxSelect ว่าง = เลือกได้ไม่จำกัด
+    | { type: 'checkbox'; options: Option[]; optionLayout?: 'list' | 'grid'; maxSelect?: number }
     | { type: 'select';   options: Option[] }
     | { type: 'text';     placeholder?: string }
 );

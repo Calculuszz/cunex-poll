@@ -13,8 +13,7 @@ import { firstMissingRequired, paginate, questionsOf, type Answers, type AnswerV
 import AvatarPopup from '@/containers/widgets/components/avator-popup'
 import { PollIntroCard } from '../components/pollIntroCard'
 import { AnonymityNote } from '../components/anonymityNote'
-import { ElementView } from '../components/elementView'
-import { QuestionBlock } from '../components/questionBlock'
+import { PageItems } from '../components/pageItems'
 import { QuestionProgress } from '../components/questionProgress'
 import { StepActionBar } from '../components/stepActionBar'
 
@@ -42,6 +41,8 @@ export function VotePreview() {
         title: form.title || 'ยังไม่ได้ตั้งชื่อโพล',
         description: form.desc,
         status: 'open',
+        // หน้าดูตัวอย่างต้องลองตอบได้เสมอ จึงไม่ใช้เวลาเปิดจริงมาตัดสินสถานะ
+        opensAt: null,
         closesAt: form.closeTime ?? fallbackClose,
         closedAt: null,
         closedEarly: false,
@@ -105,19 +106,9 @@ export function VotePreview() {
             ) : (
                 <div className='flex flex-1 flex-col'>
                     <QuestionProgress page={pageIndex + 1} total={pages.length} />
-                    <div className='flex flex-col gap-8 pt-6'>
-                        {page.length === 0 && <p className='text-ink-500'>ร่างนี้ยังไม่มีคำถาม</p>}
-                        {page.map((item) => item.kind === 'element'
-                            ? <ElementView key={item.key} item={item} />
-                            : (
-                                <QuestionBlock
-                                    key={item.key}
-                                    question={questions.find((q) => q.key === item.key)!}
-                                    value={answers[item.key]}
-                                    onChange={(value) => setAnswer(item.key, value)}
-                                />
-                            ))}
-                    </div>
+                    {page.length === 0
+                        ? <p className='pt-6 text-ink-500'>ร่างนี้ยังไม่มีคำถาม</p>
+                        : <PageItems page={page} questions={questions} answers={answers} onAnswer={setAnswer} />}
                     <div className='flex-1' />
                     <StepActionBar
                         isFirst={pageIndex === 0}

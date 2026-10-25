@@ -15,6 +15,7 @@ export interface PollSummary {
   description: string;
   coverImageUrl: string | null;
   audience: PollRow['audience'];
+  opensAt: Date | null;
   closesAt: Date | null;
   openedAt: Date | null;
   closedAt: Date | null;
@@ -37,6 +38,7 @@ export function toSummary(
     description: p.description,
     coverImageUrl: p.coverImageUrl,
     audience: p.audience,
+    opensAt: p.opensAt,
     closesAt: p.closesAt,
     openedAt: p.openedAt,
     closedAt: p.closedAt,
@@ -65,6 +67,7 @@ export function toDetail(
     title: poll.title,
     description: poll.description,
     coverImageUrl: poll.coverImageUrl,
+    opensAt: poll.opensAt,
     closesAt: poll.closesAt,
     submittedAt: poll.submittedAt,
     openedAt: poll.openedAt,
@@ -118,6 +121,7 @@ export function toDraftInput(agg: PollAggregate): PollDraftInput {
     title: poll.title,
     description: poll.description,
     coverImageUrl: poll.coverImageUrl,
+    opensAt: poll.opensAt?.toISOString() ?? null,
     closesAt: poll.closesAt?.toISOString() ?? null,
     audience: audienceOf(agg),
     settings: {

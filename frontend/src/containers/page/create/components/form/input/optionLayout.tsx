@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { Grid2x2, List, type LucideIcon } from 'lucide-react'
+import { Columns2, Rows3, type LucideIcon } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import {
     Select,
@@ -22,23 +22,23 @@ export const OPTION_LAYOUTS: {
 }[] = [
     {
         value: 'list',
-        label: 'แบบรายการ',
-        description: 'เรียงลงมาทีละข้อ รูปกับข้อความมีน้ำหนักเท่ากัน',
-        icon: List,
+        label: '1 คอลัมน์',
+        description: 'เรียงลงมาทีละข้อเต็มความกว้าง ตัวเลือกที่มีรูปแสดงรูป 1:1 เหนือข้อความ',
+        icon: Rows3,
     },
     {
         value: 'grid',
-        label: 'แบบรูปใหญ่',
-        description: 'เน้นรูปเป็นหลัก รูปใหญ่เด่นกว่าข้อความ ข้อความเป็นคำบรรยายใต้รูป',
-        icon: Grid2x2,
+        label: '2 คอลัมน์',
+        description: 'วางคู่กันแถวละ 2 ตัวเลือก รูป 1:1 ข้อความเป็นคำบรรยายใต้รูป',
+        icon: Columns2,
     },
 ]
 
-// ตัวเลือกที่ยังไม่มีรูป: โหมดรูปใหญ่ต้องมีรูปทุกตัวเลือก ไม่งั้นกริดพังเป็นช่องว่าง (System flow §5)
+// ตัวเลือกที่ยังไม่มีรูป: โหมด 2 คอลัมน์ต้องมีรูปทุกตัวเลือก ไม่งั้นกริดพังเป็นช่องว่าง (System flow §5)
 export const missingImageCount = (options: { imageUrl?: string }[]) => options.filter((o) => !o.imageUrl).length
 
-// missingImages > 0 = สลับเป็นแบบรูปใหญ่ไม่ได้จนกว่าจะใส่รูปครบ
-// ถ้าเป็นแบบรูปใหญ่อยู่แล้วแต่รูปหายไป (เพิ่มตัวเลือกใหม่/ลบรูป) เตือนไว้ และการส่งขออนุมัติจะถูกบล็อก
+// missingImages > 0 = สลับเป็น 2 คอลัมน์ไม่ได้จนกว่าจะใส่รูปครบ
+// ถ้าเป็น 2 คอลัมน์อยู่แล้วแต่รูปหายไป (เพิ่มตัวเลือกใหม่/ลบรูป) เตือนไว้ และการส่งขออนุมัติจะถูกบล็อก
 export function OptionLayoutSelect({
     id,
     value,
@@ -86,8 +86,8 @@ export function OptionLayoutSelect({
             {gridBlocked && (
                 <span role={value === 'grid' ? 'alert' : undefined} className={value === 'grid' ? 'text-sm text-destructive' : 'text-sm text-ink-500'}>
                     {value === 'grid'
-                        ? `ยังมี ${missingImages} ตัวเลือกที่ไม่มีรูป ใส่รูปให้ครบก่อนส่งขออนุมัติ หรือเปลี่ยนเป็นแบบรายการ`
-                        : 'ใช้แบบรูปใหญ่ได้เมื่อใส่รูปครบทุกตัวเลือก'}
+                        ? `ยังมี ${missingImages} ตัวเลือกที่ไม่มีรูป ใส่รูปให้ครบก่อนส่งขออนุมัติ หรือเปลี่ยนเป็น 1 คอลัมน์`
+                        : 'ใช้ 2 คอลัมน์ได้เมื่อใส่รูปครบทุกตัวเลือก'}
                 </span>
             )}
         </div>

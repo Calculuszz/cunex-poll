@@ -21,6 +21,13 @@ export function findProblems(draft: PollDraftInput, now: Date): Problem[] {
   } else if (new Date(draft.closesAt) <= now) {
     add('closesAt', 'เวลาปิดโหวตต้องอยู่ในอนาคต');
   }
+  if (
+    draft.opensAt &&
+    draft.closesAt &&
+    new Date(draft.opensAt) >= new Date(draft.closesAt)
+  ) {
+    add('opensAt', 'เวลาเปิดโหวตต้องอยู่ก่อนเวลาปิดโหวต');
+  }
 
   const elements = draft.elements;
   if (!elements.some((e) => QUESTION_TYPES.has(e.type))) {

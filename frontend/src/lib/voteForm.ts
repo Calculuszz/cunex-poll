@@ -17,6 +17,7 @@ export type VoterPoll = {
     title: string
     description: string
     status: PollStatus
+    opensAt: string | null
     closesAt: string | null
     // ปิดก่อนกำหนด: หน้ากรอกต้องบอกว่า "ถูกปิดก่อน" ไม่ใช่หมดเวลา
     closedAt: string | null
@@ -46,6 +47,7 @@ export function toVoterPoll(poll: PollDetail, faculties: Faculty[]): VoterPoll {
         title: poll.title,
         description: poll.description,
         status: poll.status,
+        opensAt: poll.opensAt,
         closesAt: poll.closesAt,
         closedAt: poll.closedAt,
         closedEarly: poll.closedEarly,
@@ -66,7 +68,8 @@ export function toVoterPoll(poll: PollDetail, faculties: Faculty[]): VoterPoll {
 }
 
 // สถานะที่ทำให้ตอบไม่ได้ (คิดฝั่งหน้าเว็บเพื่อเลือกข้อความ/ปุ่ม · backend ตรวจซ้ำตอน PUT ballot)
-export type IneligibleReason = 'NOT_OPEN' | 'CLOSED' | 'NOT_ELIGIBLE' | 'ALREADY_VOTED'
+// NOT_STARTED = เผยแพร่แล้วแต่ยังไม่ถึงเวลาเปิดที่ตั้งไว้
+export type IneligibleReason = 'NOT_OPEN' | 'NOT_STARTED' | 'CLOSED' | 'NOT_ELIGIBLE' | 'ALREADY_VOTED'
 
 // กติกาเดียวกับ backend: public = ใครที่ล็อกอินก็ได้ · chula = ยืนยันผ่าน CUNEX · restricted = ตรงกฎคณะ/ปีเข้า
 // ในกฎเดียวกัน ช่องที่ว่าง (null) = ไม่จำกัดเรื่องนั้น
@@ -81,12 +84,16 @@ export function isEligible(me: Me, audience: Audience) {
 }
 
 // โพลที่ยัง open แต่เลยเวลาปิดแล้วถือว่าปิด เผื่องานตัดสถานะของ backend ยังไม่ได้รัน
-export const isOpenForVoting = (poll: Pick<VoterPoll, 'status' | 'closesAt'>, now = Date.now()) =>
-    poll.status === 'open' && !!poll.closesAt && new Date(poll.closesAt).getTime() > now
+export const isBeforeOpening = (poll: Pick<VoterPoll, 'status' | 'opensAt'>, now = Date.now()) =>
+    poll.status === 'open' && !!poll.opensAt && new Date(poll.opensAt).getTime() > now
+
+export const isOpenForVoting = (poll: Pick<VoterPoll, 'status' | 'opensAt' | 'closesAt'>, now = Date.now()) =>
+    poll.status === 'open' && !isBeforeOpening(poll, now) && !!poll.closesAt && new Date(poll.closesAt).getTime() > now
 
 export function ineligibleReason(poll: VoterPoll, me: Me): IneligibleReason | null {
-    if (poll.status === 'closed' || (poll.status === 'open' && !isOpenForVoting(poll))) return 'CLOSED'
-    if (poll.status !== 'open') return 'NOT_OPEN'
+    if (poll.status !== 'open' && poll.status !== 'closed') return 'NOT_OPEN'
+    if (isBeforeOpening(poll)) return 'NOT_STARTED'
+    if (poll.status === 'closed' || !isOpenForVoting(poll)) return 'CLOSED'
     // เจ้าของ/แอดมินเห็นโพลได้แม้อยู่นอกกลุ่มผู้ตอบ แต่ตอบไม่ได้
     if (!isEligible(me, poll.audience)) return 'NOT_ELIGIBLE'
     if (poll.submitted && !poll.canEdit) return 'ALREADY_VOTED'

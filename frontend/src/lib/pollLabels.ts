@@ -29,7 +29,7 @@ export const AUDIENCE_LABEL: Record<AudienceType, string> = {
 export const AUDIENCE_DESCRIPTION: Record<AudienceType, string> = {
     chula: 'นิสิตและบุคลากรจุฬาฯ ที่ยืนยันตัวตนผ่าน CUNEX',
     restricted: 'เฉพาะคณะและปีเข้าที่เลือก ต้องยืนยันตัวตนผ่าน CUNEX',
-    public: 'ทุกคนที่เข้าสู่ระบบ รวมบัญชี Google',
+    public: 'ทุกคนที่เข้าสู่ระบบ',
 }
 
 // ใช้ timeZone คงที่ เพื่อให้ server กับ client แสดงเวลาเหมือนกันตอน hydrate
@@ -47,7 +47,9 @@ export function formatCloseTime(date: Date | string) {
 export const CLOSE_REASON_MAX = 500
 
 // เวลาปิดที่การ์ดควรโชว์: โพลที่ปิดก่อนกำหนดต้องโชว์เวลาที่ปิดจริง ไม่งั้นอ่านแล้วนึกว่ายังเปิดอยู่
-export function cardCloseLabel(poll: Pick<PollSummary, 'closesAt' | 'closedAt' | 'closedEarly'>) {
+// โพลที่เผยแพร่แล้วแต่ยังไม่ถึงเวลาเปิด โชว์เวลาเปิดแทน ไม่งั้นกดเข้าไปแล้วเจอว่ายังตอบไม่ได้
+export function cardCloseLabel(poll: Pick<PollSummary, 'status' | 'opensAt' | 'closesAt' | 'closedAt' | 'closedEarly'>) {
     if (poll.closedEarly && poll.closedAt) return `ปิดก่อนกำหนด ${formatCloseTime(poll.closedAt)}`
+    if (poll.status === 'open' && poll.opensAt && new Date(poll.opensAt).getTime() > Date.now()) return `เปิด ${formatCloseTime(poll.opensAt)}`
     return poll.closesAt ? `ปิด ${formatCloseTime(poll.closesAt)}` : 'ยังไม่ตั้งเวลาปิด'
 }

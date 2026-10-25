@@ -22,10 +22,7 @@ export function LeaveDialog() {
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const leave = (t: string) => {
-        if (t === "back") router.back()
-        else router.push(t)
-    }
+    const leave = (t: string) => router.push(t)
 
     const handleOpenChange = (open: boolean) => {
         if (open || saving) return

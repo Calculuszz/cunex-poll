@@ -33,6 +33,7 @@ const CODE_MESSAGES: Record<string, string> = {
     NO_BALLOT: 'คุณยังไม่ได้ตอบโพลนี้',
     USER_NOT_FOUND: 'ยังไม่พบผู้ใช้นี้ ให้เข้าสู่ระบบด้วย CUNEX ก่อน',
     POLL_LOCKED: 'สถานะโพลเปลี่ยนไปแล้ว กรุณาโหลดหน้าใหม่',
+    POLL_NOT_STARTED: 'โพลนี้ยังไม่ถึงเวลาเปิดโหวต',
     POLL_CLOSED: 'โพลนี้ปิดรับคำตอบแล้ว',
     ALREADY_VOTED: 'คุณส่งคำตอบโพลนี้ไปแล้ว',
     CANNOT_REVOKE_SELF: 'ถอดสิทธิ์ผู้ดูแลของตัวเองไม่ได้',

@@ -20,7 +20,6 @@ import {
   UsersRepository,
 } from '../users/users.repository.js';
 import { CurrentUser, Public } from './auth.decorators.js';
-import { GoogleOidcService } from './google-oidc.service.js';
 import { CunexClient, type CunexProfile } from '../cunex/cunex.client.js';
 import { MOCK_CUNEX_USERS } from '../cunex/mock-cunex.client.js';
 import { safeReturnTo } from './return-to.js';
@@ -51,7 +50,6 @@ export class AuthController {
     private readonly cunex: CunexClient,
     private readonly sessions: SessionService,
     private readonly users: UsersRepository,
-    private readonly google: GoogleOidcService,
     config: ConfigService<Env, true>,
   ) {
     this.appOrigin = new URL(config.get('APP_ORIGIN')).origin;
@@ -115,44 +113,6 @@ export class AuthController {
     );
     await this.startSession(res, user);
     res.redirect(302, `${this.appOrigin}${returnTo}`);
-  }
-
-  @Public()
-  @Get('auth/google/login')
-  async googleLogin(
-    @Query({ schema: loginQuery }) query: z.infer<typeof loginQuery>,
-    @Res() res: Response,
-  ) {
-    if (!this.google.enabled) {
-      return res.redirect(
-        302,
-        `${this.appOrigin}/login?error=google_unavailable`,
-      );
-    }
-    res.redirect(302, await this.google.start(safeReturnTo(query.returnTo)));
-  }
-
-  /** Google sends the browser back here with ?code&state. */
-  @Public()
-  @Get('auth/google/callback')
-  async googleCallback(@Req() req: Request, @Res() res: Response) {
-    const callbackUrl = new URL(this.google.redirectUri);
-    callbackUrl.search = new URL(req.originalUrl, 'http://placeholder').search;
-
-    let result: Awaited<ReturnType<GoogleOidcService['finish']>>;
-    try {
-      result = await this.google.finish(callbackUrl);
-    } catch {
-      // Cancelled consent, replayed or expired state, bad token: all the
-      // same to the user.
-      return res.redirect(302, `${this.appOrigin}/login?error=google_failed`);
-    }
-    const user = await this.users.upsertFromGoogle(
-      result.identity.sub,
-      result.identity.email,
-    );
-    await this.startSession(res, user);
-    res.redirect(302, `${this.appOrigin}${safeReturnTo(result.returnTo)}`);
   }
 
   /** "เลือกบัญชีทดลอง" popup: log in as a fixture user. Never in production. */

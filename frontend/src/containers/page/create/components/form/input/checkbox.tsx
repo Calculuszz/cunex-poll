@@ -5,8 +5,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 import { useDebouncedField } from '@/hooks/useDebouncedField'
 import { blankOption } from '@/lib/createFormItem'
+import { effectiveMaxSelect } from '@/lib/pollMappers'
 import { useElementStore, type InputItem } from '@/store/elementStore'
 import { OptionLayoutSelect, missingImageCount } from './optionLayout'
 import { OptionRow, useOptionCommit } from './optionRow'
@@ -14,6 +23,49 @@ import { OptionRow, useOptionCommit } from './optionRow'
 export type CheckboxInputItem = Extract<InputItem, { type: 'checkbox' }>
 
 const MIN_OPTIONS = 2
+const UNLIMITED = 'unlimited'
+
+// เพดานตั้งได้ 1 ถึง (จำนวนตัวเลือก − 1) เพราะเท่ากับจำนวนตัวเลือกก็คือไม่จำกัด
+function MaxSelectSelect({ id, item, onChange }: {
+    id: string
+    item: CheckboxInputItem
+    onChange: (next: number | undefined) => void
+}) {
+    const max = effectiveMaxSelect(item)
+    const items = [
+        { value: UNLIMITED, label: 'ไม่จำกัด' },
+        ...Array.from({ length: Math.max(0, item.options.length - 1) }, (_, i) => ({
+            value: String(i + 1),
+            label: `สูงสุด ${i + 1} ตัวเลือก`,
+        })),
+    ]
+
+    return (
+        <div className='flex flex-col gap-1'>
+            <Label htmlFor={id} className='text-base font-bold'>
+                จำนวนที่เลือกได้
+            </Label>
+            <Select
+                items={items}
+                value={max === undefined ? UNLIMITED : String(max)}
+                onValueChange={(next) => onChange(next === UNLIMITED || next === null ? undefined : Number(next))}
+            >
+                <SelectTrigger id={id} className='h-10! w-full text-base'>
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectGroup>
+                        {items.map(({ value, label }) => (
+                            <SelectItem key={value} value={value} className='text-base'>
+                                {label}
+                            </SelectItem>
+                        ))}
+                    </SelectGroup>
+                </SelectContent>
+            </Select>
+        </div>
+    )
+}
 
 export function CheckboxInput({ item }: { item: CheckboxInputItem }) {
     const update = useElementStore((s) => s.update)
@@ -87,6 +139,12 @@ export function CheckboxInput({ item }: { item: CheckboxInputItem }) {
                     ผู้โหวตเลือกได้หลายข้อจากรายการนี้ ต้องมีอย่างน้อย {MIN_OPTIONS} ตัวเลือก
                 </span>
             </div>
+
+            <MaxSelectSelect
+                id={`${item.id}-max`}
+                item={item}
+                onChange={(next) => update(item.id, { maxSelect: next })}
+            />
 
             <OptionLayoutSelect
                 id={`${item.id}-layout`}

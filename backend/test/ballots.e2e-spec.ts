@@ -33,9 +33,13 @@ interface Poll {
 }
 
 /** Engineering + anyone who entered in 2566; approved, then published by the owner. */
-async function openPoll(settings: { allowAnswerEdit: boolean }): Promise<Poll> {
+async function openPoll(
+  settings: { allowAnswerEdit: boolean },
+  opensAt: string | null = null,
+): Promise<Poll> {
   const { body } = await owner.post('/polls').send({
     title: 'ธีมงาน',
+    opensAt,
     closesAt: new Date(Date.now() + 7 * 86400_000).toISOString(),
     audience: {
       type: 'restricted',
@@ -252,5 +256,58 @@ describe('rate limit', () => {
     expect(allowed).toBeLessThanOrEqual(20);
     expect(limited?.body.code).toBe('RATE_LIMITED');
     expect(Number(limited?.headers['retry-after'])).toBeGreaterThan(0);
+  });
+});
+
+describe('scheduled opening (opensAt)', () => {
+  let p: Poll;
+  const opensAt = new Date(Date.now() + 86400_000).toISOString();
+  beforeAll(async () => {
+    p = await openPoll({ allowAnswerEdit: false }, opensAt);
+  });
+
+  it('is published and visible before it opens, with openedAt = opensAt', async () => {
+    const res = await med.get(`/polls/${p.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('open');
+    expect(res.body.opensAt).toBe(opensAt);
+    expect(res.body.openedAt).toBe(opensAt);
+  });
+
+  it('refuses ballots until opensAt (409 POLL_NOT_STARTED)', async () => {
+    const res = await med.put(`/polls/${p.id}/ballot`).send({
+      answers: [
+        { elementId: p.single.id, optionIds: [p.single.options[0]!.id] },
+      ],
+    });
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('POLL_NOT_STARTED');
+  });
+
+  it('accepts ballots once opensAt has passed', async () => {
+    await db.query(
+      "UPDATE polls SET opens_at = now() - interval '1 minute' WHERE id = $1",
+      [p.id],
+    );
+    const res = await med.put(`/polls/${p.id}/ballot`).send({
+      answers: [
+        { elementId: p.single.id, optionIds: [p.single.options[0]!.id] },
+      ],
+    });
+    expect(res.status).toBe(201);
+  });
+
+  it('cannot be submitted with opensAt after closesAt', async () => {
+    const { body } = await owner.post('/polls').send({
+      title: 'เปิดหลังปิด',
+      opensAt: new Date(Date.now() + 9 * 86400_000).toISOString(),
+      closesAt: new Date(Date.now() + 7 * 86400_000).toISOString(),
+      elements: [{ type: 'text_question', title: 'อะไร' }],
+    });
+    const res = await owner.post(`/polls/${body.id}/submit`);
+    expect(res.status).toBe(422);
+    expect(res.body.problems).toContainEqual(
+      expect.objectContaining({ path: 'opensAt' }),
+    );
   });
 });

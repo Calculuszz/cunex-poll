@@ -156,7 +156,7 @@ export const QUESTION_TYPES = new Set<ElementType>([
   'dropdown',
 ]);
 
-// public = anyone logged in (Google too) · chula = any CUNEX-verified user
+// public = anyone logged in · chula = any CUNEX-verified user
 // restricted = CUNEX-verified users matching a faculty/entry-year rule
 const audienceSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('public') }),
@@ -186,6 +186,8 @@ export const pollDraftSchema = z.object({
   title: text(200).default(''),
   description: text(5000).default(''),
   coverImageUrl: imageUrl.nullish(),
+  // null = voting starts as soon as the owner publishes
+  opensAt: z.iso.datetime({ offset: true }).nullish(),
   closesAt: z.iso.datetime({ offset: true }).nullish(),
   audience: audienceSchema.default({ type: 'public' }),
   settings: z

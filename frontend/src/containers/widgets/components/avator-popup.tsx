@@ -20,10 +20,10 @@ function AvatarPopup() {
     const me = useMe()
     const go = (href: string) => { if (!guard(href)) router.push(href) }
 
-    const title = me?.studentId ? `รหัส ${me.studentId}` : me?.providers.includes('google') ? 'บัญชี Google' : 'ผู้ใช้'
+    const title = me?.studentId ? `รหัส ${me.studentId}` : 'ผู้ใช้ CUNEX'
     const detail = me?.faculty
         ? `คณะ${me.faculty.nameTh}${me.studentYear ? ` · ปีเข้า ${me.studentYear}` : ''}`
-        : 'ตอบได้เฉพาะโพลสาธารณะ'
+        : 'ไม่มีข้อมูลคณะ'
 
     return (
         <Popover>

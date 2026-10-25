@@ -25,16 +25,13 @@ Roles: **anon** (no session) · **user** (any login) · **verified** (logged in 
 |---|---|---|---|
 | GET | `/auth/cunex/login?returnTo=` | anon | 302 to the CUNEX "login with CUNEX" page. |
 | GET | `/auth/cunex/callback?token=&returnTo=` | anon | Exchange CUNEX token via `/profile`, upsert user + faculty, create session, **302 to `returnTo` without the token**. Also the entry URL CUNEX opens from its menu, notifications and UniversalLinks. |
-| GET | `/auth/google/login?returnTo=` | anon | 302 to Google (OIDC code flow + PKCE; state, nonce and verifier kept 10 min in Redis). If Google isn't configured → 302 `<app>/login?error=google_unavailable`. |
-| GET | `/auth/google/callback` | anon | Verifies the id_token, creates/reuses the user by Google `sub`, session cookie, 302 to `returnTo`. Any failure (cancelled, replayed state, bad token) → 302 `<app>/login?error=google_failed`. |
 | POST | `/auth/logout` | user | Delete session → `204`. |
 | POST | `/auth/dev/login` | anon | `{ role: "user" \| "admin" }` → test accounts popup. **Only mounted when `APP_ENV != production`.** |
 | GET | `/me` | user | `Me` |
 
 `returnTo` must be a relative path (`/polls/…`); anything else falls back to `/`.
 
-Login is **CUNEX or Google only** (no email/OTP). Google users have no faculty/year
-(`isChulaVerified: false`), so they can answer public polls only. CUNEX callback errors
+Login is **CUNEX only** (no Google, no email/OTP). CUNEX callback errors
 redirect to `<app>/login?error=token_expired|cunex_unavailable`.
 
 ```jsonc
@@ -70,7 +67,7 @@ draft ──submit──► pending_review ──approve (admin)──► approv
 // PollDetail
 { "id": "uuid", "status": "open", "version": 7,
   "title": "…", "description": "…", "coverImageUrl": "https://…/images/<uuid>.png",
-  "closesAt": "2026-10-20T10:00:00Z", "submittedAt": "…", "openedAt": "…", "closedAt": null,
+  "opensAt": null, "closesAt": "2026-10-20T10:00:00Z", "submittedAt": "…", "openedAt": "…", "closedAt": null,
   "closedEarly": false, "closeReason": null,   // set when the owner closed it before closesAt
   "takenDown": false,                          // an admin took it down (see §8)
   "audience": { "type": "restricted", "rules": [{ "facultyCode": "21", "studentYear": null }] },
@@ -89,10 +86,10 @@ draft ──submit──► pending_review ──approve (admin)──► approv
 
 Lists return `{ items: PollSummary[], nextCursor }`. `PollSummary` = `id, status, title,
 description, coverImageUrl, audience` (the type only: `"public" | "chula" | "restricted"`),
-`closesAt, openedAt, closedAt, closedEarly, showResultsRealtime, questionCount, createdAt`;
+`opensAt, closesAt, openedAt, closedAt, closedEarly, showResultsRealtime, questionCount, createdAt`;
 the feed adds `myBallot`.
 
-Audiences: `public` = anyone logged in (Google too) · `chula` = any CUNEX-verified user ·
+Audiences: `public` = anyone logged in · `chula` = any CUNEX-verified user ·
 `restricted` = CUNEX-verified users matching a faculty / entry-year rule.
 
 ## 4. Polls — authoring (owner)
@@ -103,9 +100,9 @@ Audiences: `public` = anyone logged in (Google too) · `chula` = any CUNEX-verif
 | PUT | `/polls/:pollId` | owner | Replace the whole draft (settings + audience + ordered elements + options) in one transaction. Only in `draft`/`rejected`. Needs `If-Match: <version>` (`428` if missing, `412 VERSION_CONFLICT` + `currentVersion` if stale). → `200 PollDetail` |
 | DELETE | `/polls/:pollId` | owner | Soft delete. Only `draft`/`rejected`. → `204` |
 | POST | `/polls/:pollId/submit` | owner | Validate completeness → `pending_review`. `422 POLL_INCOMPLETE` with `problems: [{ path, message }]` listing every problem. |
-| PATCH | `/polls/:pollId/closes-at` | owner | `{ closesAt }` in `pending_review`, `approved` or `open`. Must be in the future. |
+| PATCH | `/polls/:pollId/closes-at` | owner | `{ closesAt }` in `pending_review`, `approved` or `open`. Must be in the future and after `opensAt`. |
 | PATCH | `/polls/:pollId/realtime` | owner | `{ showResultsRealtime }`. Only before voting starts (`pending_review`, `approved`). |
-| POST | `/polls/:pollId/publish` | owner | "Publish": `approved` → `open`. Queues `poll-opened` (UniversalLink + notifications) and a delayed `close-poll` at `closesAt`. `422 CLOSES_AT_PASSED` if the deadline already went by (move it first). |
+| POST | `/polls/:pollId/publish` | owner | "Publish": `approved` → `open`. Queues `poll-opened` (UniversalLink + notifications) and a delayed `close-poll` at `closesAt`. `422 CLOSES_AT_PASSED` if the deadline already went by (move it first). With a future `opensAt` the poll is `open` (listed) right away, but ballots are refused until then; `openedAt` = `opensAt` and `poll-opened` is delayed to it. |
 | PUT | `/polls/:pollId/result-display` | owner | "เผยแพร่ผล": `ResultDisplay` (see §7). Only in `open` / `closed`. |
 | POST | `/polls/:pollId/close` | owner | Close early → `closed`. Only from `open`. Body optional: `{ reason? }` (≤ 500 chars), shown to voters as `closeReason`. |
 
@@ -121,7 +118,9 @@ Notes:
 
 ```jsonc
 // PollDraft
-{ "title": "…", "description": "…", "coverImageUrl": "https://…/images/<uuid>.png", "closesAt": "…",
+{ "title": "…", "description": "…", "coverImageUrl": "https://…/images/<uuid>.png",
+  "opensAt": null,   // optional scheduled opening; null = opens on publish. Submit requires opensAt < closesAt
+  "closesAt": "…",
   "audience": { "type": "public" } | { "type": "chula" } | { "type": "restricted", "rules": [{ "facultyCode": "21", "studentYear": 2567 }] },
   "settings": { "showResultsRealtime": false, "allowAnswerEdit": true, "listedPublicly": true },
   "elements": [
@@ -184,6 +183,7 @@ lifecycle rule to delete objects under `images/` that no poll uses (uploads that
 | Status | code | When |
 |---|---|---|
 | 404 | `POLL_NOT_FOUND` | poll not visible to you (not published, or you are outside its audience) |
+| 409 | `POLL_NOT_STARTED` | open, but now < `opensAt` |
 | 409 | `POLL_CLOSED` | status ≠ open **or** now ≥ `closesAt` |
 | 409 | `ALREADY_VOTED` | ballot exists and `allowAnswerEdit=false` |
 | 403 | `NOT_ELIGIBLE` | owner/admin who can see the poll but is outside its audience |
@@ -241,7 +241,7 @@ question (1 decimal); `weight` = count ÷ the top option's count, for sizing bar
 
 Groups with fewer than `RESULTS_MIN_GROUP_SIZE` (default 5) ballots are merged into `other`;
 if `other` is still below that, it is returned as `hidden` with no numbers. Ballots from
-Google/Email users have no faculty/year and fall in group `unknown`.
+accounts without a faculty/year (some staff) fall in group `unknown`.
 
 ## 8. Admin
 

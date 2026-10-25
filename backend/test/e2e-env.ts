@@ -52,8 +52,6 @@ export async function createTestApp(
     CUNEX_MODE: 'mock',
     ADMIN_BOOTSTRAP_CUNEX_IDS: '',
     S3_BUCKET: 'pollcunex-test',
-    GOOGLE_CLIENT_ID: '',
-    GOOGLE_CLIENT_SECRET: '',
     ...envOverrides,
   });
 

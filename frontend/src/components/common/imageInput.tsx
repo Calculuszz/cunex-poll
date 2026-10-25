@@ -4,17 +4,21 @@ import { ImageUp, LoaderCircle, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { ImageFileError } from '@/lib/imageFile'
+import { cn } from '@/lib/utils'
 import { uploadImage } from '@/lib/imageUpload'
 
 export function ImageInput({
     label = 'รูปภาพ',
     value,
     alt = '',
+    square = false,
     onChange,
 }: {
     label?: string
     value?: string
     alt?: string
+    // ตัวอย่างครอปเป็น 1:1 ให้ตรงกับที่ผู้โหวตเห็น (รูปตัวเลือก)
+    square?: boolean
     onChange: (next: string | undefined) => void
 }) {
     const inputId = useId()
@@ -70,9 +74,9 @@ export function ImageInput({
 
             {value ? (
                 <>
-                    <div className='overflow-hidden rounded-lg border border-badge bg-inner-bg'>
+                    <div className={cn('overflow-hidden rounded-lg border border-badge bg-inner-bg', square && 'w-full max-w-60 self-center')}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={value} alt={alt} className='aspect-video w-full object-contain' />
+                        <img src={value} alt={alt} className={cn('w-full', square ? 'aspect-square object-cover' : 'aspect-video object-contain')} />
                     </div>
                     <div className='flex gap-2'>
                         <Button

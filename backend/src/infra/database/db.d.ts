@@ -153,6 +153,7 @@ export interface Polls {
   id: Generated<string>;
   listedPublicly: Generated<boolean>;
   openedAt: Timestamp | null;
+  opensAt: Timestamp | null;
   ownerId: string;
   resultDisplay: Json | null;
   shareUrl: string | null;

@@ -7,8 +7,7 @@ import { firstMissingRequired, fromBallot, paginate, questionsOf, toApiAnswers, 
 import { clearDraft, readDraft } from '@/lib/voteDraft'
 import { saveVoteDraft, useSaveDraft } from '@/hooks/useVoteFlow'
 import { isVoteDirty, useVoteFlowStore } from '@/store/voteFlowStore'
-import { ElementView } from './components/elementView'
-import { QuestionBlock } from './components/questionBlock'
+import { PageItems } from './components/pageItems'
 import { QuestionProgress } from './components/questionProgress'
 import { StepActionBar } from './components/stepActionBar'
 import { ConfirmSubmitModal } from './components/confirmSubmitModal'
@@ -127,18 +126,7 @@ export function VoteStep({ poll, pageIndex }: { poll: VoterPoll; pageIndex: numb
                     กำลังแก้คำตอบที่ส่งไปแล้ว ส่งใหม่แล้วคำตอบเดิมจะถูกแทนที่
                 </p>
             )}
-            <div className='flex flex-col gap-8 pt-6'>
-                {page.map((item) => item.kind === 'element'
-                    ? <ElementView key={item.key} item={item} />
-                    : (
-                        <QuestionBlock
-                            key={item.key}
-                            question={questions.find((q) => q.key === item.key)!}
-                            value={current[item.key]}
-                            onChange={(value) => setAnswer(item.key, value)}
-                        />
-                    ))}
-            </div>
+            <PageItems page={page} questions={questions} answers={current} onAnswer={setAnswer} />
             <div className='flex-1' />
             <StepActionBar
                 isFirst={isFirst}
