@@ -38,7 +38,8 @@ export function makeApi(req: Requester) {
             setClosesAt: (id: Uuid, closesAt: string) => req<PollDetail>(`${poll(id)}/closes-at`, { method: 'PATCH', body: { closesAt } }),
             setRealtime: (id: Uuid, showResultsRealtime: boolean) =>
                 req<PollDetail>(`${poll(id)}/realtime`, { method: 'PATCH', body: { showResultsRealtime } }),
-            publish: (id: Uuid) => req<PollDetail>(`${poll(id)}/publish`, { method: 'POST' }),
+            // now = เปิดรับคำตอบทันทีแม้ตั้ง opensAt ไว้ในอนาคต (opensAt ถูกเลื่อนเป็นตอนนี้)
+            publish: (id: Uuid, now = false) => req<PollDetail>(`${poll(id)}/publish`, { method: 'POST', body: { now } }),
             // ตอบกลับเป็น PollDetail ทั้งก้อน ค่าที่บันทึกอยู่ใน .resultDisplay
             setResultDisplay: (id: Uuid, display: ResultDisplay) =>
                 req<PollDetail>(`${poll(id)}/result-display`, { method: 'PUT', body: display }),

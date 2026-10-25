@@ -36,6 +36,7 @@ interface Poll {
 async function openPoll(
   settings: { allowAnswerEdit: boolean },
   opensAt: string | null = null,
+  publishNow = false,
 ): Promise<Poll> {
   const { body } = await owner.post('/polls').send({
     title: 'ธีมงาน',
@@ -66,7 +67,9 @@ async function openPoll(
   expect((await admin.post(`/admin/polls/${body.id}/approve`)).status).toBe(
     200,
   );
-  const opened = await owner.post(`/polls/${body.id}/publish`);
+  const opened = await owner
+    .post(`/polls/${body.id}/publish`)
+    .send(publishNow ? { now: true } : {});
   expect(opened.status).toBe(200);
   const [single, multi, text] = opened.body.elements;
   return { id: body.id, single, multi, text };
@@ -292,6 +295,21 @@ describe('scheduled opening (opensAt)', () => {
     const res = await med.put(`/polls/${p.id}/ballot`).send({
       answers: [
         { elementId: p.single.id, optionIds: [p.single.options[0]!.id] },
+      ],
+    });
+    expect(res.status).toBe(201);
+  });
+
+  it('publish { now: true } skips the schedule and accepts ballots right away', async () => {
+    const q = await openPoll({ allowAnswerEdit: false }, opensAt, true);
+    const poll = await med.get(`/polls/${q.id}`);
+    expect(new Date(poll.body.opensAt).getTime()).toBeLessThanOrEqual(
+      Date.now(),
+    );
+    expect(poll.body.openedAt).toBe(poll.body.opensAt);
+    const res = await med.put(`/polls/${q.id}/ballot`).send({
+      answers: [
+        { elementId: q.single.id, optionIds: [q.single.options[0]!.id] },
       ],
     });
     expect(res.status).toBe(201);
