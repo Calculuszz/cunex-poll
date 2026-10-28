@@ -25,6 +25,7 @@ export function ImageElement({ item }: { item: ImageElementType }) {
         <div className='flex flex-col gap-2'>
             <ImageInput
                 label='รูปที่จะแสดง'
+                hint='ใช้ได้ทุกอัตราส่วน รูปแสดงเต็มความกว้างตามสัดส่วนจริงโดยไม่ถูกครอป · แนะนำกว้างอย่างน้อย 1080 px'
                 value={item.url || undefined}
                 alt={alt}
                 onChange={(next) => update(item.id, { url: next ?? "" })}

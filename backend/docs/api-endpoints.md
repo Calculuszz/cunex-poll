@@ -145,7 +145,7 @@ Element `config` per type (validated with a zod discriminated union on `type`):
 | `single_choice` | `{ layout: "list" \| "grid" }` | 2–50 |
 | `multi_choice` | `{ layout, minSelect?, maxSelect? }` | 2–50 |
 | `dropdown` | `{}` | 2–200 |
-| `description` | `{ showHeading, sections: [{ heading?, body }] }` | — |
+| `description` | `{ showHeading, align: "left" \| "center" \| "right" (default left), sections: [{ heading?, body }] }` · submit ต้องมี heading หรือ body อย่างน้อยหนึ่งอย่างต่อ section | — |
 | `image` | `{ url, alt?, caption? }` | — |
 | `info_popup` | `{ buttonText?, title, body, imageUrl? }` | — |
 | `accordion` | `{ title, body }` | — |

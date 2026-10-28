@@ -98,7 +98,7 @@ export type Element = ElementBase & (
     | { type: 'single_choice'; config: { layout: ChoiceLayout }; options: ElementOption[] }
     | { type: 'multi_choice'; config: { layout: ChoiceLayout; minSelect?: number | null; maxSelect?: number | null }; options: ElementOption[] }
     | { type: 'dropdown'; config: Record<string, never>; options: ElementOption[] }
-    | { type: 'description'; config: { showHeading: boolean; sections: { heading?: string | null; body: string }[] } }
+    | { type: 'description'; config: { showHeading: boolean; align?: 'left' | 'center' | 'right'; sections: { heading?: string | null; body: string }[] } }
     | { type: 'image'; config: { url?: string | null; alt?: string | null; caption?: string | null } }
     | { type: 'info_popup'; config: { buttonText?: string | null; title: string; body: string; imageUrl?: string | null } }
     | { type: 'accordion'; config: { title: string; body: string } }

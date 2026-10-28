@@ -3,6 +3,8 @@ import { persist, createJSONStorage } from "zustand/middleware"
 
 export type FormItem = InputItem | ElementItem;
 
+export type TextAlign = 'left' | 'center' | 'right';
+
 export type InputItem = {
     kind: 'input';
     id: string;
@@ -30,7 +32,8 @@ export type Option = {
 };
 
 export type ElementItem = { kind: 'element'; id: string } & (
-    | { type: 'text';      title?: string; body: string }
+    // align ว่าง = ชิดซ้าย (ค่าตั้งต้นของ API)
+    | { type: 'text';      title?: string; body: string; align?: TextAlign }
     | { type: 'image';     url: string; alt?: string; caption?: string }
     | { type: 'accordion'; title: string; body: string }
     | { type: 'dialog';    trigger?: string; title: string; body: string; imageUrl?: string }

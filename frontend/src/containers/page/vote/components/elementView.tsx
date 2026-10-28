@@ -3,7 +3,10 @@ import React from 'react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import type { ElementItem } from '@/store/elementStore'
+import { cn } from '@/lib/utils'
+import type { ElementItem, TextAlign } from '@/store/elementStore'
+
+const ALIGN_CLASS: Record<TextAlign, string> = { left: 'text-left', center: 'text-center', right: 'text-right' }
 
 // element ส่วนแสดงผลของฟอร์ม (API contract §3) ชนิดที่ยังไม่รู้จักให้ข้ามไป ไม่ใช่พังทั้งหน้า
 // รูปมาจากลิงก์/data URL ที่ผู้สร้างใส่ โดเมนไม่แน่นอนจึงใช้ img ธรรมดา
@@ -11,9 +14,9 @@ export function ElementView({ item }: { item: ElementItem }) {
     switch (item.type) {
         case 'text':
             return (
-                <div className='flex flex-col gap-1'>
+                <div className={cn('flex flex-col gap-1', ALIGN_CLASS[item.align ?? 'left'])}>
                     {item.title && <h3 className='font-heading text-lg font-bold'>{item.title}</h3>}
-                    <p className='break-words whitespace-pre-line'>{item.body}</p>
+                    {item.body && <p className='break-words whitespace-pre-line'>{item.body}</p>}
                 </div>
             )
         case 'image':

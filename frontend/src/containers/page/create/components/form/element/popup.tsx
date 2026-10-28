@@ -40,6 +40,7 @@ export function PopupElement({ item }: { item: PopupElementType }) {
             </div>
             <ImageInput
                 label='รูปในป๊อปอัพ (ไม่บังคับ)'
+                hint='ใช้ได้ทุกอัตราส่วน รูปแสดงเต็มความกว้างของป๊อปอัพโดยไม่ถูกครอป'
                 value={item.imageUrl}
                 alt={title}
                 onChange={(next) => update(item.id, { imageUrl: next })}
