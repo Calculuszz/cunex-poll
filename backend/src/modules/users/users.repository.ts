@@ -64,13 +64,8 @@ export class UsersRepository {
             nameTh: profile.facultyNameTh,
             nameEn: profile.facultyNameEn,
           })
-          .onConflict((oc) =>
-            oc.column('code').doUpdateSet({
-              nameTh: profile.facultyNameTh,
-              nameEn: profile.facultyNameEn,
-              updatedAt: new Date(),
-            }),
-          )
+          // Seeded names (0006) win; a login only adds a faculty we lack.
+          .onConflict((oc) => oc.column('code').doNothing())
           .execute();
       }
 

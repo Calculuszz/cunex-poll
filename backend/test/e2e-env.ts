@@ -37,7 +37,8 @@ export async function createTestApp(
 
   const db = new pg.Client({ connectionString: testUrl.toString() });
   await db.connect();
-  await db.query('TRUNCATE users, faculties RESTART IDENTITY CASCADE');
+  // faculties stay: they are seeded by migration 0006
+  await db.query('TRUNCATE users RESTART IDENTITY CASCADE');
   // Sessions and queued jobs from earlier runs
   const redis = new Redis(TEST_REDIS_URL);
   await redis.flushdb();

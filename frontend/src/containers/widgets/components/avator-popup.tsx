@@ -22,7 +22,7 @@ function AvatarPopup() {
 
     const title = me?.studentId ? `รหัส ${me.studentId}` : 'ผู้ใช้ CUNEX'
     const detail = me?.faculty
-        ? `คณะ${me.faculty.nameTh}${me.studentYear ? ` · ปีเข้า ${me.studentYear}` : ''}`
+        ? `${me.faculty.nameTh}${me.studentYear ? ` · ปีเข้า ${me.studentYear}` : ''}`
         : 'ไม่มีข้อมูลคณะ'
 
     return (
