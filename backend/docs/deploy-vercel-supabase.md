@@ -78,5 +78,12 @@ $$);
 ```
 เช็ค: `select * from net._http_response order by created desc limit 5;` ต้องเห็น status 200
 
-## 6. CUNEX
+## 6. Deploy อัตโนมัติจาก Git
+ทั้งสองโปรเจกต์ผูกกับ repo บน GitHub แล้ว (Settings → Git)
+- **Production Branch = `deploy/vercel-supabase`** push เข้า branch นี้ = ขึ้น production ทั้งเว็บและ API
+- branch อื่นได้ preview URL แยก ใช้ดูหน้าตาได้อย่างเดียว (POST ถูก OriginGuard ปฏิเสธ เพราะ `APP_ORIGIN` เป็นโดเมน production)
+- Root Directory: API = `backend`, เว็บ = `frontend`
+- **มี migration ใหม่ ต้องรันก่อน push** (หัวข้อ 1 ข้อ 3) ไม่งั้นโค้ดใหม่จะขึ้นก่อนฐานข้อมูลพร้อม
+
+## 7. CUNEX
 แจ้งให้ตั้ง callback ของ CU Poll เป็น `https://<เว็บ>/api/v1/auth/cunex/callback`
