@@ -1,5 +1,5 @@
 // ตัวช่วยของหน้ากรอกโพล ใช้ได้ทั้ง server และ client
-import type { Answer, Audience, Ballot, Faculty, Me, PollDetail, PollStatus } from '@/api/types'
+import type { Answer, Audience, Ballot, Faculty, Me, PollDetail, PollPreview, PollStatus } from '@/api/types'
 import type { ElementItem, InputItem } from '@/store/elementStore'
 import { audienceLabel, audienceScope, type AudienceScope } from '@/lib/audienceLabel'
 import { elementToItem } from '@/lib/pollMappers'
@@ -69,9 +69,37 @@ export function toVoterPoll(poll: PollDetail, faculties: Faculty[]): VoterPoll {
     }
 }
 
+// หน้าแรกของโพลสำหรับคนที่ยังไม่ login: มีแค่ข้อมูลบนการ์ด ไม่มีคำถาม (ต้อง login ก่อนถึงจะเห็น)
+export function previewToVoterPoll(poll: PollPreview, faculties: Faculty[]): VoterPoll {
+    return {
+        id: poll.id,
+        title: poll.title,
+        description: poll.description,
+        coverImageUrl: poll.coverImageUrl,
+        status: poll.status,
+        opensAt: poll.opensAt,
+        closesAt: poll.closesAt,
+        closedAt: poll.closedAt,
+        closedEarly: poll.closedEarly,
+        closeReason: poll.closeReason,
+        audience: poll.audience,
+        audienceLabel: audienceLabel(poll.audience, faculties),
+        audienceScope: audienceScope(poll.audience, faculties),
+        realtime: false,
+        allowAnswerEdit: false,
+        items: [],
+        questionCount: poll.questionCount,
+        resultsPublished: false,
+        canViewResults: false,
+        submitted: false,
+        canEdit: false,
+        isOwner: false,
+    }
+}
+
 // สถานะที่ทำให้ตอบไม่ได้ (คิดฝั่งหน้าเว็บเพื่อเลือกข้อความ/ปุ่ม · backend ตรวจซ้ำตอน PUT ballot)
-// NOT_STARTED = เผยแพร่แล้วแต่ยังไม่ถึงเวลาเปิดที่ตั้งไว้
-export type IneligibleReason = 'NOT_OPEN' | 'NOT_STARTED' | 'CLOSED' | 'NOT_ELIGIBLE' | 'ALREADY_VOTED'
+// NOT_STARTED = เผยแพร่แล้วแต่ยังไม่ถึงเวลาเปิดที่ตั้งไว้ · LOGIN_REQUIRED = เปิดลิงก์แชร์โดยยังไม่ login
+export type IneligibleReason = 'NOT_OPEN' | 'NOT_STARTED' | 'CLOSED' | 'NOT_ELIGIBLE' | 'ALREADY_VOTED' | 'LOGIN_REQUIRED'
 
 // กติกาเดียวกับ backend: public = ใครที่ล็อกอินก็ได้ · chula = ยืนยันผ่าน CUNEX · restricted = ตรงกฎคณะ/ปีเข้า
 // ในกฎเดียวกัน ช่องที่ว่าง (null) = ไม่จำกัดเรื่องนั้น

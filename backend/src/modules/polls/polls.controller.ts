@@ -15,7 +15,7 @@ import {
 import { z } from 'zod';
 import { pageLimit } from '../../common/pagination.js';
 import { AppError } from '../../common/errors.js';
-import { CurrentUser } from '../auth/auth.decorators.js';
+import { CurrentUser, Public } from '../auth/auth.decorators.js';
 import type { User } from '../users/users.repository.js';
 import { type PollDraftInput, pollDraftSchema } from './poll-draft.schema.js';
 import { PollsService } from './polls.service.js';
@@ -61,6 +61,8 @@ const publishBody = z
 export class PollsController {
   constructor(private readonly polls: PollsService) {}
 
+  // Reference data; the public poll intro card needs the names too.
+  @Public()
   @Get('faculties')
   faculties() {
     return this.polls.listFaculties();
@@ -88,6 +90,13 @@ export class PollsController {
     @Body({ schema: pollDraftSchema }) draft: PollDraftInput,
   ) {
     return this.polls.create(user, draft);
+  }
+
+  /** Shared link opened without logging in: the poll's intro card only. */
+  @Public()
+  @Get('polls/:id/preview')
+  preview(@Param('id', { schema: pollId }) id: string) {
+    return this.polls.preview(id);
   }
 
   @Get('polls/:id')

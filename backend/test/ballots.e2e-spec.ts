@@ -1,5 +1,6 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type pg from 'pg';
+import request from 'supertest';
 import { as, createTestApp, loginAs } from './e2e-env.js';
 
 let app: NestExpressApplication;
@@ -336,6 +337,41 @@ describe('publishing: now or at a time picked in the dialog', () => {
     expect(both.status).toBe(422);
     // nothing changed: still waiting to be published
     expect((await owner.get(`/polls/${id}`)).body.status).toBe('approved');
+  });
+});
+
+describe('shared link opened without logging in', () => {
+  const anon = (id: string) =>
+    request(app.getHttpServer()).get(`/api/v1/polls/${id}/preview`);
+
+  it('shows the intro card of a published poll, nothing more', async () => {
+    const p = await openPoll({ allowAnswerEdit: false });
+    const res = await anon(p.id);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      id: p.id,
+      status: 'open',
+      title: 'ธีมงาน',
+      questionCount: 3,
+      audience: { type: 'restricted' },
+    });
+    expect(res.body).not.toHaveProperty('elements');
+    expect(res.body).not.toHaveProperty('myBallot');
+    // the full poll still needs a login
+    expect(
+      (await request(app.getHttpServer()).get(`/api/v1/polls/${p.id}`)).status,
+    ).toBe(401);
+  });
+
+  it('hides polls that are not published or were taken down', async () => {
+    const waiting = await approvedPoll();
+    expect((await anon(waiting).send()).status).toBe(404);
+
+    const p = await openPoll({ allowAnswerEdit: false });
+    await admin
+      .post(`/admin/polls/${p.id}/takedown`)
+      .send({ reason: 'ไม่เหมาะสม' });
+    expect((await anon(p.id)).status).toBe(404);
   });
 });
 

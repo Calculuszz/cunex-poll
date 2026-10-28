@@ -5,6 +5,8 @@ import type { NextRequest } from "next/server"
 // ตรวจแค่ว่ามี cookie ความถูกต้องของ session และสิทธิ์ (เช่นแอดมิน) ตรวจที่ backend ทุก request อยู่แล้ว
 // หน้าแอดมินตรวจ role ซ้ำที่ server component (PollDashboardPage / layout) ไม่พึ่ง proxy อย่างเดียว
 const PUBLIC_PATHS = ['/login', '/logout']
+// หน้าแรกของโพล /(id) เปิดได้โดยไม่ login: คนที่ได้ลิงก์แชร์เห็นรายละเอียดก่อน จะโหวตค่อย login
+const POLL_INTRO = /^\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // CUNEX เปิดเว็บพร้อม ?token= (และ lang, ref1, ref2) ที่ URL ไหนก็ได้ที่ตั้งไว้ในเมนู
 // ส่งต่อให้ callback ของ backend แลก token เป็น session แล้วกลับมาหน้าเดิม (ตัดค่าพวกนี้ออก)
@@ -31,7 +33,7 @@ export function proxy(request: NextRequest) {
     if (pathname.startsWith('/api/')) return
     const viaCunex = cunexCallback(request)
     if (viaCunex) return viaCunex
-    if (PUBLIC_PATHS.includes(pathname)) return
+    if (PUBLIC_PATHS.includes(pathname) || POLL_INTRO.test(pathname)) return
     if (request.cookies.has('sid')) return
     const login = new URL('/login', request.url)
     login.searchParams.set('returnTo', pathname + search)

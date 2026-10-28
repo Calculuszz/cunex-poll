@@ -27,6 +27,7 @@ import {
 import {
   type MyBallot,
   toDetail,
+  toPreview,
   toDraftInput,
   toSummary,
 } from './polls.view.js';
@@ -84,6 +85,19 @@ export class PollsService {
       myBallot: myBallot!,
       canViewResults: canViewResults(poll, user, myBallot!.submitted),
     });
+  }
+
+  /**
+   * The intro card of a published poll for someone who opened a shared link
+   * without logging in. Drafts, polls under review and taken-down polls stay
+   * 404, the same answer as a poll that doesn't exist.
+   */
+  async preview(id: string) {
+    const agg = await this.repo.find(id);
+    const published =
+      agg?.poll.status === 'open' || agg?.poll.status === 'closed';
+    if (!agg || !published || agg.poll.takenDownAt) throw notFound();
+    return toPreview(agg);
   }
 
   async submit(user: User, id: string) {

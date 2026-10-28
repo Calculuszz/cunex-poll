@@ -1,5 +1,9 @@
 import { wasClosedEarly } from './poll-access.js';
-import { type PollDraftInput, pollDraftSchema } from './poll-draft.schema.js';
+import {
+  type PollDraftInput,
+  pollDraftSchema,
+  QUESTION_TYPES,
+} from './poll-draft.schema.js';
 import type { PollAggregate, PollRow } from './polls.repository.js';
 import { resultDisplayOf } from './result-display.js';
 
@@ -111,6 +115,29 @@ export function toDetail(
     ...(ctx.canSeeReviews
       ? { reviews: agg.reviews, takedownReason: poll.takedownReason }
       : {}),
+  };
+}
+
+/**
+ * What anyone with the link sees before logging in: the intro card only.
+ * No questions, no results and nothing about the viewer.
+ */
+export function toPreview(agg: PollAggregate) {
+  const { poll } = agg;
+  return {
+    id: poll.id,
+    status: poll.status,
+    title: poll.title,
+    description: poll.description,
+    coverImageUrl: poll.coverImageUrl,
+    opensAt: poll.opensAt,
+    closesAt: poll.closesAt,
+    closedAt: poll.closedAt,
+    closedEarly: wasClosedEarly(poll),
+    closeReason: poll.closeReason,
+    audience: audienceOf(agg),
+    questionCount: agg.elements.filter((e) => QUESTION_TYPES.has(e.type))
+      .length,
   };
 }
 
