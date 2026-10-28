@@ -95,7 +95,7 @@ it('opening a restricted poll creates a share link and notifies its audience', a
   expect(batch).toEqual({ total: 2, succeeded: 2, failed: 0 });
 
   const sent = mock.sentNotifications.filter((n) =>
-    n.callbackUrl?.includes(encodeURIComponent(`/${id}`)),
+    n.callbackUrl?.endsWith(`/${id}`),
   );
   expect(sent.map((n) => n.userId).sort()).toEqual(
     [
@@ -103,9 +103,7 @@ it('opening a restricted poll creates a share link and notifies its audience', a
       MOCK_CUNEX_USERS['arts-2565'].userId,
     ].sort(),
   );
-  expect(sent[0]!.callbackUrl).toBe(
-    `http://localhost:3000/api/v1/auth/cunex/callback?returnTo=${encodeURIComponent(`/${id}`)}`,
-  );
+  expect(sent[0]!.callbackUrl).toBe(`http://localhost:3000/${id}`);
 });
 
 it('public polls get a share link but no notifications', async () => {

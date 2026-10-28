@@ -69,14 +69,16 @@ export class PollEvents {
       .executeTakeFirst();
     if (!poll || poll.status !== 'open') return { skipped: true };
 
-    // The web app's voting page is /<pollId>.
-    const pollPath = `/${pollId}`;
-    const callbackUrl = `${this.apiUrl}/api/v1/auth/cunex/callback?returnTo=${encodeURIComponent(pollPath)}`;
+    // The poll's voting page on the web app. CUNEX may open it with ?token=
+    // (the web app hands that to the login callback) or without one (LLE
+    // "withToken": false), so it must not be the API callback, which treats a
+    // missing token as an expired login.
+    const pollUrl = `${this.apiUrl}/${pollId}`;
 
     if (!poll.shareUrl) {
       let shareUrl: string;
       try {
-        shareUrl = await this.cunex.createShareLink(callbackUrl);
+        shareUrl = await this.cunex.createShareLink(pollUrl);
       } catch (err) {
         // The live gateway has no create_link (404). The plain web link works
         // too (outside CUNEX it goes through the CUNEX web login), and keeping
@@ -84,7 +86,7 @@ export class PollEvents {
         this.logger.warn(
           `CUNEX share link for poll ${pollId} failed, using the web link: ${(err as Error).message}`,
         );
-        shareUrl = `${this.apiUrl}${pollPath}`;
+        shareUrl = pollUrl;
       }
       await this.db
         .updateTable('polls')
@@ -118,7 +120,7 @@ export class PollEvents {
             userId,
             textTh: `มีโพลใหม่สำหรับคุณ: ${title}`,
             textEn: `New poll for you: ${title}`,
-            callbackUrl,
+            callbackUrl: pollUrl,
           })),
         );
         succeeded += report.succeeded;
