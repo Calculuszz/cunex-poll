@@ -69,10 +69,23 @@ export class PollEvents {
       .executeTakeFirst();
     if (!poll || poll.status !== 'open') return { skipped: true };
 
-    const callbackUrl = `${this.apiUrl}/api/v1/auth/cunex/callback?returnTo=${encodeURIComponent(`/polls/${pollId}`)}`;
+    // The web app's voting page is /<pollId>.
+    const pollPath = `/${pollId}`;
+    const callbackUrl = `${this.apiUrl}/api/v1/auth/cunex/callback?returnTo=${encodeURIComponent(pollPath)}`;
 
     if (!poll.shareUrl) {
-      const shareUrl = await this.cunex.createShareLink(callbackUrl);
+      let shareUrl: string;
+      try {
+        shareUrl = await this.cunex.createShareLink(callbackUrl);
+      } catch (err) {
+        // The live gateway has no create_link (404). The plain web link works
+        // too (outside CUNEX it goes through the CUNEX web login), and keeping
+        // it means notifications below are not held back by the share link.
+        this.logger.warn(
+          `CUNEX share link for poll ${pollId} failed, using the web link: ${(err as Error).message}`,
+        );
+        shareUrl = `${this.apiUrl}${pollPath}`;
+      }
       await this.db
         .updateTable('polls')
         .set({ shareUrl })

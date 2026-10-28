@@ -17,7 +17,12 @@ function cunexCallback(request: NextRequest) {
     for (const p of CUNEX_PARAMS) back.searchParams.delete(p)
     const callback = new URL('/api/v1/auth/cunex/callback', request.url)
     callback.searchParams.set('token', token)
-    callback.searchParams.set('returnTo', back.pathname === '/login' ? '/' : back.pathname + back.search)
+    // CUNEX พากลับมาที่ URL คงที่ที่ลงทะเบียนไว้ (หน้าแรก) ไม่ใช่หน้าที่ผู้ใช้ขอ login
+    // ไม่ส่ง returnTo ในกรณีนี้ ให้ backend ใช้ cookie return_to ที่ตั้งไว้ตอนกดปุ่ม login (ไม่มี = หน้าแรก)
+    const returnTo = back.pathname === '/login' ? back.searchParams.get('returnTo')
+        : back.pathname === '/' && !back.search ? null
+        : back.pathname + back.search
+    if (returnTo) callback.searchParams.set('returnTo', returnTo)
     return NextResponse.redirect(callback)
 }
 
