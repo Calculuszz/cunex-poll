@@ -11,6 +11,7 @@ import { imageRefs } from './poll-images.js';
 import { canSeePoll, canViewResults, isAcceptingVotes } from './poll-access.js';
 import {
   closesAtPassed,
+  invalidOpensAt,
   pollLocked as locked,
   pollNotFound as notFound,
 } from './poll-errors.js';
@@ -157,28 +158,40 @@ export class PollsService {
     return this.get(user, id);
   }
 
-  /** "Publish": the owner opens an approved poll for voting. */
-  async publish(user: User, id: string, openNow = false) {
+  /**
+   * "Publish": the owner opens an approved poll for voting, either now or at
+   * a scheduled time (the saved opensAt, or a new one picked when publishing).
+   * A scheduled poll is listed straight away; ballots wait for opensAt.
+   * opensAt is always written, so the DB says when voting actually started.
+   */
+  async publish(
+    user: User,
+    id: string,
+    opts: { now?: boolean; opensAt?: Date } = {},
+  ) {
     const { poll } = await this.owned(user, id);
     if (poll.status !== 'approved') throw locked(poll.status);
     if (!poll.closesAt || poll.closesAt <= new Date()) throw closesAtPassed();
-    // A scheduled opening still in the future: listed now, votes from opensAt.
-    // `openNow` skips the schedule by moving opensAt to now.
+
     const now = new Date();
-    const scheduled = !!poll.opensAt && poll.opensAt > now;
-    const openedAt = scheduled && !openNow ? poll.opensAt! : now;
+    if (opts.opensAt && opts.opensAt <= now) {
+      throw invalidOpensAt('เวลาเปิดโหวตต้องอยู่ในอนาคต');
+    }
+    if (opts.opensAt && opts.opensAt >= poll.closesAt) {
+      throw invalidOpensAt('เวลาเปิดโหวตต้องอยู่ก่อนเวลาปิดโหวต');
+    }
+    const savedSchedule =
+      poll.opensAt && poll.opensAt > now ? poll.opensAt : null;
+    const opensAt = opts.now ? now : (opts.opensAt ?? savedSchedule ?? now);
+    const scheduled = opensAt > now;
     await this.move(
       user,
       id,
       ['approved'],
-      {
-        status: 'open',
-        openedAt,
-        ...(scheduled && openNow ? { opensAt: now } : {}),
-      },
-      scheduled && openNow ? 'poll.publish_now' : 'poll.publish',
+      { status: 'open', opensAt, openedAt: opensAt },
+      scheduled ? 'poll.publish_scheduled' : 'poll.publish',
     );
-    await this.jobs.opened(id, openedAt, poll.closesAt);
+    await this.jobs.opened(id, opensAt, poll.closesAt);
     return this.get(user, id);
   }
 

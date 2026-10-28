@@ -43,6 +43,7 @@ const CODE_MESSAGES: Record<string, string> = {
     UNKNOWN_FACULTY: 'ไม่พบคณะที่เลือก',
     CLOSES_AT_PASSED: 'เลยเวลาปิดโหวตแล้ว กรุณาเลื่อนเวลาปิดก่อน',
     INVALID_CLOSES_AT: 'เวลาปิดต้องอยู่ในอนาคต',
+    INVALID_OPENS_AT: 'เวลาเปิดโหวตต้องอยู่ในอนาคตและก่อนเวลาปิดโหวต',
     IMAGE_TOO_LARGE: 'รูปใหญ่เกิน 5 MB',
     RATE_LIMITED: 'ทำรายการถี่เกินไป รอสักครู่แล้วลองใหม่',
 }

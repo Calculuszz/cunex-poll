@@ -18,3 +18,12 @@ export const closesAtPassed = () =>
     HttpStatus.UNPROCESSABLE_ENTITY,
     'The poll closing time has already passed; move closesAt first',
   );
+
+/** The opening time picked when publishing is in the past or after closesAt. */
+export const invalidOpensAt = (message: string) =>
+  new AppError(
+    'INVALID_OPENS_AT',
+    HttpStatus.UNPROCESSABLE_ENTITY,
+    'opensAt must be in the future and before closesAt',
+    { problems: [{ path: 'opensAt', message }] },
+  );

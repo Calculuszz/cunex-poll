@@ -262,6 +262,83 @@ describe('rate limit', () => {
   });
 });
 
+/** Approved and waiting for the owner to publish. */
+async function approvedPoll(opensAt: string | null = null) {
+  const { body } = await owner.post('/polls').send({
+    title: 'รอเปิด',
+    opensAt,
+    closesAt: new Date(Date.now() + 7 * 86400_000).toISOString(),
+    audience: { type: 'chula' },
+    elements: [{ type: 'text_question', title: 'อะไร' }],
+  });
+  await owner.post(`/polls/${body.id}/submit`);
+  await admin.post(`/admin/polls/${body.id}/approve`);
+  return body.id as string;
+}
+
+describe('publishing: now or at a time picked in the dialog', () => {
+  const inHours = (h: number) =>
+    new Date(Date.now() + h * 3600_000).toISOString();
+
+  it('without a schedule opens now and records opensAt', async () => {
+    const id = await approvedPoll();
+    const res = await owner.post(`/polls/${id}/publish`).send({});
+    expect(res.status).toBe(200);
+    expect(res.body.opensAt).not.toBeNull();
+    expect(res.body.openedAt).toBe(res.body.opensAt);
+    expect(new Date(res.body.opensAt).getTime()).toBeLessThanOrEqual(
+      Date.now(),
+    );
+  });
+
+  it('opens at a time picked when publishing, even if none was saved', async () => {
+    const id = await approvedPoll();
+    const at = inHours(3);
+    const res = await owner.post(`/polls/${id}/publish`).send({ opensAt: at });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      status: 'open',
+      opensAt: at,
+      openedAt: at,
+    });
+    const vote = await med.put(`/polls/${id}/ballot`).send({ answers: [] });
+    expect(vote.body.code).toBe('POLL_NOT_STARTED');
+  });
+
+  it('replaces a saved schedule that already passed', async () => {
+    const id = await approvedPoll(inHours(1));
+    await db.query(
+      "UPDATE polls SET opens_at = now() - interval '1 hour' WHERE id = $1",
+      [id],
+    );
+    const at = inHours(2);
+    const res = await owner.post(`/polls/${id}/publish`).send({ opensAt: at });
+    expect(res.body.opensAt).toBe(at);
+  });
+
+  it('refuses a time in the past, after closesAt, or together with now', async () => {
+    const id = await approvedPoll();
+    const past = await owner
+      .post(`/polls/${id}/publish`)
+      .send({ opensAt: inHours(-1) });
+    expect(past.status).toBe(422);
+    expect(past.body).toMatchObject({
+      code: 'INVALID_OPENS_AT',
+      problems: [{ path: 'opensAt', message: 'เวลาเปิดโหวตต้องอยู่ในอนาคต' }],
+    });
+    const late = await owner
+      .post(`/polls/${id}/publish`)
+      .send({ opensAt: inHours(24 * 8) });
+    expect(late.body.code).toBe('INVALID_OPENS_AT');
+    const both = await owner
+      .post(`/polls/${id}/publish`)
+      .send({ now: true, opensAt: inHours(1) });
+    expect(both.status).toBe(422);
+    // nothing changed: still waiting to be published
+    expect((await owner.get(`/polls/${id}`)).body.status).toBe('approved');
+  });
+});
+
 describe('scheduled opening (opensAt)', () => {
   let p: Poll;
   const opensAt = new Date(Date.now() + 86400_000).toISOString();
