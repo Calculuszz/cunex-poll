@@ -1,7 +1,7 @@
 import type { RequestOptions, Requester } from './client'
 import type {
     AdminUser, AuditLog, Ballot, Faculty, ImageMime, Me, Page, PollDetail, PollDraft,
-    PollResults, PollStatus, PollSummary, ResultDisplay, TextAnswerPage, UploadTicket, Uuid,
+    PollPreview, PollResults, PollStatus, PollSummary, ResultDisplay, TextAnswerPage, UploadTicket, Uuid,
 } from './types'
 
 // ทุก endpoint ในสัญญา api-endpoints v1 · หนึ่งฟังก์ชันต่อหนึ่ง endpoint ชื่อ/ลำดับหัวข้อตามเอกสาร
@@ -27,6 +27,8 @@ export function makeApi(req: Requester) {
             mine: (q: { status?: PollStatus; cursor?: string | null; limit?: number } = {}) =>
                 req<Page<PollSummary>>('/me/polls', { query: q }),
             get: (id: Uuid) => req<PollDetail>(poll(id)),
+            // ไม่ต้อง login: หน้าแรกของโพลที่เปิดแล้ว สำหรับลิงก์แชร์
+            preview: (id: Uuid) => req<PollPreview>(`${poll(id)}/preview`),
 
             // §4 Polls — authoring (owner)
             create: (draft: PollDraft) => req<PollDetail>('/polls', { method: 'POST', body: draft }),

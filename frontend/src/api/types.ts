@@ -147,6 +147,22 @@ export type PollDetail = {
     takedownReason?: string | null
 }
 
+// หน้าแรกของโพลสำหรับคนที่เปิดลิงก์แชร์โดยยังไม่ login (GET /polls/:id/preview) ไม่มีคำถามและข้อมูลของผู้ดู
+export type PollPreview = {
+    id: Uuid
+    status: PollStatus
+    title: string
+    description: string
+    coverImageUrl: string | null
+    opensAt: IsoDateTime | null
+    closesAt: IsoDateTime | null
+    closedAt: IsoDateTime | null
+    closedEarly: boolean
+    closeReason: string | null
+    audience: Audience
+    questionCount: number
+}
+
 export type PollSummary = {
     id: Uuid
     status: PollStatus

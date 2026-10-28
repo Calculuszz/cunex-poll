@@ -2,11 +2,11 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Ban, CheckCircle2, List, Loader2, Timer } from 'lucide-react'
+import { Ban, CheckCircle2, List, Loader2, LogIn, Timer } from 'lucide-react'
 import { toast } from 'sonner'
-import { api, errorMessage } from '@/api'
+import { api, authUrls, errorMessage } from '@/api'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { estimateMinutes, fromBallot, paginate, questionsOf, resumePageIndex, type Answers, type IneligibleReason, type VoterPoll } from '@/lib/voteForm'
+import { estimateMinutes, fromBallot, isBeforeOpening, isOpenForVoting, paginate, questionsOf, resumePageIndex, type Answers, type IneligibleReason, type VoterPoll } from '@/lib/voteForm'
 import { readDraft, writeDraft } from '@/lib/voteDraft'
 import { formatThaiDateTime, formatTimeLeftShort } from '@/lib/thaiDate'
 import { cn } from '@/lib/utils'
@@ -75,8 +75,27 @@ export function PollIntroCard({ poll, reason, onStart }: {
         </Button>
     )
 
+    // ยังไม่ login: บอกสถานะโพลไว้ก่อน แล้วให้เข้าสู่ระบบด้วย CUNEX กลับมาหน้านี้
+    const loginButton = (label: string) => (
+        <a href={authUrls.cunex(`/${poll.id}`)} className={cn(buttonVariants(), pill)}>
+            <LogIn />
+            {label}
+        </a>
+    )
+
     let actions: React.ReactNode
-    if (reason === 'NOT_OPEN') {
+    if (reason === 'LOGIN_REQUIRED') {
+        const notYet = isBeforeOpening(poll)
+        const ended = !notYet && !isOpenForVoting(poll)
+        actions = (
+            <>
+                {ended && <Button disabled className={pill}>{closedEarly ? 'ถูกปิดก่อนกำหนด' : 'ปิดโหวตแล้ว'}</Button>}
+                {notYet && <Button disabled className={pill}>เปิดโหวต {formatThaiDateTime(poll.opensAt!)}</Button>}
+                {loginButton(ended ? 'เข้าสู่ระบบ' : 'เข้าสู่ระบบเพื่อโหวต')}
+                <p className='text-center text-sm text-ink-500'>เข้าสู่ระบบด้วยบัญชี CUNEX (CUNET) ของจุฬาฯ</p>
+            </>
+        )
+    } else if (reason === 'NOT_OPEN') {
         actions = <Button disabled className={pill}>โพลนี้ยังไม่เปิดให้ตอบ</Button>
     } else if (reason === 'NOT_STARTED') {
         actions = <Button disabled className={pill}>เปิดโหวต {formatThaiDateTime(poll.opensAt!)}</Button>

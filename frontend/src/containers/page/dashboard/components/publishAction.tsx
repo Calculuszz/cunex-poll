@@ -13,7 +13,8 @@ import { cn } from '@/lib/utils'
 type Pending = 'scheduled' | 'now' | null
 
 // ปุ่ม "เปิดโหวต" ของโพลที่อนุมัติแล้ว (POST /publish) เจ้าของเป็นคนกด · approved → open
-// dialog มี 3 ทาง: เปิดตามเวลาเปิด (ใช้เวลาที่ตั้งไว้ หรือเลือกใหม่ในนี้) / เปิดตอนนี้ / ยกเลิก
+// dialog มี 3 ทาง: เปิดตามเวลาเปิด / เปิดตอนนี้ / ยกเลิก
+// ผู้สร้างตั้งเวลาเปิดไว้ตอนสร้างโพล (และยังไม่ถึง) = ใช้เวลานั้นเลย ไม่ต้องตั้งซ้ำ · ไม่ได้ตั้งหรือเลยไปแล้ว = เลือกเวลาในนี้
 // backend บันทึกเวลาที่เปิดจริงลง opensAt เสมอ · โพลที่ตั้งเวลาไว้ขึ้นรายการทันทีแต่รับคำตอบตอนถึงเวลา
 // expired = เลยเวลาปิดแล้ว ต้องเลื่อนเวลาปิดก่อน (backend ตอบ 422 CLOSES_AT_PASSED)
 export function PublishAction({ pollId, opensAt, closesAt, expired, owner }: {
@@ -29,6 +30,8 @@ export function PublishAction({ pollId, opensAt, closesAt, expired, owner }: {
     const [error, setError] = useState<string | null>(null)
     // เวลาเปิดที่จะใช้: ตั้งต้นจากที่บันทึกไว้ (ถ้ายังไม่ผ่าน) แก้ได้ในหน้าต่างนี้
     const [when, setWhen] = useState<Date | undefined>(undefined)
+    // มีเวลาเปิดที่ผู้สร้างตั้งไว้และยังไม่ถึง: แสดงเฉยๆ ไม่ต้องเลือกใหม่
+    const [presetTime, setPresetTime] = useState(false)
     // เวลาปัจจุบัน ณ ตอนเปิดหน้าต่าง ใช้ตรวจเวลาที่เลือก (backend ตรวจซ้ำด้วยเวลาจริงตอนกด)
     const [shownAt, setShownAt] = useState(0)
 
@@ -36,8 +39,10 @@ export function PublishAction({ pollId, opensAt, closesAt, expired, owner }: {
         // คิดตอนเปิดหน้าต่าง ไม่ใช่ตอน render เผื่อเปิดหน้าทิ้งไว้จนเลยเวลาที่ตั้ง
         const now = Date.now()
         const saved = opensAt ? new Date(opensAt) : undefined
+        const upcoming = !!saved && saved.getTime() > now
         setShownAt(now)
-        setWhen(saved && saved.getTime() > now ? saved : undefined)
+        setPresetTime(upcoming)
+        setWhen(upcoming ? saved : undefined)
         setError(null)
         setOpen(true)
     }
@@ -105,9 +110,22 @@ export function PublishAction({ pollId, opensAt, closesAt, expired, owner }: {
                                     <CalendarClock className='size-5 text-primary' />
                                     เวลาเปิดโหวต
                                 </span>
-                                <DateTimePicker value={when} onChange={setWhen} defaultTime='08:00' disabled={!!pending} />
-                                {whenProblem && <p role='alert' className='text-sm text-destructive'>{whenProblem}</p>}
-                                {!when && <p className='text-sm text-ink-500'>ยังไม่ได้ตั้งเวลาเปิด เลือกวันและเวลาก่อนกดเปิดตามเวลา</p>}
+                                {presetTime && when ? (
+                                    <p className='flex flex-col'>
+                                        <span className='font-bold'>{formatThaiDateTime(when)}</span>
+                                        <span className='text-sm text-ink-500'>ตามที่ตั้งไว้ตอนสร้างโพล โพลจะขึ้นรายการทันที และเริ่มรับคำตอบเมื่อถึงเวลานี้</span>
+                                    </p>
+                                ) : (
+                                    <>
+                                        <DateTimePicker value={when} onChange={setWhen} defaultTime='08:00' disabled={!!pending} />
+                                        {whenProblem && <p role='alert' className='text-sm text-destructive'>{whenProblem}</p>}
+                                        {!when && (
+                                            <p className='text-sm text-ink-500'>
+                                                {opensAt ? 'เวลาเปิดที่ตั้งไว้ผ่านไปแล้ว เลือกเวลาใหม่' : 'ยังไม่ได้ตั้งเวลาเปิด เลือกวันและเวลา'}ก่อนกดเปิดตามเวลา
+                                            </p>
+                                        )}
+                                    </>
+                                )}
                                 <Button
                                     variant='outline'
                                     className={cn(pill, 'border-primary text-primary')}
