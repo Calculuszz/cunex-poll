@@ -105,7 +105,7 @@ it('without CUNEX share links: shares the web link and still notifies', async ()
     );
     expect(mock.sentNotifications).toHaveLength(1);
     expect(mock.sentNotifications[0]!.callbackUrl).toBe(
-      `http://localhost:3000/api/v1/auth/cunex/callback?returnTo=${encodeURIComponent(`/${id}`)}`,
+      `http://localhost:3000/${id}`,
     );
   } finally {
     mock.failShareLinks = false;
