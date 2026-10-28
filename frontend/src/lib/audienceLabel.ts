@@ -18,7 +18,7 @@ export function audienceScope(audience: Audience, faculties: Faculty[]): Audienc
         const deptCodes = wholeFaculty ? [] : [...new Set(rules.map((r) => r.departmentCode!))]
         const allYears = rules.some((r) => r.studentYear === null)
         return {
-            faculty: `คณะ${faculty?.nameTh ?? code}`,
+            faculty: faculty?.nameTh ?? `คณะรหัส ${code}`,
             departments: deptCodes.map((d) => faculty?.departments?.find((x) => x.code === d)?.nameTh ?? d),
             years: allYears ? [] : [...new Set(rules.map((r) => r.studentYear!))].sort(),
             departmentCount: wholeFaculty ? faculty?.departments?.length ?? 0 : deptCodes.length,

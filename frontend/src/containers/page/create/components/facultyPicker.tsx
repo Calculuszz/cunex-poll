@@ -24,7 +24,7 @@ export function FacultyPicker() {
     const [query, setQuery] = useState('')
     const [inputValue, setInputValue] = useDebouncedField(query, setQuery)
 
-    const items: FacultyItem[] = (faculties ?? []).map((f) => ({ code: f.code, label: `คณะ${f.nameTh}` }))
+    const items: FacultyItem[] = (faculties ?? []).map((f) => ({ code: f.code, label: f.nameTh }))
     const codes = [...new Set(rules.map((r) => r.facultyCode))]
     const selected = items.filter((item) => codes.includes(item.code))
     const keyword = query.trim().toLowerCase()
