@@ -82,7 +82,9 @@ export function findProblems(draft: PollDraftInput, now: Date): Problem[] {
     }
     if (e.type === 'description') {
       e.config.sections.forEach((s, j) => {
-        if (!s.body) add(`${at}.config.sections.${j}.body`, 'ต้องมีเนื้อหา');
+        if (!s.body && !s.heading) {
+          add(`${at}.config.sections.${j}.body`, 'ต้องมีหัวข้อหรือเนื้อหา');
+        }
       });
     }
   });

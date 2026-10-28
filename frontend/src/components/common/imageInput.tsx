@@ -12,6 +12,8 @@ export function ImageInput({
     value,
     alt = '',
     square = false,
+    wide = false,
+    hint,
     onChange,
 }: {
     label?: string
@@ -19,10 +21,15 @@ export function ImageInput({
     alt?: string
     // ตัวอย่างครอปเป็น 1:1 ให้ตรงกับที่ผู้โหวตเห็น (รูปตัวเลือก)
     square?: boolean
+    // ตัวอย่างครอปเต็มกรอบ 16:9 ให้ตรงกับที่ผู้โหวตเห็น (รูปปก)
+    wide?: boolean
+    // คำแนะนำอัตราส่วน/ขนาด เพราะแต่ละที่แสดงรูปต่างกัน (ครอปหรือไม่ครอป)
+    hint?: string
     onChange: (next: string | undefined) => void
 }) {
     const inputId = useId()
     const errorId = `${inputId}-error`
+    const hintId = `${inputId}-hint`
     const inputRef = useRef<HTMLInputElement>(null)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -60,6 +67,7 @@ export function ImageInput({
     return (
         <div className='flex flex-col gap-2'>
             <Label htmlFor={inputId} className='text-lg font-bold'>{label}</Label>
+            {hint && <span id={hintId} className='-mt-1 text-sm text-ink-500'>{hint}</span>}
             <input
                 ref={inputRef}
                 id={inputId}
@@ -68,7 +76,7 @@ export function ImageInput({
                 className='peer sr-only'
                 tabIndex={value ? -1 : undefined}
                 disabled={busy}
-                aria-describedby={error ? errorId : undefined}
+                aria-describedby={cn(hint && hintId, error && errorId) || undefined}
                 onChange={pick}
             />
 
@@ -76,7 +84,7 @@ export function ImageInput({
                 <>
                     <div className={cn('overflow-hidden rounded-lg border border-badge bg-inner-bg', square && 'w-full max-w-60 self-center')}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={value} alt={alt} className={cn('w-full', square ? 'aspect-square object-cover' : 'aspect-video object-contain')} />
+                        <img src={value} alt={alt} className={cn('w-full', square ? 'aspect-square object-cover' : wide ? 'aspect-video object-cover' : 'aspect-video object-contain')} />
                     </div>
                     <div className='flex gap-2'>
                         <Button

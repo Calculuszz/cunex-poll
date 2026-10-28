@@ -102,8 +102,15 @@ const description = z.object({
   title,
   config: z.object({
     showHeading: z.boolean().default(true),
+    align: z.enum(['left', 'center', 'right']).default('left'),
+    // body may be empty when the section has a heading (a heading-only block).
     sections: z
-      .array(z.object({ heading: optional(text(200)), body: text(5000) }))
+      .array(
+        z.object({
+          heading: optional(text(200)),
+          body: text(5000).nullish().transform((v) => v ?? ''),
+        }),
+      )
       .min(1)
       .max(20),
   }),

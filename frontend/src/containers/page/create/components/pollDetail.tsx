@@ -46,7 +46,7 @@ export function PollDetail() {
                         />
                         <span className='text-sm text-ink-500'>ระบบจะปิดรับโหวตอัตโนมัติเมื่อถึงเวลานี้</span>
                     </div>
-                    <ImageInput label='รูปปกโพล' value={coverImageUrl ?? undefined} onChange={(url) => update({ coverImageUrl: url ?? null })} />
+                    <ImageInput label='รูปปกโพล' wide hint='แนะนำแนวนอน 16:9 เช่น 1600×900 px · รูปจะถูกครอปให้เต็มกรอบ จึงไม่ควรมีข้อความชิดขอบ' value={coverImageUrl ?? undefined} onChange={(url) => update({ coverImageUrl: url ?? null })} />
                 </CardContent>
             </Card>
         </div>

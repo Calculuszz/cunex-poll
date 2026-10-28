@@ -119,6 +119,11 @@ export function PollIntroCard({ poll, reason, onStart }: {
 
     return (
         <article className='flex flex-col gap-4 rounded-2xl border bg-card p-4 shadow-sm'>
+            {poll.coverImageUrl && (
+                // รูปปกครอป 16:9 ให้ตรงกับคำแนะนำตอนอัปโหลด · โดเมนรูปมาจาก S3 ที่ตั้งค่าได้ จึงใช้ img ธรรมดา
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={poll.coverImageUrl} alt='' className='-mx-2 -mt-2 aspect-video w-[calc(100%+1rem)] max-w-none rounded-lg bg-inner-bg object-cover' />
+            )}
             <div className='flex flex-col gap-1'>
                 <h1 className='font-heading text-3xl font-bold break-words'>{poll.title}</h1>
                 {draft && !onStart && (

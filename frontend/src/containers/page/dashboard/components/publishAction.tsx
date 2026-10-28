@@ -65,9 +65,9 @@ export function PublishAction({ pollId, opensAt, expired, owner }: { pollId: str
                         <DialogTitle className='py-6 font-heading text-xl font-bold'>เปิดโหวต ?</DialogTitle>
                         <DialogDescription className='text-center text-base'>
                             {scheduled ? (
-                                <>ตั้งเวลาเปิดไว้ {formatThaiDateTime(opensAt!)}<br />รอเวลาที่ตั้ง หรือเปิดรับคำตอบตอนนี้เลยก็ได้</>
+                                <>ตั้งเวลาเปิดไว้ {formatThaiDateTime(opensAt!)} <br />รอเวลาที่ตั้ง หรือเปิดรับคำตอบตอนนี้เลยก็ได้ </>
                             ) : (
-                                <>ผู้ที่มีลิงก์จะเริ่มตอบได้ทันที</>
+                                <>ผู้ที่มีลิงก์จะเริ่มตอบได้ทันที </>
                             )}
                             <br />หลังเปิดแล้วเปลี่ยนการแสดงผลแบบเรียลไทม์ไม่ได้
                         </DialogDescription>
