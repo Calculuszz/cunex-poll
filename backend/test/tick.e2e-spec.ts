@@ -92,3 +92,22 @@ it('publishing queues nothing; the tick announces, then closes at closesAt', asy
   expect(closing.body.closed).toBeGreaterThanOrEqual(1);
   expect((await owner.get(`/polls/${id}`)).body.status).toBe('closed');
 });
+
+it('without CUNEX share links: shares the web link and still notifies', async () => {
+  const mock = app.get(CunexClient) as MockCunexClient;
+  mock.sentNotifications.length = 0;
+  mock.failShareLinks = true;
+  try {
+    const id = await publishedPoll();
+    expect((await tick(`Bearer ${SECRET}`)).status).toBe(200);
+    expect((await owner.get(`/polls/${id}`)).body.shareUrl).toBe(
+      `http://localhost:3000/${id}`,
+    );
+    expect(mock.sentNotifications).toHaveLength(1);
+    expect(mock.sentNotifications[0]!.callbackUrl).toBe(
+      `http://localhost:3000/api/v1/auth/cunex/callback?returnTo=${encodeURIComponent(`/${id}`)}`,
+    );
+  } finally {
+    mock.failShareLinks = false;
+  }
+});

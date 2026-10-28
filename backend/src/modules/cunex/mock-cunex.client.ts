@@ -80,7 +80,13 @@ export class MockCunexClient extends CunexClient {
   readonly sentNotifications: CunexNotification[] = [];
   private readonly logger = new Logger('MockCunex');
 
+  /** Tests: make createShareLink fail like the live gateway (no create_link). */
+  failShareLinks = false;
+
   createShareLink(callbackUrl: string): Promise<string> {
+    if (this.failShareLinks) {
+      return Promise.reject(new Error('CUNEX create_link returned 404: null'));
+    }
     const id = createHash('sha1').update(callbackUrl).digest('hex').slice(0, 8);
     return Promise.resolve(`https://cunex.page.link/mock-${id}`);
   }

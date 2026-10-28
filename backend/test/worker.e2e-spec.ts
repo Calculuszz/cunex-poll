@@ -95,7 +95,7 @@ it('opening a restricted poll creates a share link and notifies its audience', a
   expect(batch).toEqual({ total: 2, succeeded: 2, failed: 0 });
 
   const sent = mock.sentNotifications.filter((n) =>
-    n.callbackUrl?.includes(encodeURIComponent(`/polls/${id}`)),
+    n.callbackUrl?.includes(encodeURIComponent(`/${id}`)),
   );
   expect(sent.map((n) => n.userId).sort()).toEqual(
     [
@@ -104,7 +104,7 @@ it('opening a restricted poll creates a share link and notifies its audience', a
     ].sort(),
   );
   expect(sent[0]!.callbackUrl).toBe(
-    `http://localhost:3000/api/v1/auth/cunex/callback?returnTo=${encodeURIComponent(`/polls/${id}`)}`,
+    `http://localhost:3000/api/v1/auth/cunex/callback?returnTo=${encodeURIComponent(`/${id}`)}`,
   );
 });
 
