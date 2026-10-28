@@ -11,6 +11,11 @@ import { cn } from '@/lib/utils'
 export function PollCard({ poll, action, href }: { poll: PollSummary; action?: ReactNode; href?: string }) {
     return (
         <Card size='sm' className={cn('relative h-full', href && 'focus-within:ring-2 focus-within:ring-ring')}>
+            {poll.coverImageUrl && (
+                // รูปปกเป็นของตกแต่ง ชื่อโพลบอกเนื้อหาอยู่แล้ว · Card ตัด padding บนให้เองเมื่อ img เป็นลูกตัวแรก
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={poll.coverImageUrl} alt='' loading='lazy' className='aspect-video w-full bg-inner-bg object-cover' />
+            )}
             <CardContent className='flex h-full flex-col gap-3'>
                 <div className='flex flex-wrap gap-1'>
                     <Badge className={STATUS_BADGE_CLASS[poll.status]}>{STATUS_LABEL[poll.status]}</Badge>

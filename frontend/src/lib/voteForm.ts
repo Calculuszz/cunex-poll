@@ -16,6 +16,7 @@ export type VoterPoll = {
     id: string
     title: string
     description: string
+    coverImageUrl: string | null
     status: PollStatus
     opensAt: string | null
     closesAt: string | null
@@ -46,6 +47,7 @@ export function toVoterPoll(poll: PollDetail, faculties: Faculty[]): VoterPoll {
         id: poll.id,
         title: poll.title,
         description: poll.description,
+        coverImageUrl: poll.coverImageUrl,
         status: poll.status,
         opensAt: poll.opensAt,
         closesAt: poll.closesAt,

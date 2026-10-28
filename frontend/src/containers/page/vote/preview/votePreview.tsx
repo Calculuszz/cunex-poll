@@ -40,6 +40,7 @@ export function VotePreview() {
         id: 'preview',
         title: form.title || 'ยังไม่ได้ตั้งชื่อโพล',
         description: form.desc,
+        coverImageUrl: form.coverImageUrl,
         status: 'open',
         // หน้าดูตัวอย่างต้องลองตอบได้เสมอ จึงไม่ใช้เวลาเปิดจริงมาตัดสินสถานะ
         opensAt: null,

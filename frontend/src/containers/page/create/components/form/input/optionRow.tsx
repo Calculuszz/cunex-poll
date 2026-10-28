@@ -222,6 +222,7 @@ function OptionInfoFields({
                     value={option.imageUrl}
                     alt={imageAlt}
                     square
+                    hint='แนะนำรูปจัตุรัส 1:1 เช่น 800×800 px · รูปสัดส่วนอื่นจะถูกครอปตรงกลาง'
                     onChange={(next) => onCommit(option.id, { imageUrl: next })}
                 />
 

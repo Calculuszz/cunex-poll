@@ -51,7 +51,7 @@ export function itemToElement(item: FormItem): Element {
         }
     }
     switch (item.type) {
-        case 'text': return { type: 'description', config: { showHeading: !!nonEmpty(item.title), sections: [{ heading: nonEmpty(item.title), body: item.body }] } }
+        case 'text': return { type: 'description', config: { showHeading: !!nonEmpty(item.title), align: item.align ?? 'left', sections: [{ heading: nonEmpty(item.title), body: item.body }] } }
         case 'image': return { type: 'image', config: { url: item.url || null, alt: nonEmpty(item.alt), caption: nonEmpty(item.caption) } }
         case 'dialog': return { type: 'info_popup', config: { buttonText: nonEmpty(item.trigger), title: item.title, body: item.body, imageUrl: item.imageUrl || null } }
         case 'accordion': return { type: 'accordion', config: { title: item.title, body: item.body } }
@@ -79,6 +79,7 @@ export function elementToItem(e: Element, index: number): FormItem {
                 type: 'text',
                 title: e.config.showHeading ? sections[0]?.heading ?? undefined : undefined,
                 body: sections.map((s, i) => (i > 0 && s.heading ? `${s.heading}\n${s.body}` : s.body)).join('\n\n'),
+                align: e.config.align ?? 'left',
             })
         }
         case 'image': return element({ type: 'image', url: e.config.url ?? '', alt: e.config.alt ?? undefined, caption: e.config.caption ?? undefined })

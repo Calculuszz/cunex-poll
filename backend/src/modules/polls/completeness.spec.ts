@@ -69,4 +69,17 @@ describe('findProblems', () => {
       }),
     ).toEqual(['elements.0', 'elements.3', 'elements.2']);
   });
+
+  it('accepts a heading-only text block but not an empty one', () => {
+    const text = (heading: string | null, body?: string) => ({
+      type: 'description',
+      config: { sections: [{ heading, body }] },
+    });
+    expect(
+      paths({
+        ...ready,
+        elements: [...ready.elements, text('หัวข้อ'), text(null, '')],
+      }),
+    ).toEqual(['elements.4.config.sections.0.body']);
+  });
 });

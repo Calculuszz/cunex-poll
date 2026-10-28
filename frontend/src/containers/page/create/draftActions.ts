@@ -3,7 +3,7 @@ import type { PollDetail, Problem } from '@/api/types'
 import { formToDraft } from '@/lib/pollMappers'
 import { useCreatePollStore } from '@/store/createPollStore'
 import { useCreateDraftStore } from '@/store/createDraftStore'
-import { useElementStore } from '@/store/elementStore'
+import { useElementStore, type FormItem } from '@/store/elementStore'
 
 export type DraftResult = { ok: true; poll: PollDetail } | { ok: false; error: string; problems?: string[] }
 
@@ -24,37 +24,58 @@ const ELEMENT_FIELDS: Record<string, string> = {
     imageUrl: 'รูป',
     imageAlt: 'คำอธิบายรูป',
     url: 'รูป',
+    alt: 'คำอธิบายรูป',
+    caption: 'คำบรรยายใต้รูป',
+    layout: 'รูปแบบการแสดงตัวเลือก',
     minSelect: 'จำนวนที่ต้องเลือกขั้นต่ำ',
     maxSelect: 'จำนวนที่เลือกได้สูงสุด',
     maxLength: 'ความยาวสูงสุด',
     placeholder: 'ข้อความตัวอย่าง',
     heading: 'หัวข้อ',
     body: 'เนื้อหา',
+    align: 'การจัดวางข้อความ',
     buttonText: 'ข้อความปุ่ม',
     label: 'ข้อความตัวเลือก',
     popup: 'รายละเอียดตัวเลือก',
+    type: 'ชนิดรายการ',
+}
+// ใน config ของคำอธิบาย/ป๊อปอัพ/พับเก็บ title คือหัวข้อของกล่อง ไม่ใช่คำถาม
+const CONFIG_FIELDS: Record<string, string> = { title: 'หัวข้อ' }
+
+// เลขเดียวกับบนการ์ดในหน้าแก้ไข (ข้อที่ / องค์ประกอบที่ นับแยกกัน) ไม่ใช่ index ในลิสต์รวม
+function itemLabel(items: FormItem[], index: number) {
+    const item = items[index]
+    if (!item) return `รายการที่ ${index + 1}`
+    const number = items.slice(0, index + 1).filter((i) => i.kind === item.kind).length
+    return item.kind === 'input' ? `ข้อที่ ${number}` : `องค์ประกอบที่ ${number}`
 }
 
-function describePath(path: string) {
+function describePath(path: string, items: FormItem[]) {
     // รองรับทั้ง elements.2.title และ elements[2].title
     const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean)
     const [top, index, ...rest] = parts
     if (top === 'audience') return index === 'rules' ? 'คณะ/ปีเข้า' : 'ประเภทโพล'
+    if (top === 'settings') return TOP_FIELDS.settings
     if (top !== 'elements' || index === undefined) return TOP_FIELDS[top] ?? 'ข้อมูลโพล'
-    const out = [`รายการที่ ${Number(index) + 1}`]
+    const out = [itemLabel(items, Number(index))]
+    let inConfig = false
     for (let i = 0; i < rest.length; i++) {
         const key = rest[i]
         const next = rest[i + 1]
+        if (key === 'config') { inConfig = true; continue }
         if (key === 'options' && next !== undefined && /^\d+$/.test(next)) { out.push(`ตัวเลือกที่ ${Number(next) + 1}`); i++ }
-        else if (key === 'sections' && next !== undefined && /^\d+$/.test(next)) { out.push(`ส่วนที่ ${Number(next) + 1}`); i++ }
+        else if (key === 'sections') { if (next !== undefined && /^\d+$/.test(next)) i++ }
         else if (key === 'options') out.push('ตัวเลือก')
+        else if (inConfig && CONFIG_FIELDS[key]) out.push(CONFIG_FIELDS[key])
         else if (ELEMENT_FIELDS[key]) out.push(ELEMENT_FIELDS[key])
     }
     return out.join(' · ')
 }
 
-export const describeProblems = (problems: Problem['problems']) =>
-    (problems ?? []).map((p) => `${describePath(p.path)}: ${p.message}`)
+export const describeProblems = (problems: Problem['problems']) => {
+    const items = useElementStore.getState().items
+    return (problems ?? []).map((p) => `${describePath(p.path, items)}: ${p.message}`)
+}
 
 function toFailure(err: unknown, fallback: string): DraftResult {
     if (isApiError(err, 'VERSION_CONFLICT')) {
