@@ -85,7 +85,7 @@ export async function PollDashboardPage({ slug, view = 'owner' }: { slug: string
             ) : (
                 <>
                     {poll.status === 'approved' ? (
-                        <PublishAction pollId={poll.id} opensAt={poll.opensAt} expired={isPastClose(poll.closesAt)} owner={poll.isOwner} />
+                        <PublishAction pollId={poll.id} opensAt={poll.opensAt} closesAt={poll.closesAt} expired={isPastClose(poll.closesAt)} owner={poll.isOwner} />
                     ) : (
                         <p className='rounded-2xl bg-inner-bg px-4 py-6 text-center text-ink-500'>
                             {NOT_OPENED_MESSAGE[poll.status] ?? 'โพลนี้ยังไม่เปิดโหวต จึงยังไม่มีผลให้ดู'}

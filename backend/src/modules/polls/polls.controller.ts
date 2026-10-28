@@ -45,7 +45,17 @@ const closeBody = z
   .object({ reason: z.string().trim().max(500).optional() })
   .default({});
 // `now: true` opens voting right away even if a later `opensAt` was scheduled.
-const publishBody = z.object({ now: z.boolean().optional() }).default({});
+// now: open right away · opensAt: open at this (new) time · neither: the
+// opensAt already saved on the poll, or right away when it has none.
+const publishBody = z
+  .object({
+    now: z.boolean().optional(),
+    opensAt: z.iso.datetime({ offset: true }).optional(),
+  })
+  .refine((b) => !(b.now && b.opensAt), {
+    message: 'เลือกได้อย่างใดอย่างหนึ่ง: เปิดตอนนี้ หรือเปิดตามเวลา',
+  })
+  .default({});
 
 @Controller()
 export class PollsController {
@@ -130,7 +140,10 @@ export class PollsController {
     @Param('id', { schema: pollId }) id: string,
     @Body({ schema: publishBody }) body: z.infer<typeof publishBody>,
   ) {
-    return this.polls.publish(user, id, body.now ?? false);
+    return this.polls.publish(user, id, {
+      now: body.now ?? false,
+      opensAt: body.opensAt ? new Date(body.opensAt) : undefined,
+    });
   }
 
   @Patch('polls/:id/realtime')
