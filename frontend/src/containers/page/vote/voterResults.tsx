@@ -65,5 +65,5 @@ export function VoterResults({ initial, views, elements, display, realtime, just
     const results = useLiveResults(initial, live, async (signal) =>
         toResultsModel(poll, await api.polls.results(poll.id, 'none', signal), display))
     // ผู้ตอบได้ผลที่ backend กรองแล้ว · เจ้าของ/แอดมินที่เปิดหน้านี้ได้ผลเต็ม จึงกรองซ้ำให้เห็นแบบเดียวกับผู้ตอบ
-    return <VoterResultsView results={applyDisplay(results, display)} views={views} live={live} justSubmitted={justSubmitted} />
+    return <VoterResultsView results={applyDisplay(results, display)} views={views} live={live && results.status === 'open'} justSubmitted={justSubmitted} />
 }

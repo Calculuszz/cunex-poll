@@ -99,7 +99,7 @@ export type Element = ElementBase & (
     | { type: 'multi_choice'; config: { layout: ChoiceLayout; minSelect?: number | null; maxSelect?: number | null }; options: ElementOption[] }
     | { type: 'dropdown'; config: Record<string, never>; options: ElementOption[] }
     | { type: 'description'; config: { showHeading: boolean; sections: { heading?: string | null; body: string }[] } }
-    | { type: 'image'; config: { url: string; alt?: string | null; caption?: string | null } }
+    | { type: 'image'; config: { url?: string | null; alt?: string | null; caption?: string | null } }
     | { type: 'info_popup'; config: { buttonText?: string | null; title: string; body: string; imageUrl?: string | null } }
     | { type: 'accordion'; config: { title: string; body: string } }
     | { type: 'page_break'; config: Record<string, never> }
@@ -202,6 +202,8 @@ export type Breakdown = {
 }
 
 export type PollResults = {
+    // สถานะโพล ณ ตอนดึงผล หน้าผลสดใช้หยุดดึงเมื่อโพลปิดแล้ว
+    status: PollStatus
     totalBallots: number | null
     generatedAt: IsoDateTime
     elements: ElementResult[]

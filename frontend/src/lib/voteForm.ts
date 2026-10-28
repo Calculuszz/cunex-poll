@@ -121,8 +121,9 @@ export function questionsOf(items: VoteItem[]): VoteQuestion[] {
         .map((item, index) => ({ ...item, order: index + 1 }))
 }
 
-// เพดานความยาวคำตอบข้อความ (สัญญา: maxLength ของคำถาม สูงสุด 5000)
-export const TEXT_ANSWER_MAX = 5000
+// เพดานความยาวคำตอบข้อความ = maxLength ของคำถาม (backend ตั้งให้ 1000 ถ้าไม่ระบุ)
+const DEFAULT_TEXT_ANSWER_MAX = 1000
+export const textAnswerMax = (question: { maxLength?: number }) => question.maxLength ?? DEFAULT_TEXT_ANSWER_MAX
 
 export function isAnswered(question: InputItem, value: AnswerValue | undefined) {
     if (value === undefined) return false

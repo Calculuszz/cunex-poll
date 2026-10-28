@@ -14,14 +14,16 @@ const optional = <T extends z.ZodType>(schema: T) =>
 const imageUrl = z.url().max(500);
 
 // buttonText left out → the web app shows its default label.
+// Text a voter must see (labels, popup and accordion content) may be empty in a
+// draft; findProblems() requires it on submit.
 const popupSchema = z.object({
   buttonText: optional(text(50)),
-  title: text(200).min(1),
-  body: text(5000).min(1),
+  title: text(200),
+  body: text(5000),
 });
 
 const optionSchema = z.object({
-  label: text(300).min(1),
+  label: text(300),
   description: text(1000).nullish(),
   imageUrl: imageUrl.nullish(),
   imageAlt: text(300).nullish(),
@@ -111,7 +113,11 @@ const image = z.object({
   type: z.literal('image'),
   title,
   config: z.object({
-    url: imageUrl,
+    // Empty until the image is uploaded.
+    url: z
+      .union([z.literal(''), imageUrl])
+      .nullish()
+      .transform((v) => v || undefined),
     alt: optional(text(300)),
     caption: optional(text(300)),
   }),
@@ -126,7 +132,7 @@ const infoPopup = z.object({
 const accordion = z.object({
   type: z.literal('accordion'),
   title,
-  config: z.object({ title: text(200).min(1), body: text(5000).min(1) }),
+  config: z.object({ title: text(200), body: text(5000) }),
 });
 
 const pageBreak = z.object({

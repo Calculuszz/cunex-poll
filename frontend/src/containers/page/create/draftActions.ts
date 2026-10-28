@@ -32,6 +32,7 @@ const ELEMENT_FIELDS: Record<string, string> = {
     body: 'เนื้อหา',
     buttonText: 'ข้อความปุ่ม',
     label: 'ข้อความตัวเลือก',
+    popup: 'รายละเอียดตัวเลือก',
 }
 
 function describePath(path: string) {
@@ -80,6 +81,8 @@ export async function saveDraft(): Promise<DraftResult> {
         const poll = draftId && version !== null ? await api.polls.save(draftId, version, draft) : await api.polls.create(draft)
         setDraft(poll.id, poll.version)
         setHydratedId(poll.id)
+        // ฟอร์มนี้เป็นของฉบับร่างบน server แล้ว ถ้าค้างในเครื่องจะไม่ถูกนับเป็นโพลใหม่อีก
+        useCreatePollStore.getState().setSourceId(poll.id)
         return { ok: true, poll }
     } catch (err) {
         return toFailure(err, 'บันทึกฉบับร่างไม่สำเร็จ')

@@ -4,14 +4,15 @@ import { useEffect, useRef, useState } from 'react'
 const POLL_INTERVAL = 5_000
 
 // ดึงผลซ้ำทุก 5 วินาทีระหว่างโพลเปิดโหวต (backend มี ETag + cache 3 วินาที ผลไม่เปลี่ยนก็ตอบ 304 ราคาถูก)
-// ข้ามรอบตอนแท็บไม่ได้เปิดดูอยู่ และหยุดเมื่อโพลปิดแล้ว (ผลไม่เปลี่ยนอีก)
-export function useLiveResults<T>(initial: T, live: boolean, fetcher: (signal: AbortSignal) => Promise<T>) {
+// ข้ามรอบตอนแท็บไม่ได้เปิดดูอยู่ และหยุดเมื่อผลที่ดึงมาบอกว่าโพลปิดแล้ว (ผลไม่เปลี่ยนอีก ไม่ต้องเปลืองโควตา)
+export function useLiveResults<T extends { status: string }>(initial: T, live: boolean, fetcher: (signal: AbortSignal) => Promise<T>) {
     const [results, setResults] = useState(initial)
+    const stillOpen = results.status === 'open'
     const fetcherRef = useRef(fetcher)
     useEffect(() => { fetcherRef.current = fetcher })
 
     useEffect(() => {
-        if (!live) return
+        if (!live || !stillOpen) return
         let controller: AbortController | null = null
         const tick = async () => {
             if (document.hidden) return
@@ -28,7 +29,7 @@ export function useLiveResults<T>(initial: T, live: boolean, fetcher: (signal: A
             clearInterval(id)
             controller?.abort()
         }
-    }, [live])
+    }, [live, stillOpen])
 
     return results
 }

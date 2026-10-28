@@ -86,6 +86,7 @@ describe('results', () => {
   it('owner sees totals per option', async () => {
     const res = await owner.get(`/polls/${pollId}/results`);
     expect(res.status).toBe(200);
+    expect(res.body.status).toBe('open');
     expect(res.body.totalBallots).toBe(9);
     const q = res.body.elements.find(
       (e: { elementId: string }) => e.elementId === questionId,

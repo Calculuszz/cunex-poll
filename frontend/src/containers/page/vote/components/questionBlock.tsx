@@ -1,7 +1,7 @@
 'use client'
 import React from 'react'
 import { Textarea } from '@/components/ui/textarea'
-import { TEXT_ANSWER_MAX, type AnswerValue, type VoteQuestion } from '@/lib/voteForm'
+import { textAnswerMax, type AnswerValue, type VoteQuestion } from '@/lib/voteForm'
 import { effectiveMaxSelect } from '@/lib/pollMappers'
 import { ChoiceOptions } from './choiceOptions'
 
@@ -48,13 +48,13 @@ export function QuestionBlock({ question, value, onChange, readOnly }: {
                         <Textarea
                             aria-labelledby={titleId}
                             value={text}
-                            maxLength={TEXT_ANSWER_MAX}
+                            maxLength={textAnswerMax(question)}
                             rows={4}
                             placeholder={question.placeholder || 'พิมพ์คำตอบของคุณ...'}
                             onChange={(e) => onChange?.(e.target.value === '' ? undefined : e.target.value)}
                             className='rounded-xl bg-card px-4 py-3 text-base'
                         />
-                        <span className='self-end text-sm text-ink-500 tabular-nums'>{text.length}/{TEXT_ANSWER_MAX}</span>
+                        <span className='self-end text-sm text-ink-500 tabular-nums'>{text.length}/{textAnswerMax(question)}</span>
                     </div>
                 )
             ) : (
