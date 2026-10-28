@@ -82,7 +82,7 @@ const multiChoice = z
       e.config.maxSelect === undefined ||
       e.config.minSelect <= e.config.maxSelect,
     {
-      message: 'minSelect must be <= maxSelect',
+      message: 'เลือกขั้นต่ำต้องไม่มากกว่าเลือกได้สูงสุด',
       path: ['config', 'minSelect'],
     },
   );
@@ -174,10 +174,10 @@ const audienceSchema = z.discriminatedUnion('type', [
             studentYear: z.int().min(2400).max(2700).nullish(),
           })
           .refine((r) => r.facultyCode != null || r.studentYear != null, {
-            message: 'a rule needs facultyCode or studentYear',
+            message: 'ต้องระบุคณะหรือปีเข้า',
           }),
       )
-      .min(1)
+      // Empty is fine while drafting; submit requires at least one.
       .max(100),
   }),
 ]);

@@ -141,7 +141,10 @@ describe('dev login (test accounts popup)', () => {
       .set('Origin', APP_ORIGIN)
       .send({ role: 'root' });
     expect(res.status).toBe(422);
-    expect(res.body.issues).toBeDefined();
+    expect(res.body.code).toBe('UNPROCESSABLE');
+    expect(res.body.problems).toEqual([
+      { path: 'role', message: expect.any(String) },
+    ]);
   });
 });
 

@@ -7,17 +7,49 @@ import { useElementStore } from '@/store/elementStore'
 
 export type DraftResult = { ok: true; poll: PollDetail } | { ok: false; error: string; problems?: string[] }
 
-// ชื่อช่องจาก path ใน problems ของ API (เช่น elements[2].options[0].label) → ข้อความที่ผู้ใช้อ่านเข้าใจ
+// ชื่อช่องจาก path ใน problems ของ API (เช่น elements.2.options.0.label) → ข้อความที่ผู้ใช้อ่านเข้าใจ
+const TOP_FIELDS: Record<string, string> = {
+    title: 'ชื่อโพล',
+    description: 'คำอธิบาย',
+    opensAt: 'เวลาเปิดโหวต',
+    closesAt: 'เวลาปิดโหวต',
+    coverImageUrl: 'รูปปก',
+    audience: 'ประเภทโพล',
+    settings: 'การตั้งค่าโพล',
+    elements: 'คำถาม',
+}
+const ELEMENT_FIELDS: Record<string, string> = {
+    title: 'หัวข้อคำถาม',
+    description: 'คำอธิบาย',
+    imageUrl: 'รูป',
+    imageAlt: 'คำอธิบายรูป',
+    url: 'รูป',
+    minSelect: 'จำนวนที่ต้องเลือกขั้นต่ำ',
+    maxSelect: 'จำนวนที่เลือกได้สูงสุด',
+    maxLength: 'ความยาวสูงสุด',
+    placeholder: 'ข้อความตัวอย่าง',
+    heading: 'หัวข้อ',
+    body: 'เนื้อหา',
+    buttonText: 'ข้อความปุ่ม',
+    label: 'ข้อความตัวเลือก',
+}
+
 function describePath(path: string) {
-    if (path === 'title') return 'ชื่อโพล'
-    if (path === 'opensAt') return 'เวลาเปิดโหวต'
-    if (path === 'closesAt') return 'เวลาปิดโหวต'
-    if (path === 'coverImageUrl') return 'รูปปก'
-    if (path.startsWith('audience')) return 'ขอบเขตผู้ตอบ'
-    if (path === 'elements') return 'คำถาม'
-    const m = /^elements\[(\d+)\](?:\.options\[(\d+)\])?/.exec(path)
-    if (m) return `รายการที่ ${Number(m[1]) + 1}${m[2] !== undefined ? ` ตัวเลือกที่ ${Number(m[2]) + 1}` : ''}`
-    return path
+    // รองรับทั้ง elements.2.title และ elements[2].title
+    const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean)
+    const [top, index, ...rest] = parts
+    if (top === 'audience') return index === 'rules' ? 'คณะ/ปีเข้า' : 'ประเภทโพล'
+    if (top !== 'elements' || index === undefined) return TOP_FIELDS[top] ?? 'ข้อมูลโพล'
+    const out = [`รายการที่ ${Number(index) + 1}`]
+    for (let i = 0; i < rest.length; i++) {
+        const key = rest[i]
+        const next = rest[i + 1]
+        if (key === 'options' && next !== undefined && /^\d+$/.test(next)) { out.push(`ตัวเลือกที่ ${Number(next) + 1}`); i++ }
+        else if (key === 'sections' && next !== undefined && /^\d+$/.test(next)) { out.push(`ส่วนที่ ${Number(next) + 1}`); i++ }
+        else if (key === 'options') out.push('ตัวเลือก')
+        else if (ELEMENT_FIELDS[key]) out.push(ELEMENT_FIELDS[key])
+    }
+    return out.join(' · ')
 }
 
 export const describeProblems = (problems: Problem['problems']) =>
@@ -32,6 +64,9 @@ function toFailure(err: unknown, fallback: string): DraftResult {
     }
     if (isApiError(err, 'POLL_INCOMPLETE')) {
         return { ok: false, error: 'โพลยังไม่ครบ แก้รายการต่อไปนี้ก่อนส่ง', problems: describeProblems(err.problem.problems) }
+    }
+    if (isApiError(err, 'UNPROCESSABLE') && err.problem.problems?.length) {
+        return { ok: false, error: 'ข้อมูลบางช่องไม่ถูกต้อง แก้รายการต่อไปนี้ก่อน', problems: describeProblems(err.problem.problems) }
     }
     if (isApiError(err, 'POLL_LOCKED')) return { ok: false, error: 'โพลนี้ส่งไปแล้ว แก้ไขไม่ได้' }
     return { ok: false, error: errorMessage(err, fallback) }

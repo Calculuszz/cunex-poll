@@ -366,7 +366,9 @@ async function writeContent(
         const k = `${r.facultyCode}|${r.studentYear}`;
         return seen.has(k) ? false : (seen.add(k), true);
       });
-    await tx.insertInto('pollAudienceRules').values(rules).execute();
+    if (rules.length > 0) {
+      await tx.insertInto('pollAudienceRules').values(rules).execute();
+    }
   }
 
   for (const [position, el] of draft.elements.entries()) {

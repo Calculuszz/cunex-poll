@@ -22,6 +22,12 @@ export function findProblems(draft: PollDraftInput, now: Date): Problem[] {
     add('closesAt', 'เวลาปิดโหวตต้องอยู่ในอนาคต');
   }
   if (
+    draft.audience.type === 'restricted' &&
+    draft.audience.rules.length === 0
+  ) {
+    add('audience.rules', 'ต้องเลือกคณะหรือปีเข้าอย่างน้อย 1 อย่าง');
+  }
+  if (
     draft.opensAt &&
     draft.closesAt &&
     new Date(draft.opensAt) >= new Date(draft.closesAt)

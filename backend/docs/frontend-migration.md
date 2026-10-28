@@ -532,7 +532,7 @@ resultDisplay.published  และ  ( ปิดโหวตแล้ว  หร�
 | 409 | `CANNOT_REVOKE_SELF` | ถอดแอดมินตัวเอง | ถอดสิทธิ์ตัวเองไม่ได้ |
 | 412 | `VERSION_CONFLICT` | ร่างถูกแก้จากที่อื่น (`currentVersion`) | ฉบับร่างถูกแก้จากที่อื่น โหลดใหม่ก่อนบันทึก |
 | 428 | `PRECONDITION_REQUIRED` | `PUT /polls/:id` ไม่ส่ง `If-Match` | (bug ฝั่งเรา) |
-| 422 | `UNPROCESSABLE` | body ผิดรูปแบบ (`issues`: string[]) | ข้อมูลไม่ถูกต้อง |
+| 422 | `UNPROCESSABLE` | body ผิดรูปแบบ (`problems`: `{ path, message }[]`, path คั่นด้วยจุด เช่น `elements.2.title`, message เป็นภาษาไทย) | ข้อมูลไม่ถูกต้อง |
 | 422 | `POLL_INCOMPLETE` | ส่งขออนุมัติแต่ยังไม่ครบ (`problems`) | โชว์ `problems[].message` |
 | 422 | `INVALID_ANSWERS` | คำตอบผิด (`problems`) | โชว์ `problems[].message` |
 | 422 | `INVALID_IMAGE_URL` | รูปไม่ได้มาจากการอัปโหลด (`problems`) | ต้องอัปโหลดรูปผ่านระบบ |
