@@ -39,6 +39,7 @@
     "@nestjs/terminus": "^12.1.0",
     "bullmq": "^6.3.11",
     "cookie-parser": "^1.4.7",
+    "express": "^5.2.1",
     "ioredis": "^6.0.0",
     "kysely": "^0.29.6",
     "nestjs-pino": "^5.3.1",

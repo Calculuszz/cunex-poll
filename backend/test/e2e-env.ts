@@ -47,6 +47,8 @@ export async function createTestApp(
   Object.assign(process.env, {
     APP_ENV: 'test',
     APP_ORIGIN,
+    API_PUBLIC_URL: 'http://localhost:3000',
+    JOBS_MODE: 'queue',
     LOG_LEVEL: 'warn',
     DATABASE_URL: testUrl.toString(),
     REDIS_URL: TEST_REDIS_URL,
