@@ -30,6 +30,8 @@ const thaiFormatters = {
 const thaiLabels = {
   labelDayButton: (date: Date) =>
     `${format(date, "EEEEที่ d MMMM", { locale: th })} ${toBuddhistYear(date)}`,
+  labelGrid: (month: Date) =>
+    `${format(month, "LLLL", { locale: th })} ${toBuddhistYear(month)}`,
   labelPrevious: () => "เดือนก่อนหน้า",
   labelNext: () => "เดือนถัดไป",
 }
