@@ -282,6 +282,38 @@ describe('my polls', () => {
   });
 });
 
+describe('half-done restricted audience', () => {
+  it('saves without faculties, then submit says what is missing', async () => {
+    const draft = {
+      ...completeDraft(),
+      audience: { type: 'restricted', rules: [] },
+    };
+    const created = await eng.post('/polls').send(draft);
+    expect(created.status).toBe(201);
+    expect(created.body.audience).toEqual({ type: 'restricted', rules: [] });
+
+    const submit = await eng.post(`/polls/${created.body.id}/submit`);
+    expect(submit.status).toBe(422);
+    expect(submit.body.problems).toEqual([
+      {
+        path: 'audience.rules',
+        message: 'ต้องเลือกคณะหรือปีเข้าอย่างน้อย 1 อย่าง',
+      },
+    ]);
+  });
+
+  it('reports malformed fields as dot paths with Thai messages', async () => {
+    const res = await eng.post('/polls').send({
+      ...completeDraft(),
+      audience: { type: 'restricted', rules: [{}] },
+    });
+    expect(res.status).toBe(422);
+    expect(res.body.problems).toEqual([
+      { path: 'audience.rules.0', message: 'ต้องระบุคณะหรือปีเข้า' },
+    ]);
+  });
+});
+
 describe('faculties', () => {
   it('lists every seeded faculty, not only ones seen from logins', async () => {
     const res = await eng.get('/faculties');

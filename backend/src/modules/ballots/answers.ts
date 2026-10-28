@@ -12,7 +12,7 @@ export const ballotBodySchema = z.object({
           text: z.string().max(5000).optional(),
         })
         .refine((a) => (a.optionIds === undefined) !== (a.text === undefined), {
-          message: 'send exactly one of optionIds or text',
+          message: 'ส่งได้อย่างใดอย่างหนึ่ง: ตัวเลือกหรือข้อความ',
         }),
     )
     .max(200),
