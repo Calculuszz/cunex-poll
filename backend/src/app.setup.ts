@@ -2,11 +2,10 @@ import { HttpStatus, StandardSchemaValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import { Logger } from 'nestjs-pino';
-import { z } from 'zod';
 import { AppError } from './common/errors.js';
+import { applyThaiZodErrors } from './common/zod-thai.js';
 
-// Schema messages go straight to users, so they are in Thai.
-z.config(z.locales.th());
+applyThaiZodErrors();
 
 // Shared by main.ts and the e2e tests so both run the same HTTP pipeline.
 export function configureApp(app: NestExpressApplication) {

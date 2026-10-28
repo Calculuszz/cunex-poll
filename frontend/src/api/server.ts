@@ -32,11 +32,12 @@ export const getMe = cache(async (): Promise<Me | null> => {
 })
 
 // เรียก API ในหน้า: 404 → หน้า not found, 401 → หน้า login
+// 422 ของคำขอ GET = id ในลิงก์ผิดรูปแบบ (เช่นพิมพ์ลิงก์ผิด) ถือว่าไม่พบเหมือนกัน
 export async function loadOrNotFound<T>(fn: () => Promise<T>, returnTo: string): Promise<T> {
     try {
         return await fn()
     } catch (err) {
-        if (isApiError(err) && err.status === 404) notFound()
+        if (isApiError(err) && (err.status === 404 || isApiError(err, 'UNPROCESSABLE'))) notFound()
         if (isApiError(err, 'UNAUTHENTICATED')) redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`)
         throw err
     }

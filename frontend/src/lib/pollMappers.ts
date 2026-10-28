@@ -47,12 +47,12 @@ export function itemToElement(item: FormItem): Element {
             case 'radio': return { ...base, type: 'single_choice', config: { layout: item.optionLayout ?? 'list' }, options: item.options.map(optionToApi) }
             case 'checkbox': return { ...base, type: 'multi_choice', config: { layout: item.optionLayout ?? 'list', maxSelect: effectiveMaxSelect(item) ?? null }, options: item.options.map(optionToApi) }
             case 'select': return { ...base, type: 'dropdown', config: {}, options: item.options.map(optionToApi) }
-            case 'text': return { ...base, type: 'text_question', config: { placeholder: nonEmpty(item.placeholder) } }
+            case 'text': return { ...base, type: 'text_question', config: { placeholder: nonEmpty(item.placeholder), maxLength: item.maxLength ?? null } }
         }
     }
     switch (item.type) {
         case 'text': return { type: 'description', config: { showHeading: !!nonEmpty(item.title), sections: [{ heading: nonEmpty(item.title), body: item.body }] } }
-        case 'image': return { type: 'image', config: { url: item.url, alt: nonEmpty(item.alt), caption: nonEmpty(item.caption) } }
+        case 'image': return { type: 'image', config: { url: item.url || null, alt: nonEmpty(item.alt), caption: nonEmpty(item.caption) } }
         case 'dialog': return { type: 'info_popup', config: { buttonText: nonEmpty(item.trigger), title: item.title, body: item.body, imageUrl: item.imageUrl || null } }
         case 'accordion': return { type: 'accordion', config: { title: item.title, body: item.body } }
         case 'pagebreak': return { type: 'page_break', config: {} }
@@ -71,7 +71,7 @@ export function elementToItem(e: Element, index: number): FormItem {
         case 'single_choice': return input({ type: 'radio', options: options(e.options), optionLayout: e.config.layout })
         case 'multi_choice': return input({ type: 'checkbox', options: options(e.options), optionLayout: e.config.layout, maxSelect: e.config.maxSelect ?? undefined })
         case 'dropdown': return input({ type: 'select', options: options(e.options) })
-        case 'text_question': return input({ type: 'text', placeholder: e.config.placeholder ?? undefined })
+        case 'text_question': return input({ type: 'text', placeholder: e.config.placeholder ?? undefined, maxLength: e.config.maxLength ?? undefined })
         case 'description': {
             // หน้าแก้ไขรองรับหัวข้อเดียว หลายส่วนจึงรวมเป็นก้อนเดียว
             const sections = e.config.sections ?? []
@@ -81,7 +81,7 @@ export function elementToItem(e: Element, index: number): FormItem {
                 body: sections.map((s, i) => (i > 0 && s.heading ? `${s.heading}\n${s.body}` : s.body)).join('\n\n'),
             })
         }
-        case 'image': return element({ type: 'image', url: e.config.url, alt: e.config.alt ?? undefined, caption: e.config.caption ?? undefined })
+        case 'image': return element({ type: 'image', url: e.config.url ?? '', alt: e.config.alt ?? undefined, caption: e.config.caption ?? undefined })
         case 'info_popup': return element({ type: 'dialog', trigger: e.config.buttonText ?? undefined, title: e.config.title, body: e.config.body, imageUrl: e.config.imageUrl ?? undefined })
         case 'accordion': return element({ type: 'accordion', title: e.config.title, body: e.config.body })
         case 'page_break': return element({ type: 'pagebreak' })

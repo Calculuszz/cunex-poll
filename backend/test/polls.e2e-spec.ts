@@ -302,6 +302,45 @@ describe('half-done restricted audience', () => {
     ]);
   });
 
+  it('saves blank options and empty blocks, then submit lists each one', async () => {
+    const created = await eng.post('/polls').send({
+      ...completeDraft(),
+      elements: [
+        {
+          type: 'single_choice',
+          title: 'เลือก',
+          options: [
+            { label: '' },
+            { label: 'b', popup: { title: 'มีแต่หัวข้อ', body: '' } },
+          ],
+        },
+        { type: 'image', config: { url: '' } },
+        { type: 'info_popup', config: { title: '', body: '' } },
+        { type: 'accordion', config: { title: 'หัวข้อ', body: '' } },
+      ],
+    });
+    expect(created.status).toBe(201);
+
+    const submit = await eng.post(`/polls/${created.body.id}/submit`);
+    expect(submit.status).toBe(422);
+    expect(submit.body.problems.map((p: { path: string }) => p.path)).toEqual([
+      'elements.0.options.0.label',
+      'elements.0.options.1.popup',
+      'elements.1.config.url',
+      'elements.2.config.title',
+      'elements.2.config.body',
+      'elements.3.config.body',
+    ]);
+  });
+
+  it('words common schema errors plainly', async () => {
+    const res = await eng.post('/polls').send({ title: 'ก'.repeat(201) });
+    expect(res.status).toBe(422);
+    expect(res.body.problems).toEqual([
+      { path: 'title', message: 'ยาวเกิน 200 ตัวอักษร' },
+    ]);
+  });
+
   it('reports malformed fields as dot paths with Thai messages', async () => {
     const res = await eng.post('/polls').send({
       ...completeDraft(),

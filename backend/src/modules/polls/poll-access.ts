@@ -8,11 +8,13 @@ const isStaff = (poll: PollRow, user: User) =>
 
 /**
  * Owner and admins see every status; everyone else only published polls they
- * may answer. Callers answer 404 (not 403) when this is false, so poll ids
+ * may answer, unless an admin took the poll down. Callers answer 404 (not 403) when this is false, so poll ids
  * can't be probed.
  */
 export function canSeePoll(agg: PollAggregate, user: User): boolean {
   if (isStaff(agg.poll, user)) return true;
+  // Taken down by an admin: gone for everyone but the owner and admins.
+  if (agg.poll.takenDownAt) return false;
   const published = agg.poll.status === 'open' || agg.poll.status === 'closed';
   return published && isEligible(agg.poll.audience, agg.rules, user);
 }

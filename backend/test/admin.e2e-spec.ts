@@ -234,6 +234,10 @@ describe('review queue', () => {
     expect(feed.body.items.map((p: { id: string }) => p.id)).not.toContain(
       first,
     );
+    // nor reachable by link: content, results and ballots are gone for voters
+    expect((await voter.get(`/polls/${first}`)).status).toBe(404);
+    expect((await voter.get(`/polls/${first}/results`)).status).toBe(404);
+    expect((await voter.get(`/polls/${first}/ballot`)).status).toBe(404);
   });
 
   it('every decision is in the audit log', async () => {

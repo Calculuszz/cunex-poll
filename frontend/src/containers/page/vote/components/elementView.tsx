@@ -17,6 +17,8 @@ export function ElementView({ item }: { item: ElementItem }) {
                 </div>
             )
         case 'image':
+            // ฉบับร่างอาจยังไม่ได้อัปโหลดรูป (หน้าดูตัวอย่าง) src ว่างทำให้เบราว์เซอร์โหลดหน้าเดิมซ้ำ จึงไม่วาด
+            if (!item.url) return null
             return (
                 <figure className='flex flex-col gap-1'>
                     {/* eslint-disable-next-line @next/next/no-img-element */}

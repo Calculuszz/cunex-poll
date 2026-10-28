@@ -41,7 +41,7 @@ export function toResultsModel(
     const byId = new Map(results.elements.map((r) => [r.elementId, r]))
     return {
         pollId: poll.id,
-        status: poll.status,
+        status: results.status ?? poll.status,
         totalRespondents: results.totalBallots,
         numbers: { count: display?.showCount ?? true, percent: display?.showPercent ?? true },
         questions: questions.flatMap((q, i) => {

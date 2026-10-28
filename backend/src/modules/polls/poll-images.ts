@@ -13,7 +13,7 @@ export function imageRefs(draft: PollDraftInput): ImageRef[] {
     refs.push({ path: 'coverImageUrl', url: draft.coverImageUrl });
   }
   draft.elements.forEach((el, i) => {
-    if (el.type === 'image') {
+    if (el.type === 'image' && el.config.url) {
       refs.push({ path: `elements.${i}.config.url`, url: el.config.url });
     }
     if (el.type === 'info_popup' && el.config.imageUrl) {

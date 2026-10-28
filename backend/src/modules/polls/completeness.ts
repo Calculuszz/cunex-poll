@@ -57,6 +57,19 @@ export function findProblems(draft: PollDraftInput, now: Date): Problem[] {
     if ('options' in e) {
       if (e.options.length < 2)
         add(`${at}.options`, 'ต้องมีตัวเลือกอย่างน้อย 2 ข้อ');
+      e.options.forEach((o, j) => {
+        if (!o.label) add(`${at}.options.${j}.label`, 'ต้องมีข้อความตัวเลือก');
+        if (o.popup && (!o.popup.title || !o.popup.body)) {
+          add(`${at}.options.${j}.popup`, 'ต้องมีทั้งหัวข้อและเนื้อหา');
+        }
+      });
+    }
+    if (e.type === 'image' && !e.config.url) {
+      add(`${at}.config.url`, 'ต้องอัปโหลดรูป');
+    }
+    if (e.type === 'info_popup' || e.type === 'accordion') {
+      if (!e.config.title) add(`${at}.config.title`, 'ต้องมีหัวข้อ');
+      if (!e.config.body) add(`${at}.config.body`, 'ต้องมีเนื้อหา');
     }
     if (e.type === 'multi_choice') {
       const { minSelect, maxSelect } = e.config;

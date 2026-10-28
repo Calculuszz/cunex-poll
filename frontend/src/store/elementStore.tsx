@@ -13,7 +13,8 @@ export type InputItem = {
     // maxSelect ว่าง = เลือกได้ไม่จำกัด
     | { type: 'checkbox'; options: Option[]; optionLayout?: 'list' | 'grid'; maxSelect?: number }
     | { type: 'select';   options: Option[] }
-    | { type: 'text';     placeholder?: string }
+    // maxLength: เพดานความยาวคำตอบจาก API (ว่าง = ค่าตั้งต้นของ backend)
+    | { type: 'text';     placeholder?: string; maxLength?: number }
 );
 
 export type Option = {

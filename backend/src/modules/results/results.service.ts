@@ -205,6 +205,8 @@ function present(
   const counted = new Map(tally.elements.map((e) => [e.elementId, e]));
 
   return {
+    // Lets a live results screen stop polling once the poll has closed.
+    status: agg.poll.status,
     totalBallots: showTotal ? tally.totalBallots : null,
     elements: agg.elements.filter(shown).map((e) => {
       const t = counted.get(e.id);

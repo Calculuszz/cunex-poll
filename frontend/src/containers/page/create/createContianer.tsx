@@ -4,11 +4,10 @@ import { PollType, PollDetail, PollTypeMore, CreateFooter, CreateStepper } from 
 import { MessageSquareWarning } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCreateStepStore, type CreateStep } from '@/store/createStepStore'
-import { useCreatePollStore } from '@/store/createPollStore'
-import { useElementStore } from '@/store/elementStore'
 import { useCreateDraftStore } from '@/store/createDraftStore'
 import type { DraftInitial } from '@/containers/page/create/draftInitial'
 import { ElementContainer } from "./elementContainer"
+import { prepareCreateForm } from "./formOwner"
 
 // draft มีค่าเมื่อเป็นหน้าแก้ไขฉบับร่าง หน้าที่ใช้จะ key ด้วย id ของฉบับร่าง จึงเติมค่าแค่ตอน mount ครั้งเดียวพอ
 export function CreateContainer({ draft }: { draft?: DraftInitial }) {
@@ -29,12 +28,10 @@ export function CreateContainer({ draft }: { draft?: DraftInitial }) {
 
     // เติมค่าฉบับร่างลงฟอร์มก่อนลูกเรนเดอร์ครั้งแรก เพื่อไม่ให้เห็นค่าเก่าที่ค้างในเครื่องวูบหนึ่ง
     // ฉบับร่างเดิมที่โหลดไปแล้ว (เช่นกลับมาจากหน้าดูตัวอย่าง) ไม่โหลดซ้ำ ของที่แก้ค้างไว้จะได้ไม่หาย
+    // ฟอร์มในเครื่องอยู่ใน localStorage จึงจัดการเฉพาะฝั่ง browser (ตอน hydrate initializer นี้รันอีกรอบ)
     useState(() => {
         const drafts = useCreateDraftStore.getState()
-        if (draft && drafts.hydratedId !== draft.id) {
-            useCreatePollStore.getState().update(draft.form)
-            useElementStore.setState({ items: draft.items })
-        }
+        if (typeof window !== 'undefined') prepareCreateForm(draft, !!draft && drafts.hydratedId === draft.id)
         drafts.setHydratedId(draft?.id ?? null)
         return true
     })

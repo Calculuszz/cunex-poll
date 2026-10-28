@@ -22,6 +22,10 @@ type PollFormFields = {
 export type CreatePollState = PollFormFields
 
 type UseCreatePollStore = PollFormFields & {
+    // ฟอร์มในเครื่องเป็นของฉบับร่างไหนบน server · null = โพลใหม่ที่ยังไม่เคยบันทึก
+    // เก็บไว้กันเนื้อหาฉบับร่างที่ค้างในเครื่องไปโผล่เป็น "โพลใหม่" (บันทึกแล้วได้โพลซ้ำ)
+    sourceId: string | null
+    setSourceId: (id: string | null) => void
     update: (patch: Partial<PollFormFields>) => void
     reset: () => void
 }
@@ -39,23 +43,26 @@ const INITIAL_FIELDS: PollFormFields = {
     listedPublicly: true,
 }
 
+// เฉพาะค่าในฟอร์ม (ตัดฟังก์ชันและ sourceId ออก)
+export function formFieldsOf(s: PollFormFields): PollFormFields {
+    return Object.fromEntries(Object.keys(INITIAL_FIELDS).map((k) => [k, s[k as keyof PollFormFields]])) as PollFormFields
+}
+
 // อยู่ใน store และ persist ไว้ ร่างที่ยังไม่ได้กดบันทึกจะได้ไม่หายตอนรีเฟรช
 export const useCreatePollStore = create<UseCreatePollStore>()(
     persist(
         (set) => ({
             ...INITIAL_FIELDS,
+            sourceId: null,
+            setSourceId: (sourceId) => set({ sourceId }),
             update: (patch) => set(patch),
-            reset: () => set(INITIAL_FIELDS),
+            reset: () => set({ ...INITIAL_FIELDS, sourceId: null }),
         }),
         {
             name: 'poll-form-draft',
             storage: createJSONStorage(() => localStorage),
             partialize: (s) => {
-                const fields: Partial<UseCreatePollStore> = {}
-                for (const key of Object.keys(INITIAL_FIELDS) as (keyof PollFormFields)[]) {
-                    Object.assign(fields, { [key]: s[key] })
-                }
-                return fields
+                return { ...formFieldsOf(s), sourceId: s.sourceId }
             },
             // v2: เปลี่ยนตามสัญญา API v1 (scope A/B/C/D → audienceType) · v4: ตัดช่องที่ backend ไม่มี (รหัส/ลงคะแนนซ้ำ/ระบุคนส่ง)
             version: 4,
