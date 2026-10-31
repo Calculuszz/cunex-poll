@@ -7,7 +7,7 @@
 
 ## 1. Tech stack
 
-สรุปสั้นๆ : **NestJS 12 + TypeScript** เขียน API, **Postgres** เก็บข้อมูลจริง, **Redis** เก็บของชั่วคราว (session, cache, queue)
+สรุปสั้นๆ : **NestJS 12 + TypeScript** เขียน API, **Postgres** เก็บข้อมูลจริง, **Redis** เก็บของชั่วคราว (cache, ตัวนับกันกดรัว, queue) ส่วน session อยู่ใน Postgres
 
 | เรื่อง | ใช้อะไร | เวอร์ชัน |
 | --- | --- | --- |
@@ -19,7 +19,7 @@
 | คุยกับ DB | Kysely + `pg` | 0.29 |
 | Type ของ DB | kysely-codegen | 0.20 |
 | Migration | สคริปต์เขียนเอง อ่านไฟล์ `.sql` | — |
-| Cache / session / queue | Redis + ioredis | Redis 8, ioredis 6 |
+| Cache / rate limit / queue | Redis + ioredis | Redis 8, ioredis 6 |
 | งานเบื้องหลัง | BullMQ | 6 |
 | Log | pino + nestjs-pino | pino 10 |
 | Health check | @nestjs/terminus | 12 |
@@ -45,7 +45,7 @@ flowchart TB
         admin["Admin<br/>อนุมัติ · audit log"]
     end
     pg[("Postgres<br/>ข้อมูลจริง ผ่าน PgBouncer")]
-    redis[("Redis<br/>session · cache · คิวงาน")]
+    redis[("Redis<br/>cache · rate limit · คิวงาน")]
     s3[("Object storage<br/>รูปภาพ (S3)")]
     worker["Worker (โค้ดชุดเดียวกับ API)<br/>แจ้งเตือน · ปิดโพล · ดึงรูป"]
     lle["CUNEX LLE API<br/>/profile · /notification · /create_link"]

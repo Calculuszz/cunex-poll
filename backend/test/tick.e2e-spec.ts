@@ -61,6 +61,18 @@ async function publishedPoll() {
   return body.id as string;
 }
 
+it('purges sessions that expired', async () => {
+  await db.query(
+    "UPDATE sessions SET expires_at = now() - interval '1 minute' WHERE user_id = (SELECT user_id FROM user_identities WHERE provider_subject = '100000000000000002')",
+  );
+  const res = await tick(`Bearer ${SECRET}`);
+  expect(res.body.sessionsPurged).toBeGreaterThanOrEqual(1);
+  const { rows } = await db.query(
+    'SELECT count(*)::int AS n FROM sessions WHERE expires_at <= now()',
+  );
+  expect(rows[0].n).toBe(0);
+});
+
 it('refuses callers without the secret', async () => {
   expect((await tick()).status).toBe(404);
   expect((await tick('Bearer wrong')).status).toBe(404);

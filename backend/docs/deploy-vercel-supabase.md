@@ -4,7 +4,7 @@
 browser ─► Vercel: web (frontend/) ──/api/v1/*──► Vercel: api (backend/, serverless)
                                                      ├─► Supabase Postgres (transaction pooler)
                                                      ├─► Supabase Storage (S3 API) ← รูป
-                                                     └─► Upstash Redis (session, rate limit, cache)
+                                                     └─► Upstash Redis (rate limit, cache ผลโหวต) · session อยู่ใน Postgres
 Supabase pg_cron ── ทุก 1 นาที ──► GET /api/v1/internal/tick  (แทน worker: ปิดโพล, ลิงก์แชร์, แจ้งเตือน)
 ```
 

@@ -7,7 +7,6 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { AppError } from '../../common/errors.js';
-import { UsersRepository } from '../users/users.repository.js';
 import {
   type AuthedRequest,
   IS_PUBLIC,
@@ -16,13 +15,13 @@ import {
 import { SESSION_COOKIE, SessionService } from './session.service.js';
 
 // Global: every route needs a session unless marked @Public(). The user is read
-// from the DB on each request so a revoked admin loses access immediately.
+// from the DB with the session on each request, so a revoked admin loses
+// access immediately.
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly sessions: SessionService,
-    private readonly users: UsersRepository,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -32,10 +31,9 @@ export class AuthGuard implements CanActivate {
     }
 
     const req = context.switchToHttp().getRequest<Request>();
-    const userId = await this.sessions.getUserId(
+    const user = await this.sessions.userFor(
       req.cookies?.[SESSION_COOKIE] as string | undefined,
     );
-    const user = userId ? await this.users.findById(userId) : undefined;
     if (!user) {
       throw new AppError(
         'UNAUTHENTICATED',
