@@ -122,6 +122,35 @@ describe('sessions', () => {
     const me = await http().get('/api/v1/me').set('Cookie', sid);
     expect(me.status).toBe(401);
   });
+
+  it('are stored in Postgres as a hash, never the cookie value', async () => {
+    const sid = await loginAs('arts-2565');
+    const value = sid.slice('sid='.length);
+    const { rows } = await db.query(
+      "SELECT encode(id_hash, 'hex') AS h FROM sessions WHERE id_hash = sha256(convert_to($1, 'UTF8'))",
+      [value],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].h).not.toContain(value);
+  });
+
+  it('stop working once expired, and a new login clears the old rows', async () => {
+    const sid = await loginAs('arts-2565');
+    const value = sid.slice('sid='.length);
+    await db.query(
+      "UPDATE sessions SET expires_at = now() - interval '1 second' WHERE id_hash = sha256(convert_to($1, 'UTF8'))",
+      [value],
+    );
+    expect((await http().get('/api/v1/me').set('Cookie', sid)).status).toBe(
+      401,
+    );
+
+    await loginAs('arts-2565');
+    const { rows } = await db.query(
+      "SELECT count(*)::int AS n FROM sessions s JOIN user_identities i ON i.user_id = s.user_id WHERE i.provider_subject = '100000000000000003' AND s.expires_at <= now()",
+    );
+    expect(rows[0].n).toBe(0);
+  });
 });
 
 describe('dev login (test accounts popup)', () => {

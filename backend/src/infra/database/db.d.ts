@@ -167,6 +167,13 @@ export interface Polls {
   version: Generated<number>;
 }
 
+export interface Sessions {
+  createdAt: Generated<Timestamp>;
+  expiresAt: Timestamp;
+  idHash: Buffer;
+  userId: string;
+}
+
 export interface UserIdentities {
   createdAt: Generated<Timestamp>;
   email: string | null;
@@ -199,6 +206,7 @@ export interface DB {
   pollElements: PollElements;
   pollReviews: PollReviews;
   polls: Polls;
+  sessions: Sessions;
   userIdentities: UserIdentities;
   users: Users;
 }

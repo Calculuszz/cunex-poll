@@ -98,7 +98,13 @@ export class PollTickController {
       }
     }
 
-    return { closed, announced };
+    // Sessions of users who never came back (a login clears its own user's).
+    const purged = await this.db
+      .deleteFrom('sessions')
+      .where('expiresAt', '<=', now)
+      .executeTakeFirst();
+
+    return { closed, announced, sessionsPurged: Number(purged.numDeletedRows) };
   }
 
   /** Wrong or missing secret looks the same as the route not existing. */

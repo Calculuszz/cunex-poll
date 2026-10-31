@@ -6,7 +6,7 @@ Base path: `/api/v1` · JSON in/out · times are ISO-8601 UTC.
 
 | Topic | Rule |
 |---|---|
-| Auth | Session in an httpOnly, `Secure`, `SameSite=Lax` cookie (`sid`), backed by Redis. No bearer tokens. |
+| Auth | Session in an httpOnly, `Secure`, `SameSite=Lax` cookie (`sid`), stored in Postgres (`sessions`, SHA-256 of the cookie value, expires after `SESSION_TTL_SECONDS`). No bearer tokens. |
 | CSRF | All non-GET requests must send `Origin` matching the app origin (checked server-side). |
 | Errors | `application/problem+json` (RFC 9457): `{ type, title, status, detail, code }`. `code` is a stable machine id, e.g. `POLL_LOCKED`. |
 | Pagination | Cursor based: `?limit=20&cursor=<opaque>` → `{ items, nextCursor }`. A `limit` above the endpoint's maximum (50 for `/polls`, `/me/polls`; 100 for admin lists and text answers) is clamped, not rejected. |
