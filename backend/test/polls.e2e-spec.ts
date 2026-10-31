@@ -356,6 +356,7 @@ describe('half-done restricted audience', () => {
 describe('faculties', () => {
   it('lists every seeded faculty, not only ones seen from logins', async () => {
     const res = await eng.get('/faculties');
+    expect(res.headers['cache-control']).toContain('s-maxage=3600');
     const codes = res.body.map((f: { code: string }) => f.code);
     expect(codes).toEqual(expect.arrayContaining(['21', '24', '34', '40']));
     expect(res.body.find((f: { code: string }) => f.code === '21')).toEqual({

@@ -21,6 +21,11 @@ export const getServerApi = cache(async () => {
     return makeApi(createRequester(base, async (): Promise<Record<string, string>> => (cookie ? { cookie } : {}), { cache: 'no-store' }))
 })
 
+// รายชื่อคณะเหมือนกันทุกคนและแทบไม่เปลี่ยน: เก็บใน data cache ของ Next.js 1 ชั่วโมง
+// หน้าเว็บจึงไม่ต้องเรียก API ทุกครั้งที่เปิดหน้า (ไม่แนบ cookie เพราะ endpoint นี้ไม่ต้อง login)
+export const getFaculties = cache(async () =>
+    makeApi(createRequester(await serverBase(), undefined, { next: { revalidate: 3600 } })).faculties())
+
 // ผู้ใช้ปัจจุบัน null = ยังไม่ล็อกอิน (cache ต่อ request เรียกซ้ำหลายที่ได้)
 export const getMe = cache(async (): Promise<Me | null> => {
     try {
