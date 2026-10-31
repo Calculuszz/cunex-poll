@@ -1,5 +1,5 @@
 import React from 'react'
-import { getMe, getServerApi, loadOrNotFound } from '@/api/server'
+import { getFaculties, getMe, getServerApi, loadOrNotFound } from '@/api/server'
 import { ineligibleReason, previewToVoterPoll } from '@/lib/voteForm'
 import { loadVoterPoll } from './loadVoter'
 import { VoterHeader } from './components/voterHeader'
@@ -12,7 +12,7 @@ import { PollIntroCard } from './components/pollIntroCard'
 export async function VoteIntroPage({ slug }: { slug: string }) {
     if (!(await getMe())) {
         const api = await getServerApi()
-        const [preview, faculties] = await loadOrNotFound(() => Promise.all([api.polls.preview(slug), api.faculties()]), `/${slug}`)
+        const [preview, faculties] = await loadOrNotFound(() => Promise.all([api.polls.preview(slug), getFaculties()]), `/${slug}`)
         return (
             <>
                 <VoterHeader />

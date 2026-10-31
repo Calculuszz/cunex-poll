@@ -35,7 +35,7 @@ New Project → import repo → **Root Directory = `backend`** (ไม่ต้�
 | `API_PUBLIC_URL` | URL ของเว็บ (ตัวเดียวกับ `APP_ORIGIN` เพราะเว็บส่ง `/api/v1` ต่อมาให้) |
 | `LOG_LEVEL` | `info` |
 | `DATABASE_URL` | Transaction pooler URL (port 6543) |
-| `DATABASE_POOL_MAX` | `1` |
+| `DATABASE_POOL_MAX` | `3` (query ของหน้าเดียววิ่งพร้อมกันได้ · pooler ของ Supabase ฟรีรับได้ 200 client) |
 | `REDIS_URL` | URL จาก Upstash |
 | `VOTER_KEY_PEPPER` | สุ่ม 32 ตัวขึ้นไป **ห้ามเปลี่ยนหลังเริ่มใช้** |
 | `JOBS_MODE` | `sweep` |

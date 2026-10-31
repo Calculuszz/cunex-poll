@@ -355,6 +355,8 @@ describe('shared link opened without logging in', () => {
       questionCount: 3,
       audience: { type: 'restricted' },
     });
+    // viewer-independent, so the CDN may keep it briefly
+    expect(res.headers['cache-control']).toContain('s-maxage=30');
     expect(res.body).not.toHaveProperty('elements');
     expect(res.body).not.toHaveProperty('myBallot');
     // the full poll still needs a login
@@ -365,7 +367,9 @@ describe('shared link opened without logging in', () => {
 
   it('hides polls that are not published or were taken down', async () => {
     const waiting = await approvedPoll();
-    expect((await anon(waiting).send()).status).toBe(404);
+    const hidden = await anon(waiting).send();
+    expect(hidden.status).toBe(404);
+    expect(hidden.headers['cache-control'] ?? '').not.toContain('s-maxage');
 
     const p = await openPoll({ allowAnswerEdit: false });
     await admin

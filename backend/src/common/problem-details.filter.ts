@@ -38,6 +38,9 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     const res = host.switchToHttp().getResponse<Response>();
     const problem = this.toProblem(exception);
     if (problem.status >= 500) this.logger.error(exception);
+    // A route may have set a cacheable Cache-Control before failing (@Header
+    // is applied up front); errors must never be kept by a CDN or browser.
+    res.setHeader('Cache-Control', 'no-store');
     if (typeof problem.retryAfterSeconds === 'number') {
       res.setHeader('Retry-After', String(problem.retryAfterSeconds));
     }

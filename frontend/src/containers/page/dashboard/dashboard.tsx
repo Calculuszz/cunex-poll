@@ -1,6 +1,6 @@
 import React from 'react'
 import { redirect } from 'next/navigation'
-import { getMe, getServerApi, loadOrNotFound } from '@/api/server'
+import { getFaculties, getMe, getServerApi, loadOrNotFound } from '@/api/server'
 import type { PollDetail, PollResults } from '@/api/types'
 import { toResultsModel } from '@/lib/pollResultTypes'
 import { isBeforeOpening } from '@/lib/voteForm'
@@ -35,7 +35,7 @@ export async function PollDashboardPage({ slug, view = 'owner' }: { slug: string
     if (view === 'admin' && !admin) redirect(`/dashboard/${slug}`)
 
     const api = await getServerApi()
-    const [poll, faculties] = await loadOrNotFound(() => Promise.all([api.polls.get(slug), api.faculties()]), `${base}/${slug}`)
+    const [poll, faculties] = await loadOrNotFound(() => Promise.all([api.polls.get(slug), getFaculties()]), `${base}/${slug}`)
     // ผู้ตอบทั่วไปเปิดลิงก์ dashboard ได้เพราะโพลเปิดอยู่ ให้ไปหน้ากรอกแทน · แอดมินที่ไม่ใช่เจ้าของใช้หน้าแอดมิน
     if (view === 'owner' && !poll.isOwner) redirect(admin ? `/admin/${slug}` : `/${slug}`)
     // ฉบับร่าง/ถูกปฏิเสธของตัวเองแก้ในหน้าสร้างโพล

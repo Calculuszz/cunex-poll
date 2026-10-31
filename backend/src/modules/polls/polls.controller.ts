@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Headers,
   HttpCode,
   HttpStatus,
@@ -62,7 +63,13 @@ export class PollsController {
   constructor(private readonly polls: PollsService) {}
 
   // Reference data; the public poll intro card needs the names too.
+  // Same for everyone and rarely changes: the CDN keeps it for an hour, so
+  // most page loads never reach this function.
   @Public()
+  @Header(
+    'Cache-Control',
+    'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
+  )
   @Get('faculties')
   faculties() {
     return this.polls.listFaculties();
@@ -92,8 +99,17 @@ export class PollsController {
     return this.polls.create(user, draft);
   }
 
-  /** Shared link opened without logging in: the poll's intro card only. */
+  /**
+   * Shared link opened without logging in: the poll's intro card only.
+   * Nothing in it depends on the viewer, so the CDN serves a burst of people
+   * opening the same link; a change shows within 30 s. Errors (404) are not
+   * cached: Nest only sets these headers on a successful response.
+   */
   @Public()
+  @Header(
+    'Cache-Control',
+    'public, max-age=0, s-maxage=30, stale-while-revalidate=60',
+  )
   @Get('polls/:id/preview')
   preview(@Param('id', { schema: pollId }) id: string) {
     return this.polls.preview(id);
